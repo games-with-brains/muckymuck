@@ -539,7 +539,7 @@ func do_mcpedit(descr int, player dbref, name string) {
 			do_edit(descr, player, name)
 		} else {
 			switch supp := mcp_frame_package_supported(mfr, "dns-org-mud-moo-simpleedit"); {
-			case supp.verminor == 0 && supp.vermajor == 0:
+			case supp.minor == 0 && supp.major == 0:
 				do_edit(descr, player, name)
 			case name == "":
 				notify(player, "No program name given.")
@@ -621,7 +621,7 @@ func mcpedit_program(descr int, player, prog dbref, name string) {
 		do_edit(descr, player, name)
 	} else {
 		switch supp := mcp_frame_package_supported(mfr, "dns-org-mud-moo-simpleedit"); {
-		case supp.verminor == 0 && supp.vermajor == 0:
+		case supp.minor == 0 && supp.major == 0:
 			do_edit(descr, player, name)
 		case Typeof(player) != TYPE_PLAYER:
 			show_mcp_error(mfr, "@mcpedit", "Only players can edit programs.")
