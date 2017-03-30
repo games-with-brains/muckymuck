@@ -1,8 +1,5 @@
 package fbmuck
 
-static struct inst *oper1, *oper2, *oper3, *oper4;
-static int result;
-
 /* This allows using GUI if the player owns the MUF, which drops the
    requirement from an M3. This is not .top because .top will usually 
    be $lib/gui. This could be expanded to check the entire MUF chain. */
@@ -137,14 +134,14 @@ func stuff_dict_in_mesg(arr map[string] interface{}, msg *McpMesg) (r int) {
 
 func prim_mcp_register(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
-		pkgname := op[0].data.(string);
+		pkgname := op[0].(string);
 		vermin := McpVer{
-			major = int(op[1].data.(float64))
-			minor = int((op[1].data.(float64) * 1000) % 1000)
+			major = int(op[1].(float64))
+			minor = int((op[1].(float64) * 1000) % 1000)
 		}
 		vermax := McpVer{
-			major = int(op[2].data.(float64))
-			minor = int((op[2].data.(float64) * 1000) % 1000)
+			major = int(op[2].(float64))
+			minor = int((op[2].(float64) * 1000) % 1000)
 		}
 		mcp_package_register(pkgname, vermin, vermax, muf_mcp_callback, program)
 	})
@@ -152,14 +149,14 @@ func prim_mcp_register(player, program dbref, mlev int, pc, arg *inst, top *int,
 
 func prim_mcp_register_event(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
-		pkgname := op[0].data.(string)
+		pkgname := op[0].(string)
 		vermin := McpVer{
-			major : int(op[1].data.(float64))
-			minor : int((op[1].data.(float64) * 1000) % 1000)
+			major : int(op[1].(float64))
+			minor : int((op[1].(float64) * 1000) % 1000)
 		}
 		vermax := McpVer{
-			major: int(op[2].data.(float64))
-			minor: int((op[2].data.(float64) * 1000) % 1000)
+			major: int(op[2].(float64))
+			minor: int((op[2].(float64) * 1000) % 1000)
 		}
 		mcp_package_register(pkgname, vermin, vermax, muf_mcp_event_callback, fr.pid)
 	})
@@ -167,8 +164,8 @@ func prim_mcp_register_event(player, program dbref, mlev int, pc, arg *inst, top
 
 func prim_mcp_supports(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 2, func(op Array) {
-		descr := op[0].data.(int)
-		pkgname := op[1].data.(string)
+		descr := op[0].(int)
+		pkgname := op[1].(string)
 		if mfr = descr_mcpframe(descr); mfr != nil {
 			ver := mcp_frame_package_supported(mfr, pkgname)
 			push(arg, top, ver.major + (ver.minor / 1000.0))
@@ -202,10 +199,10 @@ func prim_mcp_bind(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_mcp_send(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
-		pkgname := op[0].data.(string)
-		msgname := op[1].data.(string)
-		arr := op[2].data.(stk_array)
-		descr := op[3].data.(int)
+		pkgname := op[0].(string)
+		msgname := op[1].(string)
+		arr := op[2].(stk_array)
+		descr := op[3].(int)
 		if mfr := descr_mcpframe(descr); mfr != nil {
 			ver := mcp_frame_package_supported(mfr, pkgname)
 			if ver.minor == 0 && ver.major == 0 {
@@ -264,20 +261,20 @@ func fbgui_muf_error_cb(descr int, dlogid, id, errcode, errtext string, context 
 
 func prim_gui_available(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
-		ver := GuiVersion(op[0].data.(int))
+		ver := GuiVersion(op[0].(int))
 		push(arg, top, ver.major + (ver.minor / 1000.0))
 	})
 }
 
 func prim_gui_dlog_create(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
-		mfr := descr_mcpframe(op[0].data.(int))
-		wintype := op[1].data.(string)
+		mfr := descr_mcpframe(op[0].(int))
+		wintype := op[1].(string)
 		if wintype == ""{
 			wintype = "simple"
 		}
-		title := op[2].data.(string)
-		arr := op[3].data.(stk_array)
+		title := op[2].(string)
+		arr := op[3].(stk_array)
 		switch {
 		case mfr == nil:
 			panic("Invalid descriptor number. (1)")
@@ -309,7 +306,7 @@ func prim_gui_dlog_create(player, program dbref, mlev int, pc, arg *inst, top *i
 
 func prim_gui_dlog_show(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
-		dlogid := op[0].data.(string)
+		dlogid := op[0].(string)
 		switch GuiShow(dlogid) {
 		case EGUINOSUPPORT:
 			panic("GUI not available.  Internal error.")
@@ -321,7 +318,7 @@ func prim_gui_dlog_show(player, program dbref, mlev int, pc, arg *inst, top *int
 
 func prim_gui_dlog_close(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
-		dlogid := op[0].data.(string)
+		dlogid := op[0].(string)
 		switch GuiClose(dlogid) {
 		case EGUINOSUPPORT:
 			panic("Internal error: GUI not available.")
@@ -334,10 +331,10 @@ func prim_gui_dlog_close(player, program dbref, mlev int, pc, arg *inst, top *in
 
 func prim_gui_ctrl_create(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
-		dlogid := op[0].data.(string)
-		ctrltype := op[1].data.(string)
-		ctrlid := op[2].data.(string)
-		arr := op[3].data.(stk_array)
+		dlogid := op[0].(string)
+		ctrltype := op[1].(string)
+		ctrlid := op[2].(string)
+		arr := op[3].(stk_array)
 		descr := gui_dlog_get_descr(dlogid)
 		mfr := descr_mcpframe(descr)
 		switch {
@@ -369,7 +366,7 @@ func prim_gui_ctrl_create(player, program dbref, mlev int, pc, arg *inst, top *i
 			for i := 0; i < vallines; i++ {
 				vallist[i] = mcp_mesg_arg_getline(msg, "value", i)
 			}
-			gui_value_set_local(dlogid, valname, vallines, vallist);
+			gui_value_set_local(dlogid, valname, vallist)
 		}
 		mcp_mesg_arg_remove(msg, "dlogid")
 		mcp_mesg_arg_append(msg, "dlogid", dlogid)
@@ -381,10 +378,10 @@ func prim_gui_ctrl_create(player, program dbref, mlev int, pc, arg *inst, top *i
 
 func prim_gui_ctrl_command(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
-		dlogid := op[0].data.(string)
-		ctrlid := op[1].data.(string)
-		ctrlcmd := op[2].data.(string)
-		arr := op[3].data.(stk_array)
+		dlogid := op[0].(string)
+		ctrlid := op[1].(string)
+		ctrlcmd := op[2].(string)
+		arr := op[3].(stk_array)
 		descr := gui_dlog_get_descr(dlogid)
 		mfr := descr_mcpframe(descr)
 		switch {
@@ -449,7 +446,7 @@ func prim_gui_value_set(player, program dbref, mlev int, pc, arg *inst, top *int
 
 func prim_gui_values_get(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
-		dlogid := op[0].data.(string)
+		dlogid := op[0].(string)
 		nu := make(Dictionary)
 		for name := GuiValueFirst(dlogid); name != ""; name = GuiValueNext(dlogid, name) {
 			lines := make(Array, gui_value_linecount(dlogid, name))
@@ -464,8 +461,8 @@ func prim_gui_values_get(player, program dbref, mlev int, pc, arg *inst, top *in
 
 func prim_gui_value_get(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 2, func(op Array) {
-		dlogid := op[0].data.(string)
-		ctrlid := op[1].data.(string)
+		dlogid := op[0].(string)
+		ctrlid := op[1].(string)
 		nu := make(stk_array, gui_value_linecount(dlogid, ctrlid))
 		for i, _ := range nu {
 			nu[i] = &inst{ data: gui_value_get(dlogid, ctrlid, i) }

@@ -81,7 +81,7 @@ func prim_userlog(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 
 func prim_queue(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 3, top, func(op Array) {
-		delay := op[0].data.(int)
+		delay := op[0].(int)
 		obj := valid_object(op[1])
 		if Typeof(obj) != TYPE_PROGRAM {
 			panic("Object must be a program. (2)")

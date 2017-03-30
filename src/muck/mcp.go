@@ -418,7 +418,7 @@ func mcp_frame_output_mesg(McpFrame * mfr, McpMesg * msg) int {
 
 	/* Build the initial message string */
 	var mlineflag bool
-	for anarg := msg.args; anarg; anarg = anarg.next {
+	for anarg := msg.args; anarg != nil; anarg = anarg.next {
 		switch {
 		case anarg.value == nil:
 			anarg.was_shown = true
@@ -503,18 +503,7 @@ func mcp_mesg_arg_linecount(McpMesg * msg, const char *name) (r int) {
 	return
 }
 
-/*****************************************************************
- *
- * char* mcp_mesg_arg_getline(
- *         McpMesg* msg,
- *         const char* argname
- *         int linenum;
- *     );
- *
- *   Gets the value of a named argument in the given message.
- *
- *****************************************************************/
-
+//	Gets the value of a named argument in the given message.
 func mcp_mesg_arg_getline(msg *McpMesg, argname string, linenum int) (r string) {
 	ptr := msg.args
 	for ; ptr != nil && !strings.EqualFold(ptr.name, argname); ptr = ptr.next {}

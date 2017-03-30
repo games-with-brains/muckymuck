@@ -1,54 +1,58 @@
-#include "config.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "interface.h"
-#include "mcp.h"
-#include "mcpgui.h"
-#include "externs.h"
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif /* HAVE_MALLOC_H */
+package fbmuck
 
-typedef struct DlogValue_t {
-	struct DlogValue_t *next;
-	char *name;
-	int lines;
-	char **value;
-} DlogValue;
+type DlogValue struct {
+	name string
+	value []string
+	next *DlogValue
+}
 
-typedef struct DlogData_t {
-	struct DlogData_t *next;
-	struct DlogData_t **prev;
-	char *id;
-	int descr;
-	int dismissed;
-	DlogValue *values;
-	Gui_CB callback;
-	GuiErr_CB error_cb;
-	void *context;
-} DlogData;
+func (d *DlogValue) Push(s string) *DlogValue {
+	return &DlogValue{ name: s, next: d }
+}
 
-DlogData *dialog_list = NULL;
-DlogData *dialog_last_accessed = NULL;
+func (d *DlogValue) Find(name string) (r *DlogValue) {
+	for r = d.values; r != nil && r.name != name; r = r.next {}
+	return
+}
+
+func (d *DlogValue) FindWithin(name string, limit int) (r *DlogValue) {
+	for r = d.values; limit > 0 && r != nil && r.name != name; r = r.next {
+		limit--
+	}
+	if r.name != name {
+		r = nil
+	}
+	return	
+}
+
+type DlogData struct {
+	id string
+	descr int
+	dismissed bool
+	values *DlogValue
+	callback Gui_CB
+	error_cb GuiErr_CB
+	context interface{}
+	next *DlogData
+	prev *(*DlogData)
+}
+
+var dialog_list *DlogData
+var dialog_last_accessed *DlogData
 
 
 void gui_pkg_callback(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context);
 
 
-void
-gui_initialize(void)
-{
+func gui_initialize() {
 	McpVer minver = { 1, 0 };  /* { major, minor } */
 	McpVer maxver = { 1, 3 };  /* { major, minor } */
-
-	mcp_package_register(GUI_PACKAGE, minver, maxver, gui_pkg_callback, NULL, NULL);
+	mcp_package_register(GUI_PACKAGE, minver, maxver, gui_pkg_callback, NULL, NULL)
 }
 
-
-func gui_dlog_find(const char *dlogid) (r *DlogData) {
+func gui_dlog_find(id string) (r *DlogData) {
 	r = dialog_last_accessed
-	if r == nil || r.id == dlogid {
+	if r == nil || r.id == id {
 		for r = dialog_list; r != nil; r = r.next {
 			if r.id == dlogid {
 				dialog_last_accessed = r
@@ -59,77 +63,52 @@ func gui_dlog_find(const char *dlogid) (r *DlogData) {
 	return
 }
 
-
-void*
-gui_dlog_get_context(const char *dlogid)
-{
-	DlogData *ptr = gui_dlog_find(dlogid);
-
-	if (ptr) {
-		return ptr->context;
-	} else {
-		return NULL;
+func gui_dlog_get_context(id string) (r interface{}) {
+	if ptr := gui_dlog_find(id); ptr != nil {
+		r = ptr.context
 	}
+	return
 }
 
-
-int
-gui_dlog_get_descr(const char *dlogid)
-{
-	DlogData *ptr = gui_dlog_find(dlogid);
-
-	if (ptr) {
-		return ptr->descr;
+func gui_dlog_get_descr(id string) (r int) {
+	if ptr := gui_dlog_find(id); ptr != nil {
+		r = ptr.descr
 	} else {
-		return EGUINODLOG;
+		r = EGUINODLOG
 	}
+	return
 }
 
-
-int
-GuiClosed(const char *dlogid)
-{
-	DlogData *ptr = gui_dlog_find(dlogid);
-
-	if (ptr) {
-		return ptr->dismissed;
+func GuiClosed(id string) (r int) {
+	if ptr := gui_dlog_find(id); ptr != nil {
+		r = ptr.dismissed
 	} else {
-		return EGUINODLOG;
+		r = EGUINODLOG
 	}
+	return
 }
 
-
-func gui_value_linecount(const char *dlogid, const char *id) int {
-	if ddata := gui_dlog_find(dlogid); ddata == nil {
+func gui_value_linecount(dlogid, id string) (r int) {
+	if d := gui_dlog_find(dlogid); d == nil {
 		r = EGUINODLOG
 	} else {
-		var ptr *DlogValue
-		for ptr = ddata.values; ptr != nil && ptr.name != id; ptr = ptr->next {}
-		if ptr != nil {
+		if ptr := d.Find(id); ptr != nil {
 			r = ptr.lines
 		}
 	}
 	return
 }
 
-
-
-const char *
-GuiValueFirst(const char *dlogid)
-{
-	DlogData *ddata = gui_dlog_find(dlogid);
-
-	if (!ddata || !ddata->values) {
-		return NULL;
+func GuiValueFirst(const char *dlogid) (r string) {
+	if ddata := gui_dlog_find(dlogid); d != nil && len(d.values) > 0 {
+		r = d.values.name
 	}
-	return ddata->values->name;
+	return
 }
 
 func GuiValueNext(dlogid, id string) (r string) {
-	if ddata := gui_dlog_find(dlogid); ddata != nil {
-		var ptr *DlogValue
-		for ptr = ddata->values; ptr != nil && ptr.name != id; ptr = ptr->next {}
-		if ptr != nil && ptr.next != nil {
+	if d := gui_dlog_find(dlogid); d != nil {
+		if ptr := d.Find(id); ptr != nil && ptr.next != nil {
 			r = ptr.next.name
 		}
 	}
@@ -137,57 +116,27 @@ func GuiValueNext(dlogid, id string) (r string) {
 }
 
 func gui_value_get(dlogid, id string, line int) (r string) {
-	if ddata := gui_dlog_find(dlogid); ddata != nil {
-		var ptr *DlogValue
-		for ptr = ddata->values; ptr != nil && ptr.name != id; ptr = ptr->next {}
-		if ptr != nil && line > -1 && line < ptr.lines {
+	if d := gui_dlog_find(dlogid); d != nil {
+		if ptr := d.values.Find(id); ptr != nil && line > -1 && line < len(ptr.value) {
 			r = ptr.value[line]
 		}
 	}
 	return
 }
 
-void
-gui_value_set_local(const char *dlogid, const char *id, int lines, const char **value)
-{
-	DlogValue *ptr;
-	DlogData *ddata = gui_dlog_find(dlogid);
-	int i;
-	int limit = 256;
-
-	if (!ddata) {
-		return;
-	}
-	for ptr = ddata->values; ptr != nil && ptr.name != id; {
-		ptr = ptr->next;
-		if (!limit--) {
-			return;
+func gui_value_set_local(dlogid, id string, value []string) {
+	if d := gui_dlog_find(dlogid); d != nil {
+		if ptr := d.FindWithin(name, 256); ptr != nil {
+			ptr.value = make([]string, len(value))
+			copy(ptr.value, value)
+		} else {
+			d.values = d.values.Push(id)
+			copy(d.values.value, value)
 		}
-	}
-	if (ptr) {
-		for (i = 0; i < ptr->lines; i++) {
-			free(ptr->value[i]);
-		}
-		free(ptr->value);
-	} else {
-		int ilen = len(id)+1;
-		ptr = (DlogValue *) malloc(sizeof(DlogValue));
-		ptr->name = (char *) malloc(ilen);
-		strcpyn(ptr->name, ilen, id);
-		ptr->next = ddata->values;
-		ddata->values = ptr;
-	}
-	ptr->lines = lines;
-	ptr->value = (char **) malloc(sizeof(char *) * lines);
-
-	for (i = 0; i < lines; i++) {
-		int vlen = len(value[i])+1;
-		ptr->value[i] = (char *) malloc(vlen);
-		strcpyn(ptr->value[i], vlen, value[i]);
 	}
 }
 
-func gui_pkg_callback(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context) {
+func gui_pkg_callback(mfr *McpFrame, msg *McpMesg, ver McpVer, context interface{}) {
 	id := mcp_mesg_arg_getline(msg, "id", 0)
 	if dlogid := mcp_mesg_arg_getline(msg, "dlogid", 0); dlogid == "" {
 		show_mcp_error(mfr, msg.mesgname, "Missing dialog ID.")
@@ -199,13 +148,13 @@ func gui_pkg_callback(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context) 
 			case "ctrl-value":
 				valcount := mcp_mesg_arg_linecount(msg, "value")
 				if id == "" {
-					show_mcp_error(mfr, msg->mesgname, "Missing control ID.");
+					show_mcp_error(mfr, msg.mesgname, "Missing control ID.");
 				} else {
 					values := make([]string, valcount)
 					for i, _ := range {
 						values[i] = mcp_mesg_arg_getline(msg, "value", i)
 					}
-					gui_value_set_local(dlogid, id, valcount, values)
+					gui_value_set_local(dlogid, id, values)
 				}
 			case "ctrl-event":
 				if id == "" {
@@ -228,11 +177,15 @@ func gui_pkg_callback(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context) 
 					}
 				}
 			case "error":
-				err := mcp_mesg_arg_getline(msg, "errcode", 0)
-				text := mcp_mesg_arg_getline(msg, "errtext", 0)
-				id := mcp_mesg_arg_getline(msg, "id", 0)
 				if dat.error_cb {
-					dat.error_cb(dat.descr, dlogid, id, err, text, dat.context)
+					dat.error_cb(
+						dat.descr,
+						dlogid,
+						mcp_mesg_arg_getline(msg, "id", 0),
+						mcp_mesg_arg_getline(msg, "errcode", 0),
+						mcp_mesg_arg_getline(msg, "errtext", 0),
+						dat.context,
+					)
 				}
 			}
 		}
@@ -430,7 +383,7 @@ GuiSetVal(const char *dlogid, const char *id, int lines, const char **value)
 			mcp_mesg_arg_append(&msg, "value", value[i]);
 		}
 		mcp_frame_output_mesg(mfr, &msg);
-		gui_value_set_local(dlogid, id, lines, value);
+		gui_value_set_local(dlogid, id, value)
 		return 0;
 	}
 	return EGUINOSUPPORT;
@@ -615,14 +568,14 @@ func gui_ctrl_make_v(dlogid, type, pane, id, text, value string, layout int, arg
 		mcp_mesg_arg_append(msg, "id", id)
 		mcp_mesg_arg_append(msg, "text", text)
 		mcp_mesg_arg_append(msg, "value", value)
-		gui_value_set_local(dlogid, id, 1, &value)
+		gui_value_set_local(dlogid, id, &value)
 		mcp_mesg_arg_append(msg, "pane", pane)
 		for i := 0; len(args) > 0 && args[i] != nil; i += 2 {
 			arg := args[i]
 			val := args[i + 1]
 
 			if arg == "value" {
-				gui_value_set_local(dlogid, id, 1, &val)
+				gui_value_set_local(dlogid, id, &val)
 			}
 			mcp_mesg_arg_append(msg, arg, val)
 			i += 2
@@ -660,7 +613,7 @@ func gui_ctrl_make_l(const char *dlogid, const char *type, const char *pane, con
 		if (value) {
 			mcp_mesg_arg_append(&msg, "value", value);
 			if (id) {
-				gui_value_set_local(dlogid, id, 1, &value);
+				gui_value_set_local(dlogid, id, &value);
 			}
 		}
 		if (pane)

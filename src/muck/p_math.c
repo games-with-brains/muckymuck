@@ -2,9 +2,9 @@ package fbmuck
 
 func prim_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		switch tf2 := op[0].data.(type) {
+		switch tf2 := op[0].(type) {
 		case float64:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 + tf2)
 			case int:
@@ -13,7 +13,7 @@ func prim_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 				push(arg, top, math.NaN())
 			}
 		case int:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 + tf2)
 			case int:
@@ -29,9 +29,9 @@ func prim_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 
 func prim_subtract(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		switch tf2 := op[0].data.(type) {
+		switch tf2 := op[0].(type) {
 		case float64:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 - tf2)
 			case int:
@@ -40,7 +40,7 @@ func prim_subtract(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				push(arg, top, math.NaN())
 			}
 		case int:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 - tf2)
 			case int:
@@ -56,9 +56,9 @@ func prim_subtract(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_multiply(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		switch tf2 := op[0].data.(type) {
+		switch tf2 := op[0].(type) {
 		case float64:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 * tf2)
 			case int:
@@ -67,7 +67,7 @@ func prim_multiply(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				push(arg, top, math.NaN())
 			}
 		case int:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 * tf2)
 			case int:
@@ -89,9 +89,9 @@ func prim_divide(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				push(arg, top, math.NaN())
 			}
 		}()
-		switch tf2 := op[0].data.(type) {
+		switch tf2 := op[0].(type) {
 		case float64:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 / tf2)
 			case int:
@@ -100,7 +100,7 @@ func prim_divide(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				push(arg, top, math.NaN())
 			}
 		case int:
-			switch tf1 := op[1].data.(type) {
+			switch tf1 := op[1].(type) {
 			case float64:
 				push(arg, top, tf1 / tf2)
 			case int:
@@ -116,37 +116,37 @@ func prim_divide(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 func prim_mod(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		push(arg, top, op[1].data.(int) % op[0].data.(int))
+		push(arg, top, op[1].(int) % op[0].(int))
 	})
 }
 
 func prim_bitor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		push(arg, top, op[1].data.(int) | op[0].data.(int))
+		push(arg, top, op[1].(int) | op[0].(int))
 	})
 }
 
 func prim_bitxor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		push(arg, top, op[1].data.(int) ^ op[0].data.(int))
+		push(arg, top, op[1].(int) ^ op[0].(int))
 	})
 }
 
 func prim_bitand(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		push(arg, top, op[1].data.(int) & op[0].data.(int))
+		push(arg, top, op[1].(int) & op[0].(int))
 	})
 }
 
 func prim_bitshift(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		switch x := op[0].dat.(int); {
+		switch x := op[0].(int); {
 		case x > 0:
-			push(arg, top, op[1].data.(int) << x)
+			push(arg, top, op[1].(int) << x)
 		case x < 0:
-			push(arg, top, op[1].data.(int) >> -x)
+			push(arg, top, op[1].(int) >> -x)
 		default:
-			push(arg, top, op[1].data.(int))
+			push(arg, top, op[1].(int))
 		}
 	})
 }
@@ -206,9 +206,9 @@ func apply_comparison_primitive(top *int, f func(op Array) bool) {
 
 func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
-		switch l := op[0].data.(type) {
+		switch l := op[0].(type) {
 		case float64:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r < l
 			case int:
@@ -217,7 +217,7 @@ func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				ok = r < l
 			}
 		case int:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r < l
 			case int:
@@ -232,9 +232,9 @@ func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_greathan(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
-		switch l := op[0].data.(type) {
+		switch l := op[0].(type) {
 		case float64:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r > l
 			case int:
@@ -243,7 +243,7 @@ func prim_greathan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				ok = r > l
 			}
 		case int:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r > l
 			case int:
@@ -258,9 +258,9 @@ func prim_greathan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_equal(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
-		switch l := op[0].data.(type) {
+		switch l := op[0].(type) {
 		case float64:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r == l
 			case int:
@@ -269,7 +269,7 @@ func prim_equal(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 				ok = r == l
 			}
 		case int:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r == l
 			case int:
@@ -284,9 +284,9 @@ func prim_equal(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 
 func prim_lesseq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
-		switch l := op[0].data.(type) {
+		switch l := op[0].(type) {
 		case float64:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r <= l
 			case int:
@@ -295,7 +295,7 @@ func prim_lesseq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				ok = r <= l
 			}
 		case int:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r <= l
 			case int:
@@ -310,9 +310,9 @@ func prim_lesseq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 func prim_greateq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
-		switch l := op[0].data.(type) {
+		switch l := op[0].(type) {
 		case float64:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r >= l
 			case int:
@@ -321,7 +321,7 @@ func prim_greateq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				ok = r >= l
 			}
 		case int:
-			switch r := op[1].data.(type) {
+			switch r := op[1].(type) {
 			case float64:
 				ok = r >= l
 			case int:

@@ -41,7 +41,7 @@ type McpMesg struct {
 	package string
 	mesgname string
 	datatag string
-	args *McpArgs
+	args *McpArg
 	incomplete int
 	bytes int
 	next *McpMesg
@@ -172,16 +172,6 @@ typedef struct McpFrame_T {
  *
  *   Returns the count of the number of lines in the given arg of
  *   the given message.
- *
- *****************************************************************
- *
- * char* mcp_mesg_arg_getline(
- *         McpMesg* msg,
- *         const char* argname
- *         int linenum;
- *     );
- *
- *   Gets the value of a named argument in the given message.
  *
  *****************************************************************
  *

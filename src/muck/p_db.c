@@ -1591,12 +1591,12 @@ func prim_setlinks_array(player, program dbref, mlev int, pc, arg *inst, top *in
 					db.Fetch(source).sp.exit.dest = dests
 					db.Fetch(source).flags |= OBJECT_CHANGED
 				case TYPE_ROOM:
-					db.Fetch(source).sp = links[0].data.(dbref)
+					db.Fetch(source).sp = links[0].(dbref)
 					db.Fetch(source).flags |= OBJECT_CHANGED
 				case TYPE_PLAYER:
-					db.Fetch(source).sp.(player_specific).home = links[0].data.(dbref)
+					db.Fetch(source).sp.(player_specific).home = links[0].(dbref)
 				case TYPE_THING:
-					db.Fetch(source).sp.(player_specific).home = links[0].data.(dbref)
+					db.Fetch(source).sp.(player_specific).home = links[0].(dbref)
 				default:
 					panic("Invalid object. (1)")
 				}

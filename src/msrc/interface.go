@@ -728,7 +728,7 @@ func idleboot_user(d *descriptor_data) {
 	queue_immediate(d, "\r\n")
 	queue_immediate(d, tp_idle_mesg)
 	queue_immediate(d, "\r\n\r\n")
-	d.booted = true
+	d.booted = 1
 }
 
 static int con_players_max = 0;	/* one of Cynbe's good ideas. */
@@ -763,19 +763,19 @@ func shovechars() {
 		gettimeofday(&current_time, (struct timezone *) 0);
 		last_slice = update_quotas(last_slice, current_time);
 
-		next_muckevent();
-		process_commands();
-		muf_event_process();
-		for (d = descriptor_list; d; d = dnext) {
-			dnext = d->next;
-			if (d->booted) {
-				process_output(d);
-				if (d->booted == 2) {
-					goodbye_user(d);
+		next_muckevent()
+		process_commands()
+		muf_event_process()
+		for d = descriptor_list; d; d = dnext {
+			dnext = d.next
+			if d.booted != 0 {
+				process_output(d)
+				if d.booted == 2 {
+					goodbye_user(d)
 				}
-				d->booted = 0;
-				process_output(d);
-				shutdownsock(d);
+				d.booted = 0
+				process_output(d)
+				shutdownsock(d)
 			}
 		}
 		if (global_dumpdone != 0) {
@@ -839,7 +839,7 @@ func shovechars() {
 			(void) time(&now);
 			for (i = 0; i < numsocks; i++) {
 				if (FD_ISSET(sock[i], &input_set)) {
-					if (!(newd = new_connection(listener_port[i], sock[i], 0))) {
+					if (!(newd = new_connection(listener_port[i], sock[i]))) {
 						if (errno && errno != EINTR && errno != EMFILE && errno != ENFILE) {
 							perror("new_connection");
 							/* return; */
@@ -854,12 +854,12 @@ func shovechars() {
 				dnext = d->next;
 				if (FD_ISSET(d->descriptor, &input_set)) {
 					if (!process_input(d)) {
-						d->booted = 1;
+						d->booted = 1
 					}
 				}
 				if (FD_ISSET(d->descriptor, &output_set)) {
 					if (!process_output(d)) {
-						d->booted = 1;
+						d->booted = 1
 					}
 				}
 				if (d->connected) {
@@ -872,13 +872,13 @@ func shovechars() {
 					/* Hardcode 300 secs -- 5 mins -- at the login screen */
 					if ((now - d->connected_at) > 300) {
 						log_status("connection screen: connection timeout 300 secs");
-						d->booted = 1;
+						d->booted = 1
 					}
 				}
 				if ( d->connected && tp_idle_ping_enable && (tp_idle_ping_time > 0) && ((now - d->last_pinged_at) > tp_idle_ping_time) ) {
 					const char *tmpptr = get_property_class( d->player, "_/sys/no_idle_ping" );
 					if( !tmpptr && !send_keepalive(d)) {
-						d->booted = 1;
+						d->booted = 1
 					}
 				}
 			}
@@ -898,23 +898,16 @@ func shovechars() {
 }
 
 
-void
-wall_and_flush(const char *msg)
-{
-	struct descriptor_data *d, *dnext;
-	char buf[BUFFER_LEN + 2];
-
-	if (!msg || !*msg)
-		return;
-	strcpyn(buf, sizeof(buf), msg);
-	strcatn(buf, sizeof(buf), "\r\n");
-
-	for (d = descriptor_list; d; d = dnext) {
-		dnext = d->next;
-		queue_msg(d, buf);
-		/* d.QueueWrite("\r\n") */
-		if (!process_output(d)) {
-			d->booted = 1;
+func wall_and_flush(msg string) {
+	if msg != "" {
+		buf := msg + "\r\n"
+		var dnext *descriptor_data
+		for d := descriptor_list; d; d = dnext {
+			dnext = d.next
+			queue_msg(d, buf)
+			if !process_output(d) {
+				d.booted = 1
+			}
 		}
 	}
 }
@@ -923,7 +916,7 @@ wall_and_flush(const char *msg)
 func flush_user_output(dbref player) {
 	for _, v := range get_player_descrs(db.Fetch(player).owner) {
 		if d := lookup_descriptor(v); d != nil && !process_output(d) {
-            d.booted = true
+            d.booted = 1
         }
     }
 }
@@ -942,34 +935,24 @@ func wall_wizards(msg string) {
 	}
 }
 
-struct descriptor_data *
-new_connection(int port, int sock, int is_ssl)
-{
-	int newsock;
-	struct sockaddr_in addr;
-	socklen_t addr_len;
-	char hostname[128];
+func new_connection(port, sock int) (r *descriptor_data) {
+	// FIXME: tcp/ip connection setup - with or without TLS
+	var addr sockaddr_in
 
-	addr_len = (socklen_t)sizeof(addr);
-	newsock = accept(sock, (struct sockaddr *) &addr, &addr_len);
-	if (newsock < 0) {
-		return 0;
-	} else {
-#ifdef F_SETFD
-		fcntl(newsock, F_SETFD, 1);
-#endif
-		strcpyn(hostname, sizeof(hostname), addrout(port, addr.sin_addr.s_addr, addr.sin_port));
-		log_status("ACCEPT: %s on descriptor %d", hostname, newsock);
-		log_status("CONCOUNT: There are now %d open connections.", ++ndescriptors);
-		return initializesock(newsock, hostname, is_ssl);
+	addr_len := (socklen_t)sizeof(addr);
+	if newsock := accept(sock, (struct sockaddr *) &addr, &addr_len); newsock > -1 {
+		hostname := addrout(port, addr.sin_addr.s_addr, addr.sin_port)
+		log_status("ACCEPT: %s on descriptor %d", hostname, newsock)
+		ndescriptors++
+		log_status("CONCOUNT: There are now %d open connections.", ndescriptors)
+		r = initializesock(newsock, hostname)
 	}
+	return
 }
 
 /*  addrout -- Translate address 'a' from addr struct to text.		*/
 
-const char *
-addrout(int lport, long a, unsigned short prt)
-{
+func addrout(int lport, long a, unsigned short prt) string {
 	static char buf[128];
 	struct in_addr addr;
 
@@ -1050,11 +1033,11 @@ func shutdownsock(d *descriptor_data) {
 
 func FlushText(mfr *McpFrame) {
 	if d := mfr.descriptor; d != nil && !process_output(d) {
-		d.booted = true
+		d.booted = 1
 	}
 }
 
-func initializesock(s int, hostname string, is_ssl int) (d *descriptor_data) {
+func initializesock(s int, hostname string) (d *descriptor_data) {
 	d = &descriptor_data{
 		descriptor: s,
 		player: -1,
@@ -1589,7 +1572,7 @@ func check_connect(d *descriptor_data, msg string) {
 					queue_msg(d, tp_playermax_bootmesg)
 				}
 				d.QueueWrite("\r\n")
-				d.booted = true
+				d.booted = 1
 			} else {
 				log_status("CONNECTED: %s(%d) on descriptor %d", db.Fetch(player).name, player, d.descriptor)
 				d.connected = true
@@ -1619,7 +1602,7 @@ func check_connect(d *descriptor_data, msg string) {
 					queue_msg(d, tp_playermax_bootmesg)
 				}
 				d.QueueWrite("\r\n")
-				d.booted = true
+				d.booted = 1
 			} else {
 				if player := create_player(user, password); player == NOTHING {
 					queue_msg(d, CREATION_FAILED)
@@ -1680,7 +1663,7 @@ func boot_off(player dbref) (r bool) {
 	if arr := get_player_descrs(player); arr != nil {
         if last := lookup_descriptor(arr[0]); last != nil {
 			process_output(last)
-			last.booted = true
+			last.booted = 1
 			r = true
 		}
 	}
@@ -1690,7 +1673,7 @@ func boot_off(player dbref) (r bool) {
 func boot_player_off(player dbref) {
 	for _, v := get_player_descrs(player) {
         if d := lookup_descriptor(v); d != nil {
-            d.booted = true
+            d.booted = 1
         }
     }
 }
@@ -2129,14 +2112,14 @@ func most_idle_player_descr(who dbref) (r int) {
 func pboot(c int) {
 	if d := descrdata_by_count(c); d != nil {
 		process_output(d)
-		d.booted = true
+		d.booted = 1
 	}
 }
 
 func pdescrboot(c int) int {
     if d := lookup_descriptor(c); d != nil {
 		process_output(d)
-		d.booted = true
+		d.booted = 1
 		/* shutdownsock(d) */
 		return 1
     }

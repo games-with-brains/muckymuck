@@ -198,7 +198,7 @@ func prim_descr_boot(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	apply_restricted_primitive(WIZBIT, mlev, 1, top, func(op Array) {
 	    if d := lookup_descriptor(op[0].(int)); d != nil {
 			process_output(d)
-			d.booted = true
+			d.booted = 1
 			/* shutdownsock(d) */
 	    } else {
 			panic("Invalid descriptor number. (1)")
@@ -333,14 +333,14 @@ func prim_descrflush(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		if op[0].(int) != -1 {
 			if d := lookup_descriptor(c); d != nil {
 				if !process_output(d) {
-					d.booted = true
+					d.booted = 1
 				}
 				r++
 			}
 		} else {
 			for d := descriptor_list; d != nil; d = d.next {
 				if !process_output(d) {
-					d.booted = true
+					d.booted = 1
 				}
 				r++
 			}

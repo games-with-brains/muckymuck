@@ -416,7 +416,7 @@ func prim_array_notify(player, program dbref, mlev int, pc, arg *inst, top *int,
 
 func prim_array_reverse(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		arr := op[0].data.(Array)
+		arr := op[0].(Array)
 		nu := copy(make(Array, len(arr)), arr)
 		nu.Reverse()
 		push(arg, top, nu)
