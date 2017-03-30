@@ -1,50 +1,21 @@
-/*
- * DB search helper routines for @find, @owned, etc type commands.
- */
-
-#ifndef DBSEARCH_H
-#define DBSEARCH_H
-
-struct flgchkdat {
-	int fortype;				/* check FOR a type? */
-	int istype;					/* If check FOR a type, which one? */
-	int isnotroom;				/* not a room. */
-	int isnotexit;				/* not an exit. */
-	int isnotthing;				/* not type thing */
-	int isnotplayer;			/* not a player */
-	int isnotprog;				/* not a program */
-	int forlevel;				/* check for a mucker level? */
-	int islevel;				/* if check FOR a mucker level, which level? */
-	int isnotzero;				/* not ML0 */
-	int isnotone;				/* not ML1 */
-	int isnottwo;				/* not ML2 */
-	int isnotthree;				/* not ML3 */
-	int setflags;				/* flags that are set to check for */
-	int clearflags;				/* flags to check are cleared. */
-	int forlink;				/* check linking? */
-	int islinked;				/* if yes, check if not unlinked */
-	int forold;					/* check for old object? */
-	int isold;					/* if yes, check if old */
-	int loadedsize;				/* check for propval-loaded size? */
-	int issize;					/* list objs larger than size? */
-	int size;					/* what size to check against. No check if 0 */
-};
-
-
-int init_checkflags(dbref player, const char *flags, struct flgchkdat *check);
-int checkflags(dbref what, struct flgchkdat check);
-void display_objinfo(dbref player, dbref obj, int output_type);
-
-#endif
-
-
-#ifdef DEFINE_HEADER_VERSIONS
-
-#ifndef dbsearchh_version
-#define dbsearchh_version
-const char *dbsearch_h_version = "$RCSfile: dbsearch.h,v $ $Revision: 1.4 $";
-#endif
-#else
-extern const char *dbsearch_h_version;
-#endif
-
+type flgchkdat struct {
+	fortype bool				/* check FOR a type? */
+	istype int					/* If check FOR a type, which one? */
+	isnotroom bool				/* not a room. */
+	isnotexit bool				/* not an exit. */
+	isnotthing bool				/* not type thing */
+	isnotplayer bool			/* not a player */
+	isnotprog bool				/* not a program */
+	forlevel bool				/* check for a mucker level? */
+	islevel int					/* if check FOR a mucker level, which level? */
+	isnotzero bool				/* not ML0 */
+	isnotone bool				/* not ML1 */
+	isnottwo bool				/* not ML2 */
+	isnotthree bool				/* not ML3 */
+	setflags int				/* flags that are set to check for */
+	clearflags int				/* flags to check are cleared. */
+	forlink bool				/* check linking? */
+	islinked bool				/* if yes, check if not unlinked */
+	forold bool					/* check for old object? */
+	isold bool					/* if yes, check if old */
+}

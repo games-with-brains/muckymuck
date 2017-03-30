@@ -45,16 +45,6 @@ Added:
     Kill_OK bits for players.  Both the killing player and the victim must
     have their KILL_OK flags set for the kill to work.
 
-  There is now a #define option for limited disk basing.  #define DISKBASE
-    in config.h to make the server not load up properties from the input
-    database file until they are needed.  If an object's properties are
-    not changed, and they haven't been accessed for longer than the database
-    DUMP_INTERVAL, then it will clear the properties back out of memory when
-    it comes time to dump the db again.  Properties for objects that have
-    had some properties added/removed/changed will remain in memory.  When
-    DISKBASE is defined, @stats will also tell how many objects are loaded
-    into memory for wizards.
-
   Ability for a wizard to append a timestamped message to the MOTD file by
     using the command  'motd <message>'.  The file can also be cleared by
     a wizard simply by typing 'motd clear'.
@@ -92,10 +82,6 @@ Changes:
   
   When timestamps are updated on a room, it now updates timestamps in all
     the rooms down the environment from it.
-  
-  
-Added:
-  @usage will give stats about current resource usage for the MUCK.
 
   
 -------
@@ -455,5 +441,5 @@ When a player connects to the server, the server basically does an:
 If a program is running, it will delay execution of queue events until
   after the program finishes, or executes a READ or SLEEP command.
   
-Any wizard can do an @pcreate, even when GOD_PRIVS is defined.
+Any wizard can do an @pcreate.
   

@@ -14,20 +14,6 @@ make changes to pcre.in. */
 #define PCRE_MINOR          3
 #define PCRE_DATE           21-May-2003
 
-/* Win32 uses DLL by default */
-/*
-#ifdef _WIN32
-#  ifdef PCRE_DEFINITION
-#    ifdef DLL_EXPORT
-#      define PCRE_DATA_SCOPE __declspec(dllexport)
-#    endif
-#  else
-#    ifndef PCRE_STATIC
-#      define PCRE_DATA_SCOPE __declspec(dllimport)
-#    endif
-#  endif
-#endif
-*/
 #ifndef PCRE_DATA_SCOPE
 #  define PCRE_DATA_SCOPE     extern
 #endif

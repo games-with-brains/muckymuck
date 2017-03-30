@@ -4,9 +4,6 @@
    */
 #undef HAVE_DIRENT_H
 
-/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
-#undef HAVE_DOPRNT
-
 /* Define to 1 if you have the <errno.h> header file. */
 #undef HAVE_ERRNO_H
 
@@ -37,9 +34,6 @@
 /* Define to 1 if you have the `socket' library (-lsocket). */
 #undef HAVE_LIBSOCKET
 
-/* Define to 1 if you have the `ssl' library (-lssl). */
-#undef HAVE_LIBSSL
-
 /* Define to 1 if you have the <linux/in6.h> header file. */
 #undef HAVE_LINUX_IN6_H
 
@@ -49,9 +43,6 @@
 /* Define to 1 if long double works and has more range or precision than
    double. */
 #undef HAVE_LONG_DOUBLE
-
-/* Define to 1 if you have the `mallinfo' function. */
-#undef HAVE_MALLINFO
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
@@ -73,9 +64,6 @@
 
 /* Define to 1 if you have the `random' function. */
 #undef HAVE_RANDOM
-
-/* Define to 1 if you have the `snprintf' function. */
-#undef HAVE_SNPRINTF
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #undef HAVE_STDARG_H
@@ -141,17 +129,8 @@
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
-/* Define to 1 if you have the `vsnprintf' function. */
-#undef HAVE_VSNPRINTF
-
 /* Configures which LINT to use to evaluate the sources. */
 #undef LINT
-
-/* Enables memory usage profiling. */
-#undef MALLOC_PROFILING
-
-/* With MALLOC_PROFILING, can detect double-frees, buffer overruns, etc. */
-#undef MALLOC_PROFILING_EXTRA
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
@@ -188,9 +167,6 @@
 
 /* The value of the uname -a command. */
 #undef UNAME_VALUE
-
-/* Use IPv6 instead of IPv4 sockets. */
-#undef USE_IPV6
 
 /* Makefile is configured to run lint on sources. */
 #undef WITH_LINT

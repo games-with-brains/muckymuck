@@ -5,9 +5,6 @@
    */
 #define HAVE_DIRENT_H 1
 
-/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
-/* #undef HAVE_DOPRNT */
-
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
 
@@ -38,9 +35,6 @@
 /* Define to 1 if you have the `socket' library (-lsocket). */
 /* #undef HAVE_LIBSOCKET */
 
-/* Define to 1 if you have the `ssl' library (-lssl). */
-/* #undef HAVE_LIBSSL */
-
 /* Define to 1 if you have the <linux/in6.h> header file. */
 /* #undef HAVE_LINUX_IN6_H */
 
@@ -50,9 +44,6 @@
 /* Define to 1 if long double works and has more range or precision than
    double. */
 #define HAVE_LONG_DOUBLE 1
-
-/* Define to 1 if you have the `mallinfo' function. */
-/* #undef HAVE_MALLINFO */
 
 /* Define to 1 if you have the <malloc.h> header file. */
 /* #undef HAVE_MALLOC_H */
@@ -74,9 +65,6 @@
 
 /* Define to 1 if you have the `random' function. */
 #define HAVE_RANDOM 1
-
-/* Define to 1 if you have the `snprintf' function. */
-#define HAVE_SNPRINTF 1
 
 /* Define to 1 if you have the <stdarg.h> header file. */
 #define HAVE_STDARG_H 1
@@ -142,17 +130,8 @@
 /* Define to 1 if you have the `vprintf' function. */
 #define HAVE_VPRINTF 1
 
-/* Define to 1 if you have the `vsnprintf' function. */
-#define HAVE_VSNPRINTF 1
-
 /* Configures which LINT to use to evaluate the sources. */
 /* #undef LINT */
-
-/* Enables memory usage profiling. */
-/* #undef MALLOC_PROFILING */
-
-/* With MALLOC_PROFILING, can detect double-frees, buffer overruns, etc. */
-/* #undef MALLOC_PROFILING_EXTRA */
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "revar@belfry.com"
@@ -189,9 +168,6 @@
 
 /* The value of the uname -a command. */
 #define UNAME_VALUE "Darwin pressbox.local 14.4.0 Darwin Kernel Version 14.4.0: Thu May 28 11:35:04 PDT 2015; root:xnu-2782.30.5~1/RELEASE_X86_64 x86_64"
-
-/* Use IPv6 instead of IPv4 sockets. */
-/* #undef USE_IPV6 */
 
 /* Makefile is configured to run lint on sources. */
 /* #undef WITH_LINT */

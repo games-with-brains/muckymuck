@@ -5,7 +5,7 @@ Terminology:
 
 + MUCK additon
 * Wizard only
-# Restricted with GOD_PRIV
+# Restricted by God
 B Builder command -- may be restricted
 P Programmer command  -- restricted unless MUCKER_ALL
 ~ Optional
@@ -82,8 +82,7 @@ to the computing power involved.
 
 @FORCE		[*#]
 @force <player>=<command>.  Causes the game to process <command> as if
-typed  by <player>.  With  the compile option  GOD_PRIV, God cannot be
-forced by his/her sub-wizards.
+typed  by <player>.  God cannot be  forced by his/her sub-wizards.
 
 @LINK
 @link  <object1>=<object2> [;  <object3>; ...  <objectn>   ].    Links
@@ -112,8 +111,7 @@ any player but still must include the password.
 @newpassword <player>  [=<password>].   Sets   the  password field  of
 <player> to <password>.  If <password> is not specified,  the password
 field is    cleared.  A   player with    no  password   cannot  rename
-him/herself.  If  GOD_PRIV  was defined,   nobody can   change   God's
-password.
+him/herself.  Nobody can   change   God's  password.
 
 @ODROP		[+]
 @odrop  <object>  [=<text>].   Sets the odrop field   of  <object>  to

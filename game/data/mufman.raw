@@ -1575,7 +1575,7 @@ as USER_LOG, defaults to the "logs/user" file.)  The log entry will be
 formatted like:
 Winged(#4023) [newaction.muf(#666)] 06/11/02 03:09:31: <string>
 The program must be running at a mucker level at least equal to the @tune
-value 'userlog_mlev' (defaults to 3) to write this log entry.
+value 'userlog_mlev' (defaults to MASTER) to write this log entry.
 ~
 ~
 ~
@@ -2381,33 +2381,6 @@ STOD ( s -- d )
 
   Attempts to extract a dbref from s, recognizing both plain numerical
 strings, and those prepended with a '#' sign.
-~
-~
-ANSI_STRIP
-ANSI_STRIP ( s -- s' )
-
-  Takes a string and removes ansi escapes from with in the string, returning
-the de-ansified string.
-~
-~
-ANSI_STRLEN
-ANSI_STRLEN ( s -- i )
-
-  Returns the length of string s ignoring ansi escape within the string.
-~
-~
-ANSI_STRCUT
-ANSI_STRCUT ( s i -- s1 s2 )
-
-  Like STRCUT, but ignores ansi escapes when finding the location to divide
-the string at.
-~
-~
-ANSI_MIDSTR
-ANSI_MIDSTR ( s i i -- s' )
-
-  Does exactly what MIDSTR does, except it ignores ansi escapes when
-determining what section of the string to extract.
 ~
 ~
 NUMBER?
@@ -3408,7 +3381,7 @@ ARRAY_GET_PROPVALS ( d s -- a )
 keyed by propname.  Sub- propdirs in the given propdir that do not
 have any value of their own, are left out of the returned dictionary.
 Properties that the program doesn't have perms to read are also
-left out.  Reads up to 511 props maximum. (ML3 required.)
+left out.  (ML3 required.)
 ~
 ~
 ARRAY_PUT_PROPVALS
@@ -3428,7 +3401,7 @@ ARRAY_GET_PROPLIST ( d s -- a )
 in a dictionary, keyed by propname.  Proplists can be in any of the
 common proplist styles: ie: "propname#/1", "propname/1", or "propname1".
 If the program doesn't have permission to read the list, it returns an
-empty dictionary.  Reads up to 511 props maximum.
+empty dictionary.
 ~
 ~
 ARRAY_PUT_PROPLIST

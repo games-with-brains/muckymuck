@@ -62,8 +62,7 @@ Symbols
 A's
   abort                     abs                       acos
   addpennies                addprop                   address?
-  and                       ansi_midstr               ansi_strcut
-  ansi_strip                ansi_strlen               array?
+  and                       array?
   array_appenditem          array_compare             array_count
   array_cut                 array_delitem             array_delrange
   array_diff                array_excludeval          array_explode
@@ -203,7 +202,7 @@ S's
   srand              stats              stod               strcat
   strcmp             strcut             strdecrypt         strencrypt
   string?            stringcmp          stringpfx          strip
-  striplead          striptail          strlen             strncmp
+  striplead          striptail          len             strncmp
   strtof             subst              succ               swap
   sysparm            sysparm_array      systime            systime_precise
 
@@ -1797,7 +1796,7 @@ as USER_LOG, defaults to the "logs/user" file.)  The log entry will be
 formatted like:
 Winged(#4023) [newaction.muf(#666)] 06/11/02 03:09:31: <string>
 The program must be running at a mucker level at least equal to the @tune
-value 'userlog_mlev' (defaults to 3) to write this log entry.
+value 'userlog_mlev' (defaults to MASTER) to write this log entry.
 ~
 ~
 ~
@@ -2304,7 +2303,6 @@ Also see: ERROR?
 String Manipulation Operators|StringOps
 String Manipulation Operators
 
-ansi_midstr        ansi_strcut        ansi_strip         ansi_strlen
 array_fmtstrings   atoi               ctoi               explode
 explode_array      ext-name-ok?       fmtstring          instr
 instring           intostr            itoc               midstr
@@ -2313,7 +2311,7 @@ regexp             regsub             rinstr             rinstring
 rsplit             smatch             split              stod
 strcat             strcmp             strcut             strdecrypt
 strencrypt         stringcmp          stringpfx          strip
-striplead          striptail          strlen             strncmp
+striplead          striptail          len             strncmp
 subst              textattr           tokensplit         tolower
 toupper            
 
@@ -2625,33 +2623,6 @@ STOD ( s -- d )
 
   Attempts to extract a dbref from s, recognizing both plain numerical
 strings, and those prepended with a '#' sign.
-~
-~
-ANSI_STRIP
-ANSI_STRIP ( s -- s' )
-
-  Takes a string and removes ansi escapes from with in the string, returning
-the de-ansified string.
-~
-~
-ANSI_STRLEN
-ANSI_STRLEN ( s -- i )
-
-  Returns the length of string s ignoring ansi escape within the string.
-~
-~
-ANSI_STRCUT
-ANSI_STRCUT ( s i -- s1 s2 )
-
-  Like STRCUT, but ignores ansi escapes when finding the location to divide
-the string at.
-~
-~
-ANSI_MIDSTR
-ANSI_MIDSTR ( s i i -- s' )
-
-  Does exactly what MIDSTR does, except it ignores ansi escapes when
-determining what section of the string to extract.
 ~
 ~
 NUMBER?
@@ -3683,7 +3654,7 @@ ARRAY_GET_PROPVALS ( d s -- a )
 keyed by propname.  Sub- propdirs in the given propdir that do not
 have any value of their own, are left out of the returned dictionary.
 Properties that the program doesn't have perms to read are also
-left out.  Reads up to 511 props maximum. (ML3 required.)
+left out.  (ML3 required.)
 ~
 ~
 ARRAY_PUT_PROPVALS
@@ -3703,7 +3674,7 @@ ARRAY_GET_PROPLIST ( d s -- a )
 in a dictionary, keyed by propname.  Proplists can be in any of the
 common proplist styles: ie: "propname#/1", "propname/1", or "propname1".
 If the program doesn't have permission to read the list, it returns an
-empty dictionary.  Reads up to 511 props maximum.
+empty dictionary.
 ~
 ~
 ARRAY_PUT_PROPLIST

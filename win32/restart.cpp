@@ -105,24 +105,18 @@ char * str_replace(const char *s, char *p) {
 }
 
 bool parse_bool(char *str) {
-   const char *p = str;
-   while (*p != '=') p++;
-   p++;
-   while (isspace(*p)) p++;
-   if (toupper(*p) == 'T' || *p == '1') return true;
-   return false;
+	p := str
+	while (*p != '=') p++
+	p++;
+	p = strings.TrimLeftFunc(unicode.IsSpace)
+	return strings.ToUpper(*p) == 'T' || *p == '1'
 }
 
-char *parse_str(char *str) {
-   char *p = str;
-   while (*p != '=') p++;
-   p++;
-   while (isspace(*p)) p++;
-   char *q = p + strlen(p) - 1;
-   if (q <= p) return strdup("");
-   while (isspace(*q)) q--;
-   *(++q) = '\0';
-   return strdup(p);
+func parse_str(str string) string {
+	p := str
+	while (*p != '=') p++;
+	p++;
+	return strings.TrimFunc(p, unicode.IsSpace)
 }
 
 int *parse_int_list(char *str, int &count) {
@@ -132,11 +126,11 @@ int *parse_int_list(char *str, int &count) {
    int acount = 0;
    bool skipping = true;
    while (*p) {
-      if (skipping && !isspace(*p)) {
+      if (skipping && !unicode.IsSpace(*p)) {
          acount++;
          skipping = false;
          p++;
-      } else if (!skipping && isspace(*p)) {
+      } else if (!skipping && unicode.IsSpace(*p)) {
          skipping = true;
       }
       p++;
@@ -147,10 +141,10 @@ int *parse_int_list(char *str, int &count) {
    skipping = true;
    char *iptr = 0; count = 0;
    while (*p && count < acount) {
-      if (skipping && !isspace(*p)) {
+      if (skipping && !unicode.IsSpace(*p)) {
          iptr = p;
          skipping = false;
-      } if (!skipping && isspace(*p)) {
+      } if (!skipping && unicode.IsSpace(*p)) {
          *p = '\0';
          list[count++] = atoi(iptr);
          skipping = true;
@@ -184,7 +178,7 @@ mucklist * parse_ini(const char *fn) {
          
           case '[':
              fgets(buf, MAX_PATH, f);
-             p = buf + strlen(buf) - 1;
+             p = buf + len(buf) - 1;
              while (!isalnum(*p)) p--;
              *(p+1) = '\0';
              m = newmucklist(buf + 1, m);
@@ -324,310 +318,307 @@ mucklist * parse_ini(const char *fn) {
 }
 
 int main (int argc, char **argv) {
-   const char *iniFileName = "restart.ini";
+	const char *iniFileName = "restart.ini";
 
-   for (int i = 1; i < argc; i++) {
-      switch(argv[i][0]) {
-         case '-':
-            if (!strcmp(argv[i], "--help")) {
-               print_usage();
-               return 0;
-            } else if (!strcmp(argv[i], "-c")) {
-               create_ini((argc == 3 ? argv[2] : "restart.ini"));
-               return 0;
-            }
-         default:
-            iniFileName = argv[i];
-      }
-   }
+	for (int i = 1; i < argc; i++) {
+		switch(argv[i][0]) {
+		case '-':
+			if argv[i] == "--help" {
+				print_usage();
+				return 0;
+			} else if argv[i] == "-c" {
+				create_ini((argc == 3 ? argv[2] : "restart.ini"));
+				return 0;
+			}
+		default:
+			iniFileName = argv[i];
+		}
+	}
 
-   mucklist *ml = parse_ini(iniFileName);
-   if (!ml) return -1;
+	mucklist *ml = parse_ini(iniFileName);
+	if (!ml) return -1;
 
-   mucklist *p = ml;
-   while (p) {
-      FILE    *logfile;
-      char    dmy[12];
-      char    hms[10];
-      time_t  now    = time(NULL);
-      struct  tm *lt = localtime(&now);
-      strftime(dmy, 12, "%m-%d-%Y", lt);
-      strftime(hms, 10, "%H:%M:%S", lt);
+	mucklist *p = ml;
+	while (p) {
+		FILE    *logfile;
+		char    dmy[12];
+		char    hms[10];
+		time_t  now    = time(NULL);
+		struct  tm *lt = localtime(&now);
+		strftime(dmy, 12, "%m-%d-%Y", lt);
+		strftime(hms, 10, "%H:%M:%S", lt);
 
-      printf("[%s]\n", p->muckname);
+		printf("[%s]\n", p->muckname);
 
-      // Log file
-      if (p->logging) {
-         printf("   Opening log file...");
-         logfile = fopen(p->logfile, "a");
-         if (!logfile) {
-            printf("FAILED\n");
-            p->logging = false;
-         } else {
-            printf("done\n");
-            fprintf(logfile, "---------------[ Starting Server: %s @ %s]---------------\n", dmy, hms);
-         }
-      }
+		// Log file
+		if (p->logging) {
+			printf("   Opening log file...");
+			logfile = fopen(p->logfile, "a");
+			if (!logfile) {
+				printf("FAILED\n");
+				p->logging = false;
+			} else {
+				printf("done\n");
+				fprintf(logfile, "---------------[ Starting Server: %s @ %s]---------------\n", dmy, hms);
+			}
+		}
 
-      // DB Old -> DB Older
-      FILE *f = fopen(p->dboldfile, "r");
-      if (f) {
-         fclose(f);
-         printf("   Moving db old to db older...");
-         if (p->logging) fprintf(logfile, "Moving db old to db older...");
-         char *oldbuf = (char *) malloc(strlen(p->dboldfile) + strlen(dmy) + 2);
-         sprintf(oldbuf, "%s.%s", p->dboldfile, dmy);
-         unlink(oldbuf);
-         if (rename(p->dboldfile, oldbuf)) {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            free(oldbuf);
-            if (p->logging) fclose(logfile);
-            p = p->next;
-            continue;
-         } else {
-            free(oldbuf);
-            printf("done\n");
-            if (p->logging) fprintf(logfile, "done\n");
-         }
-      }
+		// DB Old -> DB Older
+		FILE *f = fopen(p->dboldfile, "r");
+		if (f) {
+			fclose(f);
+			printf("   Moving db old to db older...");
+			if (p->logging) fprintf(logfile, "Moving db old to db older...");
+			char *oldbuf = (char *) malloc(len(p->dboldfile) + len(dmy) + 2);
+			sprintf(oldbuf, "%s.%s", p->dboldfile, dmy);
+			unlink(oldbuf);
+			if (rename(p->dboldfile, oldbuf)) {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				free(oldbuf);
+				if (p->logging) fclose(logfile);
+				p = p->next;
+				continue;
+			} else {
+				free(oldbuf);
+				printf("done\n");
+				if (p->logging) fprintf(logfile, "done\n");
+			}
+		}
 
 
-      // Check for PANIC
-      char *panicbuf = (char *) malloc(strlen(p->dboutfile) + 7);
-      sprintf(panicbuf, "%s.PANIC", p->dboutfile);
-      f = fopen(panicbuf, "r");
-      if (f) {
-         fclose(f);
-         printf("   Moving PANIC file(s)...");
-         if (p->logging) fprintf(logfile, "Moving PANIC file(s)...");
-         char *macros = (char *) malloc(strlen(p->macrosfile) + 7);
-         sprintf(macros, "%s.PANIC", p->macrosfile);
-         unlink(p->macrosfile);
-         if (rename(macros, p->macrosfile)) {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            free(macros);
-            if (p->logging) fclose(logfile);
-            p = p->next;
-            continue;
-         }
-         free(macros);
-         unlink(p->dbinfile);
-         if (rename(panicbuf, p->dbinfile)) {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            free(panicbuf);
-            if (p->logging) fclose(logfile);
-            p = p->next;
-            continue;
-         } else {
-            printf("done\n");
-            if (p->logging) fprintf(logfile, "done\n");
-            free(panicbuf);
-         }
-      }
+		// Check for PANIC
+		char *panicbuf = (char *) malloc(len(p->dboutfile) + 7);
+		sprintf(panicbuf, "%s.PANIC", p->dboutfile);
+		f = fopen(panicbuf, "r");
+		if (f) {
+			fclose(f);
+			printf("   Moving PANIC file(s)...");
+			if (p->logging) fprintf(logfile, "Moving PANIC file(s)...");
+			char *macros = (char *) malloc(len(p->macrosfile) + 7);
+			sprintf(macros, "%s.PANIC", p->macrosfile);
+			unlink(p->macrosfile);
+			if (rename(macros, p->macrosfile)) {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				free(macros);
+				if (p->logging) fclose(logfile);
+				p = p->next;
+				continue;
+			}
+			free(macros);
+			unlink(p->dbinfile);
+			if (rename(panicbuf, p->dbinfile)) {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				free(panicbuf);
+				if (p->logging) fclose(logfile);
+				p = p->next;
+				continue;
+			} else {
+				printf("done\n");
+				if (p->logging) fprintf(logfile, "done\n");
+				free(panicbuf);
+			}
+		}
 
-      // If dbout, dbin -> dbold
-      f = fopen(p->dboutfile, "r");
-      if (f) {
-         fclose(f);
-         f = fopen(p->dbinfile, "r");
-         if (f) {
-            fclose(f);
-            printf("   Moving db in to db old...");
-            if (p->logging) fprintf(logfile, "Moving db in to db old...");
-            unlink(p->dboldfile);
-            if (rename(p->dbinfile, p->dboldfile)) {
-               printf("FAILED\n");
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            } else {
-               printf("done\n");
-               if (p->logging) fprintf(logfile, "done\n");
-            }
-         }
-         unlink(p->dbinfile);
-         printf("   Moving db out to db in...");
-         if (p->logging) fprintf(logfile, "Moving db out to db in...");
-         if (rename(p->dboutfile, p->dbinfile)) {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            if (p->logging) fclose(logfile);
-            p = p->next;
-            continue;
-         } else {
-            printf("done\n");
-            if (p->logging) fprintf(logfile, "done\n");
-         }
-      }
+		// If dbout, dbin -> dbold
+		f = fopen(p->dboutfile, "r");
+		if (f) {
+			fclose(f);
+			f = fopen(p->dbinfile, "r");
+			if (f) {
+				fclose(f);
+				printf("   Moving db in to db old...");
+				if (p->logging) fprintf(logfile, "Moving db in to db old...");
+				unlink(p->dboldfile);
+				if (rename(p->dbinfile, p->dboldfile)) {
+					printf("FAILED\n");
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				} else {
+					printf("done\n");
+					if (p->logging) fprintf(logfile, "done\n");
+				}
+			}
+			unlink(p->dbinfile);
+			printf("   Moving db out to db in...");
+			if (p->logging) fprintf(logfile, "Moving db out to db in...");
+			if (rename(p->dboutfile, p->dbinfile)) {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				if (p->logging) fclose(logfile);
+				p = p->next;
+				continue;
+			} else {
+				printf("done\n");
+				if (p->logging) fprintf(logfile, "done\n");
+			}
+		}
 
-      // Validate DB in file
-      printf("   Verifying input file...");
-      if (p->logging) fprintf(logfile, "Verifying input file...");
-      f = fopen(p->dbinfile, "r");
-      if (!f) {
-         printf("FAILED\n");
-         if (p->logging) fprintf(logfile, "FAILED\n");
-         if (p->logging) fclose(logfile);
-         p = p->next;
-         continue;
-      }
+		// Validate DB in file
+		printf("   Verifying input file...");
+		if (p->logging) fprintf(logfile, "Verifying input file...");
+		f = fopen(p->dbinfile, "r");
+		if (!f) {
+			printf("FAILED\n");
+			if (p->logging) fprintf(logfile, "FAILED\n");
+			if (p->logging) fclose(logfile);
+			p = p->next;
+			continue;
+		}
 
-      fseek(f, -18L, SEEK_END);
-      char checkbuf[18];
-      fread(checkbuf, sizeof(char), 17, f);
-      checkbuf[17] = '\0';
-      fclose(f);
-      if (strcmp(checkbuf, "***END OF DUMP***")) {
-         if (!strcmp(checkbuf, "**END OF DUMP***\n")) {
-            printf("delayed\n");
-            if (p->logging) fprintf(logfile, "delayed\n");
-            printf("   Converting input file from dos to unix format...");
-            if (p->logging) fprintf(logfile, "Converting input file from dos to unix format...");
-            FILE *out = fopen(p->dboutfile, "wb");
-            FILE *in  = fopen(p->dbinfile, "rb");
-            if (!in || !out) {
-               printf("FAILED\n");
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               fclose(in);
-               fclose(out);
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            }
-            char c;
-            while ((c = fgetc(in)) != EOF) {
-               if (c != '\r') fputc(c, out);
-            }
-            fclose(in);
-            fclose(out);
-            unlink(p->dbinfile);
-            if (rename(p->dboutfile, p->dbinfile)) {
-               printf("FAILED\n");
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            }
+		fseek(f, -18L, SEEK_END);
+		char checkbuf[18];
+		fread(checkbuf, sizeof(char), 17, f);
+		checkbuf[17] = '\0';
+		fclose(f);
+		if checkbuf != "***END OF DUMP***" {
+			if checkbuf == "**END OF DUMP***\n" {
+				printf("delayed\n");
+				if (p->logging) fprintf(logfile, "delayed\n");
+				printf("   Converting input file from dos to unix format...");
+				if (p->logging) fprintf(logfile, "Converting input file from dos to unix format...");
+				FILE *out = fopen(p->dboutfile, "wb");
+				FILE *in  = fopen(p->dbinfile, "rb");
+				if (!in || !out) {
+					printf("FAILED\n");
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					fclose(in);
+					fclose(out);
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				}
+				char c;
+				while ((c = fgetc(in)) != EOF) {
+					if (c != '\r') fputc(c, out);
+				}
+				fclose(in);
+				fclose(out);
+				unlink(p->dbinfile);
+				if (rename(p->dboutfile, p->dbinfile)) {
+					printf("FAILED\n");
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				}
 
-            char *outmacro = (char *) malloc(strlen(p->macrosfile) + 5);
-            sprintf(outmacro, "%s.out", p->macrosfile);
-            out = fopen(outmacro, "wb");
-            in  = fopen(p->macrosfile, "rb");
-            if (out && in) {
-               while ((c = fgetc(in)) != EOF) {
-                  if (c != '\r') fputc(c, out);
-               }
-               fclose(in);
-               fclose(out);
-               unlink(p->macrosfile);
-               rename(outmacro, p->macrosfile);
-            }
-            free(outmacro);
-            printf("done\n");
-            if (p->logging) fprintf(logfile, "done\n");
+				char *outmacro = (char *) malloc(len(p->macrosfile) + 5);
+				sprintf(outmacro, "%s.out", p->macrosfile);
+				out = fopen(outmacro, "wb");
+				in  = fopen(p->macrosfile, "rb");
+				if (out && in) {
+					while ((c = fgetc(in)) != EOF) {
+						if (c != '\r') fputc(c, out);
+					}
+					fclose(in);
+					fclose(out);
+					unlink(p->macrosfile);
+					rename(outmacro, p->macrosfile);
+				}
+				free(outmacro);
+				printf("done\n");
+				if (p->logging) fprintf(logfile, "done\n");
 
-            if (p->logging) fprintf(logfile, "Verifying input file...");
-            printf("   Verifying input file...");
-            f = fopen(p->dbinfile, "r");
-            if (!f) {
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               printf("FAILED\n");
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            }
-            fseek(f, -18L, SEEK_END);
-            fread(checkbuf, sizeof(char), 17, f);
-            checkbuf[17] = '\0';
-            fclose(f);
-            if (strcmp(checkbuf, "***END OF DUMP***")) {
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               printf("FAILED\n");
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            }
-         } else {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            if (p->logging) fclose(logfile);
-            p = p->next;
-            continue;
-         }
-      }
-      printf("done\n");
-      if (p->logging) fprintf(logfile, "done\n");
+				if (p->logging) fprintf(logfile, "Verifying input file...");
+				printf("   Verifying input file...");
+				f = fopen(p->dbinfile, "r");
+				if (!f) {
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					printf("FAILED\n");
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				}
+				fseek(f, -18L, SEEK_END);
+				fread(checkbuf, sizeof(char), 17, f);
+				checkbuf[17] = '\0';
+				fclose(f);
+				if checkbuf != "***END OF DUMP***" {
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					printf("FAILED\n");
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				}
+			} else {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				if (p->logging) fclose(logfile);
+				p = p->next;
+				continue;
+			}
+		}
+		printf("done\n");
+		if (p->logging) fprintf(logfile, "done\n");
 
-      // Check for a deltas file
-      f = fopen(p->deltasfile, "rb");
-      if (f) {
-         printf("   Merging deltas file...");
-         if (p->logging) fprintf(logfile, "Merging deltas file...");
-         fseek(f, -18L, SEEK_END);
-         char checkbuf[18];
-         fread(checkbuf, sizeof(char), 17, f);
-         if (strcmp(checkbuf,"***END OF DUMP***")) {
-            printf("FAILED\n");
-            if (p->logging) fprintf(logfile, "FAILED\n");
-            fclose(f);
-         } else {
-            FILE *dbin = fopen(p->dbinfile, "a+b");
-            if (!dbin) {
-               printf("FAILED\n");
-               if (p->logging) fprintf(logfile, "FAILED\n");
-               fclose(f);
-               if (p->logging) fclose(logfile);
-               p = p->next;
-               continue;
-            }
-            fseek(f, 0L, SEEK_SET);
-            char c;
-            while((c = fgetc(f)) != EOF) {
-               if (c != '\r') fputc(c, dbin);
-            }
-            fclose(f);
-            fclose(dbin);
-            printf("done\n");
-            if (p->logging) fprintf(logfile, "done\n");
-         }
-         
-      }
+		// Check for a deltas file
+		f = fopen(p->deltasfile, "rb");
+		if (f) {
+			printf("   Merging deltas file...");
+			if (p->logging) fprintf(logfile, "Merging deltas file...");
+			fseek(f, -18L, SEEK_END);
+			char checkbuf[18];
+			fread(checkbuf, sizeof(char), 17, f);
+			if checkbuf != "***END OF DUMP***" {
+				printf("FAILED\n");
+				if (p->logging) fprintf(logfile, "FAILED\n");
+				fclose(f);
+			} else {
+				FILE *dbin = fopen(p->dbinfile, "a+b");
+				if (!dbin) {
+					printf("FAILED\n");
+					if (p->logging) fprintf(logfile, "FAILED\n");
+					fclose(f);
+					if (p->logging) fclose(logfile);
+					p = p->next;
+					continue;
+				}
+				fseek(f, 0L, SEEK_SET);
+				char c;
+				while((c = fgetc(f)) != EOF) {
+					if (c != '\r') fputc(c, dbin);
+				}
+				fclose(f);
+				fclose(dbin);
+				printf("done\n");
+				if (p->logging) fprintf(logfile, "done\n");
+			}
+		}
 
-      // Startup the server
-      if (p->logging) fprintf(logfile, "Starting server...\n");
-      printf("   Starting server...\n");
-      int argcount = 0;
-      argcount  = 1 + 2 + p->portcount + (p->sslportcount * 2);
-      argcount += (p->wizonly ? 1 : 0) + (p->hideconsole) + 1;
-      char **args = (char **) malloc(sizeof(char *) * argcount);
-      int marg = 0;
-      args[marg++] = strdup(p->server);
+		// Startup the server
+		if (p->logging) fprintf(logfile, "Starting server...\n");
+		printf("   Starting server...\n");
+		int argcount = 0;
+		argcount  = 1 + 2 + p->portcount + (p->sslportcount * 2);
+		argcount += (p->wizonly ? 1 : 0) + (p->hideconsole) + 1;
+		char **args = (char **) malloc(sizeof(char *) * argcount);
+		int marg = 0;
+		args[marg++] = strdup(p->server);
 
-      if (p->wizonly) args[marg++] = strdup("-wizonly");
-      if (p->hideconsole) args[marg++] = strdup("-freeconsole");
-      for (int i = 0; i < p->sslportcount; i++) {
-         args[marg++] = strdup("-sport");
-         char buf[15];
-         _snprintf(buf, 14, "%d", p->sslports[i]);
-         args[marg++] = strdup(buf);
-      }
-      args[marg++] = strdup(p->dbinfile);
-      args[marg++] = strdup(p->dboutfile);
-      for (int i = 0; i < p->portcount; i++) {
-         char buf[15];
-         _snprintf(buf, 14, "%d", p->ports[i]);
-         args[marg++] = strdup(buf);
-      }
-      args[marg++] = '\0';
-      _spawnv(_P_NOWAIT, p->server, args);
-      for (int i = 0; i < argcount; i++) free(args[i]);
-      free(args);
-      printf("done\n");
-      p = p->next;
-   }
+		if (p->wizonly) args[marg++] = strdup("-wizonly");
+		if (p->hideconsole) args[marg++] = strdup("-freeconsole");
+		for (int i = 0; i < p->sslportcount; i++) {
+			args[marg] = "-sport"
+			marg++
+			args[marg] = fmt.Sprint(p.sslports[i])
+			marg++
+		}
+		args[marg++] = strdup(p->dbinfile);
+		args[marg++] = strdup(p->dboutfile);
+		for (int i = 0; i < p->portcount; i++) {
+			args[marg] = fmt.Sprint(p.ports[i])
+			marg++
+		}
+		args[marg++] = '\0';
+		_spawnv(_P_NOWAIT, p->server, args);
+		for (int i = 0; i < argcount; i++) free(args[i]);
+		free(args);
+		printf("done\n");
+		p = p->next;
+	}
 }
-

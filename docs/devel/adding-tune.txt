@@ -32,8 +32,8 @@ and don't forget to do the &tp_<name> syntax for the variable (to give it its
 pointer, not its value).
 
 6) In whatever area you're modifying, do an if(tp_<name>){} around the block of
-changed behavior, if it's a bool... or a snprintf(string,"%s",tp_<name>) if
-it's a string, or whatever you need to in order to make use of the new @tune.
+changed behavior, if it's a bool... or whatever you need to in order to make use
+of the new @tune.
 
 7) Test that your modifications don't change the prior behavior when the tune
 is disabled, and test that your modifications do what you want them to when the

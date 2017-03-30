@@ -67,8 +67,6 @@ Fixed crasher bug if a program was dequeued by dbref (IE compiled) and was
   running, but in a call to another program.
 Fixed MUF memory leak in CALL and possible leaks in EXECUTE, JMP, & SLEEP.
 Fixed MPI {dist} function to accept 2 arguments like it is supposed to.
-Fixed a bug that crashed the server on @shutdown, when DELTADUMPS was not
-  defined, but DISKBASING was.
 Fixed a hanging bug in sanity, if an object's next field pointed to itself.
 Changed permissions on the KILL MUF primitive to bring them more in line
   with the permissions for {kill} and @kill.
@@ -85,7 +83,6 @@ Fixed a security hole that allowed all Wizards to see player passwords.
 
 
 2.2fb5.51
-Fixed a crasher bug with using MUD_ID in params.h
 Fixed a few error messages in sanity checking.
 Fixed @sanchange for changing the home field on an object.
 Added ability for @sanchange to edit object ownership.
@@ -187,7 +184,6 @@ Fixed a bug in STRENCRYPT/STRDECRYPT muf primitives.
 2.2fb5.47
 Fixed timestamps in logfiles.  (For want of an s, the time was lost.)
 Fixed notify_except for echoing messages in vehicles.
-Fixed portability problem in topwords.  Use POSIX strchr() instead of index().
 Added {created:obj}, {modified:obj}, {lastused:obj}, and {usecount:obj} MPI
   primitives to allow getting timestamp info on an object.
 Fixed some bugs with resolver not working under various operating systems.
@@ -346,7 +342,6 @@ Fixed a compiling error when SPAWN_HOST_RESOLVER is undefined.
 
 
 2.2fb5.42
-Fixed a portability bug with strencrypt referring to random(), not RANDOM().
 Fixed a corrupting bug in deltas loading.  (Thanks, Lynx!)
 Fixed setlink to always have permissions for wizbit.
 Changed the get command to keep puppets from picking up stuff in a player.
@@ -447,9 +442,6 @@ Fixed a bug with exit priorities matching.  It no longer randomly chooses
 Changed Z flag effects so exits set Z don't show/exec @succ/@fails for Zombies.
 Fixed a crashing bug with {lrand:{null}}.
 Fixed a crasher bug with '$define foo $enddef'
-Fixed a crasher bug when strlen(playername) + strlen(message) > BUFFER_LEN
-  in parse_omessage().
-
 
 
 2.2fb5.36
@@ -593,7 +585,6 @@ Fixed {force} and @force to allow forcing of uncontrolled objects if they
 
 2.2fb5.28
 Made examine list the value of the Force-lock, dangit.
-Fixed a couple bugs with the DISKBASE_PROPVALS code. (IMPORTANT FIX)
 
 
 
@@ -624,10 +615,6 @@ Changed @force to require that the forced player or puppet must have their
   XFORCIBLE flag set, and that the object be @flocked (force-locked) to the
   forcing player.  Wizards can still force anyone.
 Changed {contents} to list full contents of an object controlled by trigger.
-Added the DISKBASE_PROPVALS @tune option.  When it's set to yes, then the
-  server does not load the values of string and lock properties until they
-  are actually needed.  This increases the number of hits to the disk, and
-  slows the server down a bit, but it also takes up less memory.
 
 
 
@@ -704,7 +691,6 @@ Fixed minor bug that kept FB from compiling on several systems.
 
 
 2.2fb5.20
-Modified MALLOC_PROFILING code to list max bytes used for each line.
 Fixed a compiler bug on freeing from the middle of a string on escaped words.
 Added preliminary POSIX and SYSeVil portability mods.
 
@@ -722,12 +708,10 @@ Made @set ignore trailing spaces on a property name.
 2.2fb5.18
 Fixed some stuff in fb5.17 that make compiling and running netmuck hard.
 Fixed a bad crashing bug with deletion of non-existent properties.
-Fixed compile bug with NO_MEMORY_COMMAND in do_memory();
 
 
 
 2.2fb5.17
-Make several various bugfixes for compiling without DISKBASE defined.
 Fixed a few various bugs with MPI and other stuff.
 Changed property struct to store the propname in the structure, instead of
  using a pointer to a separate propname.
@@ -794,7 +778,6 @@ Fixed a bug with doing an @ps when an MPI event is queued.
 Fixed bug with MPI parsing of '{{{'.
 Added the 'mpi_max_commands' @tune parm, to set max# of mpi instrs to run.
 Updated mpihelp.txt help file.
-Added an @memory command to list current malloc()ed heap memory usage stats.
 
 
 
@@ -872,16 +855,12 @@ Fixed:
   
   Multiple bugs in the restart script.
   
-  Bug in init_checkflags() that made @contents give incorrect results.
-  
   Bug in could_doit that allowed players to use personal links to !JUMP_OK
     players.
   
   Bug allowing players to look at registered objects from afar.
   
   Bug with invalid _listener warning message going off at wrong times.
-  
-  Crashing bug where strlen(propname) + strlen(propstring) > BUFFER_LEN
   
   Bug where you could do @ and ! with variables of negative numbers.
   
@@ -964,8 +943,7 @@ Added:
   
   The @dlt command will let a wizard force a delta-dump.
   
-  There is now a #define option, DELTADUMPS, that will make the database save
-    out in a delta dump format.  That is, only the changed objects are written
+  The database save will out in a delta dump format.  Only the changed objects are written
     out to the end of a temporary deltas-file, updating it, instead of the
     entire db being written out in a monolithic dump.  When the deltas-file
     grows to about the same number of objects as the input file, it does the
@@ -1244,11 +1222,8 @@ Changed:
     the wizards still control the objects, as well.  When this define is set,
     a room set Wizbit cannot be @chowned, except by a true wizard.
   
-  Made database dumps more efficient (hopefully) when DISKBASE is defined.
-  
   The 'sanity' and 'reconstruct' programs now take the file(s) to operate on
-    as command line arguments, instead of through stdin/stdout.  This means
-    that they will work whether or not the DISKBASE #define is set.  Their
+    as command line arguments, instead of through stdin/stdout.  Their
     syntaxes are:
         reconstruct infile outfile
         sanity infile

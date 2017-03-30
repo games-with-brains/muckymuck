@@ -1,33 +1,23 @@
-#ifndef _MFUNLIST_H
-#define _MFUNLIST_H
-
 /*********************************************************************
  *  mfunlist.h   MPI functions list.    7/30/94
  *********************************************************************/
 
 #include "msgparse.h"
 
-typedef struct mfun_dat MFNDAT;
-
 struct mfun_dat {
-	char *name;
-	const char *(*mfn) (MFUNARGS);
-	short parsep;
-	short postp;
-	short stripp;
-	short minargs;
-	short maxargs;
+	name string
+	mfn func(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string
+	preparse, postparse, strip_space bool
+	minargs, maxargs int
 };
 
 /******** MFUN LIST ********/
-#ifdef DEFINE_MFUN_LIST
-MFNDAT mfun_list[] = {
+var mfun_list []mfun_dat = {
 	/* Name, Func, Preparse?, Postparse?, strip?, Minargs, Maxargs  */
 
     {"ABS",          mfn_abs,         1, 0, 1, 1,  1}, 
     {"ADD",          mfn_add,         1, 0, 1, 2,  9}, 
     {"AND",          mfn_and,         0, 0, 1, 2,  9}, 
-    {"ATTR",         mfn_attr,        1, 0, 1, 2,  9}, 
     {"AWAKE",        mfn_awake,       1, 0, 1, 1,  1}, 
     {"BLESS",        mfn_bless,       1, 0, 1, 1,  2}, 
     {"CENTER",       mfn_center,      1, 0, 0, 1,  3}, 
@@ -64,7 +54,6 @@ MFNDAT mfun_list[] = {
     {"FOR",          mfn_for,         0, 0, 0, 5,  5}, 
     {"FORCE",        mfn_force,       1, 0, 1, 2,  2}, 
     {"FOREACH",      mfn_foreach,     0, 0, 0, 3,  4}, 
-    {"FOX",          mfn_fox,         0, 0, 0, 0,  0}, 
     {"FTIME",        mfn_ftime,       1, 0, 0, 1,  3}, 
     {"FULLNAME",     mfn_fullname,    1, 0, 1, 1,  1}, 
     {"FUNC",         mfn_func,        0, 0, 1, 2,  9}, /* define a function */
@@ -138,7 +127,7 @@ MFNDAT mfun_list[] = {
     {"STIMESTR",     mfn_stimestr,    1, 0, 1, 1,  1}, 
     {"STORE",        mfn_store,       1, 0, 1, 2,  3}, 
     {"STRIP",        mfn_strip,       1, 0, 0, 1, -1}, 
-    {"STRLEN",       mfn_strlen,      1, 0, 0, 1,  1}, 
+    {"STRLEN",       mfn_len,         1, 0, 0, 1,  1}, 
     {"SUBLIST",      mfn_sublist,     1, 0, 0, 1,  4}, 
     {"SUBST",        mfn_subst,       1, 0, 0, 3,  3}, 
     {"SUBT",         mfn_subt,        1, 0, 1, 2,  9}, 
@@ -159,22 +148,5 @@ MFNDAT mfun_list[] = {
     {"WHILE",        mfn_while,       0, 0, 0, 2,  2}, 
     {"WITH",         mfn_with,        0, 0, 0, 3,  9}, /* declares var & val */
     {"XOR",          mfn_xor,         1, 0, 1, 2,  2}, /* logical XOR */
-
-	{NULL, NULL, 0, 0, 0, 0, 0}	/* Ends the mfun list */
-};
-#else
-extern MFNDAT mfun_list[];
-#endif /* defined DEFINE_MFUN_LIST */
-
+}
 #endif /* _MFUNLIST_H */
-
-#ifdef DEFINE_HEADER_VERSIONS
-
-#ifndef mfunlisth_version
-#define mfunlisth_version
-const char *mfunlist_h_version = "$RCSfile: mfunlist.h,v $ $Revision: 1.11 $";
-#endif
-#else
-extern const char *mfunlist_h_version;
-#endif
-

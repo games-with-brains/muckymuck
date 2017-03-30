@@ -1042,7 +1042,7 @@ program to be @listed.
 restrictions, and able to use wizard commands. It is only meaningful for
 players and programs. In general, WIZARDs can do anything using #<number>
 or *<player>.  Only player #1 can set and unset the WIZARD flag of other
-players if GOD_PRIV is used.
+players.
 
 
 @SET <thing>=Z
@@ -1401,8 +1401,7 @@ It may only be used if REGISTRATION is enabled.
 @NEWPASSWORD <player> [=<password>]
 
   Only wizards may use this command.  Changes <player>'s password,
-informing <player> that you changed it. Must be typed in full. If
-GOD_PRIV was defined, nobody can change god's password.
+informing <player> that you changed it. Must be typed in full. Nobody can change god's password.
 
 
 @FORCE <player|thing>=<command>
@@ -1412,8 +1411,7 @@ If the player or thing being forced is set Xforcible, and its @flock force
 lock is set, then anyone (or any zombie) that passed that lock can use @force
 on them.  Otherwise only a wizard can use @flock on them.
 
-  With the compile option GOD_PRIV, God cannot be forced by anything except
-God owned, wizbit programs.
+  God cannot be forced by anything except God owned, wizbit programs.
 
 
 @BOOT <player>

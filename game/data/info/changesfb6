@@ -2,7 +2,6 @@
 Listing macros in the MUF editor now shows ALL macros.
 
 2.2fb6.16
-Fixed compilation issue when GOD_PRIV is not defined.
 Prevented some @tune strings (like 'penny') from being blank.
 
 2.2fb6.15
@@ -12,8 +11,7 @@ Fixed the functionality of strict_god_priv, by allowing @set and related
 
 2.2fb6.14
 Added new @tune: strict_god_priv.  This is a #1-only parameter, which
-  controls whether GOD_PRIV also prevents #1's items from being controlled
-  by wizards.
+  prevents #1's items from being controlled by wizards.
 Fixed SF bug #268 - {list:} improperly appends from environment
 Added new @tune: recognize_null_command.  This parameter enables @@ to act
   as a do-nothing command. Defaults to No.
@@ -127,13 +125,8 @@ Got rid of the last sprintf() in the code -- it was used in a context
   at gnu ld*) complain whenever they see it, just as a matter of
   principle.
 Added some "code-of-last-resort" (i.e., it should never be executed)
-  to prevent the last wizard from ever being set !W.  As part of this,
-  for MUCKs that don't have GOD_PRIV set, wizards cannot set themselves
-  !W.
+  to prevent the last wizard from ever being set !W.
 Fixed hole in NEWPASSWORD that allowed God to be newpassworded.
-Accepted patch #906013 for faster string_compare operations in the main
-  server.  help.c and topwords.c don't really need the optimization, since
-  they are used only rarely.
 Accepted patch #593612, adding '@tune m3_huh'.  The name might be
   a bit misleading; what it does it it calls an exit in the environment
   by the name of "huh?" with the entire input command buffer as its argument,
@@ -152,7 +145,7 @@ Changed behavior of Wizard programs: They must now be set Wizard plus at least
   M1 in order to execute.  (The idea is that setting a program M0 should
   render it uninterpretable, but in the case of Wizard programs, they could
   have no MUCKER bit set and still be interpreted at mlev 4.)
-If GOD_PRIV is set, Wizards can no longer chown items to God.  (Security fix)
+Wizards can no longer chown items to God.  (Security fix)
 Moved src/COMPILING to the root directory, and edited it to more accurately
   reflect the process.
 Fixed bug in mfn_force that prevented players from being forced.
@@ -183,16 +176,7 @@ Added a bunch of debug messages that will only be seen when --enable-debug
   is passed to configure.
 Modified behavior of MUF FORCE to no longer allow FORCE when force_level is
   already set. [this change has been backed out]
-Changed so GOD_PRIV allows God to toad wizards without having to unset
-  their wizard flag.
-Added currently-disabled code code to support RFE#859214: 
-  '"string1" "string2" =' operates as '"string1" "string2" strcmp not'.
-  Implemented in p_math.c, function prim_equal -- however, it's not
-  specifically math-related, but it makes at least some sense to
-  overload the meaning for strings.  I am leaving this undocumented
-  for now, and disabled by default (#ifdef STRINGMATH), for discussion
-  as to whether this is a direction we want to take -- aliasing
-  math operators for string operations.
+Allows God to toad wizards without having to unset their wizard flag.
 Backed out the MUF FORCE change referenced above, as there are beta
   sites that do need to use multiple FORCE levels.
 Modified default to not write compressed databases, though leaving COMPRESS
@@ -209,7 +193,7 @@ Fixed bug #973899: fb-announce not compiled with ${CFLAGS}.
 Fixed bug #970128: array_get_reflist chokes on negative dbrefs.
 Fixed bug #925712: getpidinfo on MPI process crashes.
 Fixed bug #924349: descrboot and conboot crash on non-wiz call.
-Fixed bug #910839: W MUF can newpassword W even with GOD_PRIV.
+Fixed bug #910839: W MUF can newpassword W.
 
 
 
@@ -324,7 +308,7 @@ Fixed infloop problem in vehicles calling envprop when secure_thing_movement
 Fixed long-hang bug with sex properties parsing MPI recursively.
 Fixed bug #602793: @q now dequeues progs in EVENT_WAITFOR.
 Fixed bug #619557: WHO with EVENT_WAITFOR no longer blocks input incorrectly.
-Fixed @dlt, @delta and @usage commands to give a more specific error message
+Fixed @dlt and @delta commands to give a more specific error message
   to wizzes when not compiled in.
 Fixed compiler warnings about incompatible pointer types in calls to time(3), 
   ctime(3), gmtime(3)
@@ -347,9 +331,6 @@ Fixed crasher bug with dequeueing of MUF-event processes.
 Changed help.txt into a muckhelp.raw file that is processed by prochelp.
 Changed property loading routines to not abort(), but to instead log corrupt
   properties when they are found.
-Changed db_putprop() to use snprintf() instead of manually constructing the
-  property's disk format.
-Changed a few new sprintf() calls to snprintf().  sprintf() is verboten!
 Changed a lot of strcat() calls to strcatn().
 Changed resolver reaper code to respawn resolver if it crashes.
 Changed struct match_data and match_exits to not partially match Xpress exits
@@ -385,18 +366,15 @@ Changed spawn_resolver behavior -- now prints to status log if it can't spawn
   the resolver properly.  Previously used perror(), and didn't send it to
   error.log properly if it failed.
 Changed FMTSTRING and ARRAY_FMTSTRINGS MUF prims to be ANSI-aware.
-Changed all sprintf()s in the code to snprintf()s.
 Changed parsing so commands starting with ';' exit delimiters will now trigger
   actions named 'delimiter', similar to how ':' triggers pose actions.
 Changed MCP-GUI package version to 1.2 (1.002 as MUF sees it.)
 Changed NOTIFY_EXCLUDE so excluding the room excludes environmental listeners.
 Changed TOKENSPLIT to allow a delimiter token to also be an escape char.
 Changed floats in MUF to be of double precision.
-Changed MALLOC_PROFILING to be a --enable-memprof configure argument.
 Changed CRT_ALSO_DEBUG to be a --enable-memprof=debug configure argument.
-Changed USE_IPV6 to be a --enable-ipv6 configure argument.
-Fixed bug with non-DISKBASE mucks where third save message wouldn't get sent.
-Fixed bug with non-DISKBASE mucks where @dump would drop SSL users.
+Fixed bug where third save message wouldn't get sent.
+Fixed bug where @dump would drop SSL users.
 Fixed bug with reporting of incorrect line numbers in muf backtraces.
 Fixed bug with DEBUGGER_BREAK having one too many initial breakpoints.
 Fixed bug with muf errors getting stored in .debug/lasterr with ANSI codes.
@@ -409,12 +387,10 @@ Fixed double-freeing of source array contents in ARRAY_FMTSTRINGS.
 Fixed potential crasher buffer overrun bug with MPI variables.
 Fixed reference count leak in muf progs that error out with active for loops.
 Fixed restart script to use 'df -kP' for posix df is available.
-Fixed MPI snprintf() issues with incorrectly short buffer lengths.
 Fixed bug with bad PCREATE_FLAGS @tune settings causing corrupted objects.
 Fixed compile error with #undef DETACH.
 Fixed crasher bug with infinite disconnect and descr_set_user loop.
 Fixed bug #573142: mcp_frame_output_mesg stack corruption.
-Fixed bug #579119: ltimestr now works right with snprintf.
 Fixed bug #576552: Telnet keepalives no longer reset player's idletime.
 Fixed bug #568297: @sweep will list all listener env rooms.
 Fixed bug #577291: 'configure --with-ssl' checks for SSL header/lib existence.
@@ -480,8 +456,8 @@ Added support for ignoring (gagging) players, ignores are mutual in that if
   player A ignores player B, A will not hear B, and B will not hear A.
 Added ignore_support @tune to specify if @ignore is supported.
 Added max_ml4_preempt_count @tune to specify the maximum number of instructions
-  an mlevel4 (wizbitted) program may run before it is aborted, if set to 0
-  no limit is imposed.  Defaults to 0.
+  an mlevel4 (wizbitted) program may run before it is aborted, if set to NON_MUCKER
+  no limit is imposed.  Defaults to NON_MUCKER.
 Added reserved_names @tune which when set to a smatch pattern will refuse any
   object creations or renames which match said pattern.  Defaults to "".
 Added reserved_player_names @tune which when set to a smatch pattern will
@@ -570,7 +546,6 @@ Fixed issue where user could get charged for @action without action creation.
 Fixed issue with improper CONCOUNT in status log files.
 Fixed minor issue where startup INIT message might not display, if status
   log is unwritable and DETACH defined.
-Fixed compile-time bug with inconsistent MALLOC_PROFILING exclusion.
 Fixed crasher bug in compiling muf with unrecognized words and debug scopedvar
   name support.
 Fixed restart code so that it'll work with newer pid-checking restart scripts.
@@ -609,7 +584,7 @@ Added default gender pronoun overrides via _pronouns/_default/%X props on #0.
 Added ARRAY_SORT_INDEXED muf primitive.  Like ARRAY_SORT, but lets you sort
   a list of arrays, based on an indexed element in each.
 Changed @ps display code to be cleaner.
-Changed dbdumps to fork() into the background when not using DISKBASEing.
+Changed dbdumps to fork() into the background.
 
 
 
@@ -633,7 +608,7 @@ Changed input quotas to not count MCP messages.
 Changed command logging to not list null commands.
 Changed READ to _not_ return blank lines unless the process asked for them.
 Changed ANSI code handling to use ^[[0m instead of ^[[m at EOL for resetting.
-Changed dbdump to fork() on DB dump when DISKBASE is not defined.
+Changed dbdump to fork() on DB dump.
 Added 'make distclean'.
 Added READ_WANTS_BLANKS ( -- ) muf primitive, to indicate the process wants
   READ to be able to return blank "" lines.
@@ -657,9 +632,7 @@ Fixed problem with certain MUF primitives changing an object's last_used
   timestamp on content, exit or name check, but not for prop-reading or any
   other access.  MUF only updates the last_used timestamp now when the
   moveto primitive is used.
-Fixed permissions problem when both GOD_PRIV and tp_who_doing are set.
-Fixed bug #424057 -- MATCH and PMATCH primitives now strip ansi sequences
-  before processing.
+Fixed permissions problem when tp_who_doing is set.
 Fixed _msgmacs searching to allow blessed environment room msgmacs.
 Fixed bug #233181 -- now DETACH won't if -convert or -insanity is specified
   on the commandline.
@@ -675,7 +648,6 @@ Fixed interp_loop() based MUF prims to honor TRY-CATCH stack locks.
 Fixed a bug in GUI_VALUE_SET that checked for 2 args, but popped 3.
 Fixed arg ordering bug in the REFLIST_* muf primitives.  Now matches docs.
 Fixed crasher with large arrays, DEBUG output, eith expanded_debug on.
-Fixed a crasher bug with CLEARing uninitialized variables if CHECKOP fails.
 Fixed a crasher bug with using '@kill all' when muf timers are present.
   This is also the cause of the dequeue_timers() crashes on @shutdown.
 Fixed MCP GUI to send _closed events for open dlogs, when a descr disconnects.
@@ -753,7 +725,6 @@ Changed commands_per_time input quotas to not count MCP messages.
 Changes player name checks to prohibit ( and ) in player names.
 Changed MCP GUI event callback arguments to include the McpMesg.
 Changed password-change errors more informative, so "Sorry." isn't seen.
-Changed default setting for GOD_PRIV to be defined, not undef'd.
 Changed database format to Foxen6.  Programs in earlier databases that are
   set LINK_OK will also get their VIEWABLE flag set.
 Changed 'resolver' spawning behavior to first try to spawn from the
@@ -1018,8 +989,6 @@ Changes @bless and @unbless to (un)bless all props that match the given
 
 2.2fb6.00a33
 Fixed 'make package' script to correct location of configure script.
-Fixed a crasher bug with closing a the input db file before we are done with
-  it, when DISKBASE is #undefed and DELTADUMPS is #defined.
 Fixed a crasher bug where ARRAY_APPENDITEM checked the wrong argument's type.
 Fixed a crasher bug with DESCR_SETUSER for players with null passwords.
 Fixed a crasher bug with CHECKPASSWORD for players with null passwords.
@@ -1030,7 +999,6 @@ Fixed a misleading error message with muf compiling 'begin if repeat'.
 Fixed a bug with STRNCMP giving bad results with null string arguments.
 Fixed a bug with PARSEPROP not being re-entrant.
 Fixed a bug with STOD parsing #-3 as #-1.
-Added MUD_GID support, to change group affiliation (like MUD_ID).
 Added {timing} MPI command to show how long a command takes to execute.
 Added @tops, @mpitops, and @muftops commands for showing processor hogs.
 Added CMD_LOG_THRESHOLD_MSEC @tune option.  When a command takes longer than
@@ -1080,7 +1048,6 @@ Fixed more minor 64-bit compatability bugs with regards to time() calls.
 Fixed problem with loading an older db leaving users in insert mode.
 Fixed bug with ARRAY_GETRANGE returning a non-empty array when given a range
  that starts one beyond the end of the list array's content.
-Fixed bug with ARRAY_VALS CLEAR()ing garbage when passed an empty array.
 Fixed bug with @toad sending the inventory of the toader (not toadee) home.
 Fixed several uninitialized variable problems.
 Fixed a few bugs with functions being called with the wrong number of args.
@@ -1100,7 +1067,6 @@ Fixed a db corruption bug with @toading players.
 Fixed bug #102350: if-else-then now won't interleave with begin-repeat.
 Fixed multiple compile-time bugs with 64-bit systems.
 Fixed ARRAY_GET_PROPLIST to return a list array instead of a dictionary.
-Fixed bug where number() thought "+" and "-" were numbers.
 Fixed POW to return 0.0 if the first arg is 0.
 Fixed a crasher bug with {tell} and _listener programs on a room.
 Changed the way MUF lvars work.  Called progs no longer get a copy of the
@@ -1130,8 +1096,6 @@ Changed MUF compiler to use an address linkage table, in preparation for
   possible alternate language support.
 Optimized MUF interp to merge the FUNCTION/DECLVAR/INITVARS trio of instrs
   into a single FUNCTION instr.  This should improve speed slightly.
-Optimized CLEAR and RCLEAR to use a switch statement.
-Optimized copyinst() to use a switch statement.
 Updated MUF manual (man.txt) to include docs for all muf primitives.
 Added VAR! MUF compiler directive.  'var! foo' is the same as 'var foo foo !'.
 Added internal primitives for one-inst SVAR get/set.
@@ -1172,9 +1136,6 @@ Added MCP_REGISTER_EVENT ( strPkgName fltMinVers fltMaxVers -- ) MUF prim.
   sent for this package can be caught, not just the ones you bound.  Also,
   the process that will handle the events is kept alive, so your data stored
   in variables, or on the stack, is kept.
-Added ANSI_MIDSTR ( s i i -- s' ) MUF prim.
-  Does exactly what MIDSTR does, except it ignores ansi escapes when
-  determining what section of the string to extract. 
 
 
 2.2fb6.00a30
@@ -1243,12 +1204,6 @@ Added TIMER_STOP ( s -- ) MUF prim.  Stops the timer with the given
   '5 "first" timer_start'.  Timer ids ARE case sensitive.
 Added EVENT_COUNT ( -- i) MUF prim.  Returns the number of pending
   events waiting to be processed with EVENT_WAIT.
-Added ANSI_STRLEN ( s -- i ) MUF prim.  Returns the length of string s
-  ignoring ansi escape within the string.
-Added ANSI_STRCUT ( s i -- s1 s2 ) MUF prim.  Like STRCUT, but ignores ansi
-  escapes when finding the location to divide the string at.
-Added ANSI_STRIP ( s -- s' ) MUF prim.  Takes a string and removes ansi
-  escapes from with in the string, returning the de-ansified string.
 Added GUI_DLOG_CREATE (intDescr strType strTitle dictArgs -- strDlogID)
   If a user has a client that can support the MCP GUI protocol, then this
   primitive can be used to generate a dialog on their screen.  The intDescr
@@ -1280,8 +1235,7 @@ Added ARRAY_GET_PROPVALS ( d s -- a ) MUF prim.  Reads in properties from
   a propdir, and returns them in a dictionary, keyed by propname.  Sub-
   propdirs in the given propdir that do not have any value of their own,
   are left out of the returned dictionary.  Properties that the program
-  doesn't have perms to read are also left out.  Reads up to 511 props
-  maximum. (ML3 required.)
+  doesn't have perms to read are also left out.  (ML3 required.)
 Added ARRAY_PUT_PROPVALS ( d s a -- ) MUF prim.  Takes the values in
   the given dictionary, and stores them in the given propdir on the
   given object.  Each dictionary entry will be saved into a property
@@ -1299,7 +1253,7 @@ Added ARRAY_GET_PROPLIST ( d s -- a ) MUF prim.  Reads in properties from
   propname.  Proplists can be in any of the common proplist styles:
   ie: "propname#/1", "propname/1", or "propname1".  If the program
   doesn't have permission to read the list, it returns an empty
-  dictionary.  Reads up to 511 props maximum.
+  dictionary.
 Added ARRAY_PUT_PROPLIST ( d s a -- ) MUF prim.  Takes the values
   in the given list array, and stores them in the given propdir on
   the given object as a sequential proplist.  This will use the
@@ -1480,7 +1434,6 @@ Added the following MUF primitives:
 
 
 2.2fb6.00a27
-Fixed a bug in the MALLOC_PROFILING code.  (Thanks, Cynbe!)
 Fixed a few compiler warnings about main() not returning int.
 Fixed a bug in the ITOC muf primitive that returned random words for
   values greater than 127.
@@ -1558,7 +1511,6 @@ Bug fix for prim_online.  A rare crashing bug was found in the MUF
 Fixed usage of first_prop() and first_prop_nofetch() to be 64bit clean.
 Fixed a string termination bug in @open.
 Fixed a crasher bug with reading float props stored as 1 instead of 1.0.
-Fixed a compile-time bug with #undefing DISKBASE.
 Fixed a crasher bug with the {parse} mpi primitive.
 Changed the search restrictions for MPI _msgmacs/ macros.  Now when MPI
   looks for a macro, it uses the following algorithm:
@@ -1777,9 +1729,6 @@ Changed {list} and {lexec} to return a null string if the list wasn't found.
 
 
 2.2fb6.00a7
-Added USE_IPV6 #define option to config.h, to allow support for the future
-  IP version 6 Internet Protocol.  The code for IPv6 support was contributed
-  by Kim Liu.
 Added NEXTOWNED (d -- d) primitive to MUF.  When called with a player dbref,
   this returns the dbref of the first object they own.  When called with that
   dbref, this returns the next object owned by the same player.  When there
@@ -2134,9 +2083,6 @@ Added the DIM attribute option to {attr} and TEXTATTR
 
 
 2.2fb5.56a
-
-Fixed compile bugs when GOD_PRIV was undefined.
-
 Changed permissions on {istype} to make it only match local objects.
 
 Various changes to man.txt, including very brief docs on the muf debugger.
@@ -2157,9 +2103,6 @@ Fixed a bug where a reference to a loop right after the BEGIN would cause
   in the case of a nested loop.
 
 Made the MUF compiler less recursive and more iterative.
-
-Added reporting of file:line when an instruction that has been CLEAR()ed
-  is unparsed for display.
 
 Added ANSI color ability to the server.  Players only see the ANSI codes if
   they have their COLOR bit set.  To add an escape sequence to a string, use

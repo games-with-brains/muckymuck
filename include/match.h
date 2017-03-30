@@ -23,22 +23,14 @@ struct match_data {
 };
 
 /* match functions */
-/* Usage: init_match(descr, player, name, type); match_this(); match_that(); ... */
+/* Usage: NewMatch(descr, player, name, type); match_this(); match_that(); ... */
 /* Then get value from match_result() */
 
-/* initialize matcher */
-extern void init_match(int descr, dbref player, const char *name, int type,
-
-					   struct match_data *md);
-extern void init_match_check_keys(int descr, dbref player, const char *name, int type,
-
-								  struct match_data *md);
 
 /* match (LOOKUP_TOKEN)player */
 extern void match_player(struct match_data *md);
 
 /* match (REGISTERED_TOKEN)program */
-extern dbref find_registered_obj(dbref player, const char *name);
 extern void match_registered(struct match_data *md);
 
 /* match (NUMBER_TOKEN)number */

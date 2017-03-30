@@ -30,7 +30,7 @@
 #define NULL_COMMAND "@@"
 
 /* Turn this back on when you want MUD to set from root to some user_id */
-/* #define MUD_ID "MUCK" */
+#define MUD_ID "MUCK"
 
 /* Turn this on when you want MUCK to set to a specific group ID... */
 /* #define MUD_GID "MUCK" */
@@ -41,19 +41,12 @@
 #define MLEV_MASTER	  3
 #define MLEV_WIZARD	  4
 
-#ifdef GOD_PRIV
-# define MLEV_GOD		255
-# define TUNE_MLEV(player)	(God(player) ? MLEV_GOD : MLEV_WIZARD)
-#else
-# define MLEV_GOD		MLEV_WIZARD
-# define TUNE_MLEV(player)	MLEV_WIZARD
-#endif
+#define MLEV_GOD		math.MaxInt64
 
 /* Used for breaking out of muf READs or for stopping foreground programs. */
 #define BREAK_COMMAND "@Q"
 
 #define EXIT_DELIMITER ';'		/* delimiter for lists of exit aliases  */
-#define MAX_LINKS 50			/* maximum number of destinations for an exit */
 
 #define MAX_PARENT_DEPTH 256            /* Maximum parenting depth allowed. */
 
@@ -101,9 +94,6 @@
 #define NUMBER_COMMAND 'n'
 #define PUBLICS_COMMAND 'p'
 
-/* maximum number of arguments */
-#define MAX_ARG  2
-
 /* Usage comments:
    Line numbers start from 1, so when an argument variable is equal to 0, it
    means that it is non existent.
@@ -147,9 +137,6 @@
 
 #define IGNORE_PROP "@__sys__/ignore/def"
 
-/* Do we want MUF math operators (currently =) to work on strings? */
-#undef STRINGMATH
- 
 #endif /* _PARAMS_H */
 
 #ifdef DEFINE_HEADER_VERSIONS

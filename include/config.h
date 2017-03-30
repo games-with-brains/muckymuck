@@ -29,23 +29,6 @@
  */
 #define DETACH
 
-/* Makes God (#1) immune to @force, @newpassword, and being set !Wizard.  
- */
-#define GOD_PRIV
-
-/* To use a simple disk basing scheme where properties aren't loaded
- * from the input file until they are needed, define this. (Note: if
- * this is not defined, the MUCK will fork into the background to dump
- * the database, eliminating save delays.)
- */
-#undef DISKBASE
-
-/* To make the server save using fast delta dumps that only write out the
- * changed objects, except when @dump or @shutdown are used, or when too
- * many deltas have already been saved to disk, #define this. 
- */
-#define DELTADUMPS
-
 /*
  * Port where tinymuck lives -- Note: If you use a port lower than
  * 1024, then the program *must* run suid to root!
@@ -104,7 +87,7 @@
 /* Make the `examine' command display full names for types and flags */
 #define VERBOSE_EXAMINE
 
-/* limit on player name length */
+//	FIX: PLAYER_NAME_LIMIT abolished - needs to be removed from display formatting code
 #define PLAYER_NAME_LIMIT 16
 
 /************************************************************************
@@ -184,22 +167,8 @@
  to compile for some reason.
  ************************************************************************/
 
-/* If you get problems compiling strftime.c, define this. */
-#undef USE_STRFTIME
-
-/* Use this only if your realloc does not allocate in powers of 2
- * (if your realloc is clever, this option will cause you to waste space).
- * SunOS requires DB_DOUBLING.  ULTRIX doesn't.  */
-#define  DB_DOUBLING
-
 /* Prevent Many Fine Cores. */
 #undef NOCOREDUMP
-
-/* if do_usage() in wiz.c gives you problems compiling, define this */
-#undef NO_USAGE_COMMAND
-
-/* if do_memory() in wiz.c gives you problems compiling, define this */
-#undef NO_MEMORY_COMMAND
 
 /************************************************************************/
 /************************************************************************/
@@ -208,37 +177,14 @@
 /************************************************************************/
 
 /*
- * Windows compile environment.
- */
-#ifdef WIN32
-#undef SPAWN_HOST_RESOLVER
-#define NO_MEMORY_COMMAND
-#define NO_USAGE_COMMAND
-#define NOCOREDUMP
-#define SCARY_MUF_PRIMS /* Most Windows users don't have their own compiler */
-#include "win32.h"
-#endif
-
-/*
  * When compiling as the sanity program, don't do malloc profiling.
  */
-#ifdef SANITY
-#undef MALLOC_PROFILING
-#undef CRT_DEBUG_ALSO
-#endif
 
 /*
  * Very general defines 
  */
 #define TRUE  1
 #define FALSE 0
-
-/*
- * Memory/malloc stuff.
- */
-#undef LOG_PROPS
-#undef LOG_DISKBASE
-#undef DEBUGDBDIRTY
 
 /*
  * Include all the good standard headers here.
@@ -264,30 +210,7 @@
 # include <unistd.h>
 #endif
 
-/*
- * Which set of memory commands do we have here...
- */
-#if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
 # include <string.h>
-/* An ANSI string.h and pre-ANSI memory.h might conflict.  */
-# if !defined(STDC_HEADERS) && defined(HAVE_MEMORY_H)
-#  include <memory.h>
-# endif			/* not STDC_HEADERS and HAVE_MEMORY_H */
-/* Map BSD funcs to ANSI ones. */
-# define index		strchr
-# define rindex		strrchr
-# define bcopy(s, d, n) memcpy ((d), (s), (n))
-# define bcmp(s1, s2, n) memcmp ((s1), (s2), (n))
-# define bzero(s, n) memset ((s), 0, (n))
-#else			/* not STDC_HEADERS and not HAVE_STRING_H */
-# include <strings.h>
-/* Map ANSI funcs to BSD ones. */
-# define strchr		index
-# define strrchr	rindex
-# define memcpy(d, s, n) bcopy((s), (d), (n))
-# define memcmp(s1, s2, n) bcmp((s1), (s2), (n))
-/* no real way to map memset to bzero, unfortunatly. */
-#endif			/* not STDC_HEADERS and not HAVE_STRING_H */
 
 #ifdef HAVE_RANDOM
 # define SRANDOM(seed)	srandom((seed))
@@ -311,12 +234,6 @@
 # endif
 #endif
 
-/*
- * Include some of the useful local headers here.
- */
-#ifdef MALLOC_PROFILING
-# include "crt_malloc.h"
-#endif
 
 /******************************************************************/
 /* System configuration stuff... Figure out who and what we are.  */
@@ -346,12 +263,6 @@
 #ifdef ultrix
 # define SYS_TYPE "ULTRIX"
 # define ULTRIX
-#endif
-
-#ifdef _AIX
-# define SYS_TYPE "AIX"
-# define AIX
-# define NO_MEMORY_COMMAND
 #endif
 
 #ifdef bds4_3

@@ -1,50 +1,46 @@
-#ifndef _P_STACK_H
-#define _P_STACK_H
+// prim_pop	/*     ? --              */
+// prim_dup	/*     ? -- ? ?          */
+// prim_at	/*   V|v -- ?            */
+// prim_bang	/* ? V|v --              */
+// prim_var	/*     i -- V            */
+// prim_localvar	/*     i -- v            */
+// prim_swap	/* ?1 ?2 -- ?2 ?1        */
+// prim_over	/* ?1 ?1 -- ?1 ?2 ?1     */
+// prim_pick	/*    ?n ... ?1 i -- ?n ... ?1 ?n */
+// prim_put	/* ?n ... ?1 ?x i -- ?x ... ?1    */
+// prim_rot	/*       ?1 ?2 ?3 -- ?2 ?3 ?1     */
+// prim_rotate	/* Rotates top N stack elements */
+// prim_dbtop	/*       -- i            */
+// prim_depth	/*       -- i            */
+// prim_version	/*       -- s            */
+// prim_prog	/*       -- d            */
+// prim_trig	/*       -- d            */
+// prim_caller	/*       -- d            */
+// prim_intp	/*     ? -- i            */
+// prim_arrayp	/*     ? -- i            */
+// prim_dictionaryp	/*     ? -- i            */
+// prim_floatp	/*     ? -- i            */
+// prim_stringp	/*     ? -- i            */
+// prim_dbrefp	/*     ? -- i            */
+// prim_addressp	/*     ? -- i            */
+// prim_lockp	/*     ? -- i            */
+// prim_checkargs	/*     s --              */
+// prim_mode	/*       -- i            */
+// prim_setmode	/*     i --              */
+// prim_interp	/* d d s -- ?            */
+// prim_reverse	/* ?n ... ?1 i -- ?1 ... ?n    */
+// prim_lreverse	/* ?n ... ?1 i -- ?1 ... ?n i  */
+// prim_dupn
+// prim_ldup	/*   {?} -- {?} {?}      */
+// prim_popn	/*   {?} --              */
+// prim_for	/* i i i --              */
+// prim_foreach	/*     i --              */
 
-
-extern void prim_pop(PRIM_PROTOTYPE);	/*     ? --              */
-extern void prim_dup(PRIM_PROTOTYPE);	/*     ? -- ? ?          */
-extern void prim_at(PRIM_PROTOTYPE);	/*   V|v -- ?            */
-extern void prim_bang(PRIM_PROTOTYPE);	/* ? V|v --              */
-extern void prim_var(PRIM_PROTOTYPE);	/*     i -- V            */
-extern void prim_localvar(PRIM_PROTOTYPE);	/*     i -- v            */
-extern void prim_swap(PRIM_PROTOTYPE);	/* ?1 ?2 -- ?2 ?1        */
-extern void prim_over(PRIM_PROTOTYPE);	/* ?1 ?1 -- ?1 ?2 ?1     */
-extern void prim_pick(PRIM_PROTOTYPE);	/*    ?n ... ?1 i -- ?n ... ?1 ?n */
-extern void prim_put(PRIM_PROTOTYPE);	/* ?n ... ?1 ?x i -- ?x ... ?1    */
-extern void prim_rot(PRIM_PROTOTYPE);	/*       ?1 ?2 ?3 -- ?2 ?3 ?1     */
-extern void prim_rotate(PRIM_PROTOTYPE);	/* Rotates top N stack elements */
-extern void prim_dbtop(PRIM_PROTOTYPE);	/*       -- i            */
-extern void prim_depth(PRIM_PROTOTYPE);	/*       -- i            */
-extern void prim_version(PRIM_PROTOTYPE);	/*       -- s            */
-extern void prim_prog(PRIM_PROTOTYPE);	/*       -- d            */
-extern void prim_trig(PRIM_PROTOTYPE);	/*       -- d            */
-extern void prim_caller(PRIM_PROTOTYPE);	/*       -- d            */
-extern void prim_intp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_arrayp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_dictionaryp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_floatp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_stringp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_dbrefp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_addressp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_lockp(PRIM_PROTOTYPE);	/*     ? -- i            */
-extern void prim_checkargs(PRIM_PROTOTYPE);	/*     s --              */
-extern void prim_mode(PRIM_PROTOTYPE);	/*       -- i            */
-extern void prim_setmode(PRIM_PROTOTYPE);	/*     i --              */
-extern void prim_interp(PRIM_PROTOTYPE);	/* d d s -- ?            */
-extern void prim_reverse(PRIM_PROTOTYPE);	/* ?n ... ?1 i -- ?1 ... ?n    */
-extern void prim_lreverse(PRIM_PROTOTYPE);	/* ?n ... ?1 i -- ?1 ... ?n i  */
-extern void prim_dupn(PRIM_PROTOTYPE);
-extern void prim_ldup(PRIM_PROTOTYPE);	/*   {?} -- {?} {?}      */
-extern void prim_popn(PRIM_PROTOTYPE);	/*   {?} --              */
-extern void prim_for(PRIM_PROTOTYPE);	/* i i i --              */
-extern void prim_foreach(PRIM_PROTOTYPE);	/*     i --              */
-
-extern void prim_foriter(PRIM_PROTOTYPE);	/*       -- i  or  @ ?   */
-extern void prim_forpop(PRIM_PROTOTYPE);	/*       --              */
-extern void prim_mark(PRIM_PROTOTYPE);	/*       -- m            */
-extern void prim_findmark(PRIM_PROTOTYPE);	/* m ?n ... ?1 -- ?n ... ?1 i    */
-extern void prim_trypop(PRIM_PROTOTYPE);	/* -- */
+// prim_foriter	/*       -- i  or  @ ?   */
+// prim_forpop	/*       --              */
+// prim_mark	/*       -- m            */
+// prim_findmark	/* m ?n ... ?1 -- ?n ... ?1 i    */
+// prim_trypop	/* -- */
 
 
 #define PRIMS_STACK_FUNCS prim_pop, prim_dup, prim_at, prim_bang, prim_var,  \
@@ -72,16 +68,3 @@ extern void prim_trypop(PRIM_PROTOTYPE);	/* -- */
 #define PRIMS_INTERNAL_NAMES " FORITER", " FORPOP", " TRYPOP"
 
 #define PRIMS_INTERNAL_CNT 3
-
-#endif /* _P_STACK_H */
-
-#ifdef DEFINE_HEADER_VERSIONS
-
-#ifndef p_stackh_version
-#define p_stackh_version
-const char *p_stack_h_version = "$RCSfile: p_stack.h,v $ $Revision: 1.7 $";
-#endif
-#else
-extern const char *p_stack_h_version;
-#endif
-

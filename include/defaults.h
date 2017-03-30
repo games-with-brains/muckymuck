@@ -117,11 +117,6 @@
 #define COMMANDS_PER_TIME 2		/* commands per time slice after burst  */
 #define COMMAND_TIME_MSEC 1000	/* time slice length in milliseconds    */
 
-
-/* Max %of db in unchanged objects allowed to be loaded.  Generally 5% */
-/* This is only needed if you defined DISKBASED in config.h */
-#define MAX_LOADED_OBJS 5
-
 /* Maximum number of forces processed within a command. */
 #define MAX_FORCE_LEVEL 1
 
@@ -153,15 +148,6 @@
  * slow FOREGROUND and BACKGROUND MUF programs, but reduce CPU usage.
  */
 #define PAUSE_MIN 0
-
-/* FREE_FRAMES_POOL is the number of program frames that are always
- *  available without having to allocate them.  Helps prevent memory
- *  fragmentation.
- */
-#define FREE_FRAMES_POOL 8
-
-
-
 
 #define PLAYER_START ((dbref) 0)	/* room number of player start location */
 
@@ -314,9 +300,6 @@
 /* Define to 1 to allow locks to check down the environment for props. */
 #define LOCK_ENVCHECK 0
 
-/* Define to 0 to prevent diskbasing of property values, or to 1 to allow. */
-#define DISKBASE_PROPVALS 1
-
 /* Define to 1 to cause muf debug tracing to display expanded arrays. */
 #define EXPANDED_DEBUG_TRACE 1
 
@@ -349,9 +332,6 @@
 
 /* Recognize null command. */
 #define RECOGNIZE_NULL_COMMAND 0
-
-/* Strict GOD_PRIV */
-#define STRICT_GOD_PRIV 1
 
 /* Force 7-bit names */
 #define ASCII_THING_NAMES 1

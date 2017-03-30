@@ -467,7 +467,7 @@ for the old text in str.  example: {subst:Hello World!,l,r} would return
 "Herro Worrd!"
 
 
-{strlen:string}
+{len:string}
     Returns an integer that is the number of character in string.
 
 

@@ -97,7 +97,7 @@ R's
 
 S's
   secs       select     set        sign       smatch     stimestr   store
-  strip      strlen     sublist    subst      subt       
+  strip      len     sublist    subst      subt       
 
 T's
   tell       testlock   time       timestr    timesub    tolower    toupper
@@ -638,7 +638,7 @@ String Functions
 
 attr       center     eval       eval!      instr      left       lit
 midstr     nl         null       otell      pronouns   revoke     right
-smatch     strip      strlen     subst      tell       tolower    toupper
+smatch     strip      len     subst      tell       tolower    toupper
 
 ~----------------------------------------------------------------------------
 ~
@@ -667,7 +667,7 @@ for the old text in str.  example: {subst:Hello World!,l,r} would return
 ~
 ~
 STRLEN
-{strlen:string}
+{len:string}
     Returns an integer that is the number of character in string.
 ~
 ~

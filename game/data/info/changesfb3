@@ -85,10 +85,6 @@ Changes:
         dup 3 % not if dup 9 % while then (this WHILE refer to the outer loop)
         dup intostr me @ swap notify
       dup 1 = until pop               (This UNTIL ends the outer loop)
-  
-  
-Added:
-  @usage will give stats about current resource usage for the MUCK.
 
 Primitives added:
   BREAK      ( -- )    Breaks out of the innermost loop.

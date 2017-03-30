@@ -1,23 +1,3 @@
-#ifndef _P_MCP_H
-#define _P_MCP_H
-
-extern void prim_mcp_register(PRIM_PROTOTYPE);
-extern void prim_mcp_register_event(PRIM_PROTOTYPE);
-extern void prim_mcp_bind(PRIM_PROTOTYPE);
-extern void prim_mcp_supports(PRIM_PROTOTYPE);
-extern void prim_mcp_send(PRIM_PROTOTYPE);
-
-extern void prim_gui_available(PRIM_PROTOTYPE);
-extern void prim_gui_dlog_create(PRIM_PROTOTYPE);
-extern void prim_gui_dlog_show(PRIM_PROTOTYPE);
-extern void prim_gui_dlog_close(PRIM_PROTOTYPE);
-extern void prim_gui_value_set(PRIM_PROTOTYPE);
-extern void prim_gui_value_get(PRIM_PROTOTYPE);
-extern void prim_gui_values_get(PRIM_PROTOTYPE);
-extern void prim_gui_ctrl_create(PRIM_PROTOTYPE);
-extern void prim_gui_ctrl_command(PRIM_PROTOTYPE);
-
-
 #define PRIMS_MCP_FUNCS prim_mcp_register, prim_mcp_bind, prim_mcp_supports, \
 		prim_mcp_send, prim_gui_available, prim_gui_dlog_show, \
 		prim_gui_dlog_close, prim_gui_values_get, prim_gui_value_get, \
@@ -32,16 +12,3 @@ extern void prim_gui_ctrl_command(PRIM_PROTOTYPE);
 
 
 #define PRIMS_MCP_CNT 14
-
-#endif /* _P_MCP_H */
-
-#ifdef DEFINE_HEADER_VERSIONS
-
-#ifndef p_mcph_version
-#define p_mcph_version
-const char *p_mcp_h_version = "$RCSfile: p_mcp.h,v $ $Revision: 1.9 $";
-#endif
-#else
-extern const char *p_mcp_h_version;
-#endif
-

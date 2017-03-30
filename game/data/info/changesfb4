@@ -1,9 +1,4 @@
 2.2fb4.42
-Fixed:
-  Hopefully have fixed the bug where the input file isn't changed over to
-    the latest dumpfile when using DISKBASE.
-  
-  
 Added:
   You can now easily change the name of the Currency from Pennies to whatever
     you might want by simply changing the PENNY, PENNIES, CPENNY, and CPENNIES
@@ -13,9 +8,6 @@ Added:
   
 2.2fb4.41
 Fixed:
-  BAD bug in db_grow() when not using #define DB_DOUBLING that caused a
-    coredump when loading in the db.
-  
   Bug where FORCE primitive would have it's program string overwritten.
     This involved having process_command() copy it's input to a temp buffer.
   
@@ -136,7 +128,7 @@ Fixed:
   Bug with dumps occurring while queued programs are running.
   Bugs with killing QUEUEd timequeue processes.
   Crashing bug with loading a db with AUTOSTART programs.
-  Myriad bugs with shared strings, CHECKOP(), abort_interp(), CLEAR(), &c.
+  Myriad bugs with abort_interp(), &c.
   Bug with failed recompiled programs having garbage program in memory.
   Bug with pronoun_substitute and %X properties.
   Buffer overflow potential crash bug in pronoun_sub.
@@ -194,10 +186,6 @@ Changed:
   Programs set HARDUID and SETUID, that are owned by a Wizard, run at the same
    mucker level as the calling program.  This is useful for writing libraries.
   
-  Now the server will clear properties from memory based on how old they are,
-   when you are using DISKBASED, and when too many objects (that haven't been
-   changed) have been loaded into memory.
-  
   Tabs sent to the server are now interpreted as single spaces to help solve
    a problem with tabbed comments in MUF programs being uploaded.
   
@@ -206,10 +194,6 @@ Changed:
   
   A #define'able max # of unchanged objects will be allowed into memory
    before an automatic memory purge is performed now.
-  
-  When USE_NOFORK and DISKBASE are both defined, then changed objects in
-   memory will be purged out to disk at a dump.
-  
   
 Primitives:
   ABORT    (s -- )  Halts the interpreter with an error of the string given.
@@ -368,16 +352,6 @@ Added:
   RESTRICT_KILL #define in config.h that lets you compile the server with
     Kill_OK bits for players.  Both the killing player and the victim must
     have their KILL_OK flags set for the kill to work.
-  
-  There is now a #define option for limited disk basing.  #define DISKBASE
-    in config.h to make the server not load up properties from the input
-    database file until they are needed.  If an object's properties are
-    not changed, and they haven't been accessed for longer than the database
-    DUMP_INTERVAL, then it will clear the properties back out of memory when
-    it comes time to dump the db again.  Properties for objects that have
-    had some properties added/removed/changed will remain in memory.  When
-    DISKBASE is defined, @stats will also tell how many objects are loaded
-    into memory for wizards.
   
   Ability for a wizard to append a timestamped message to the MOTD file by
     using the command  'motd <message>'.  The file can also be cleared by

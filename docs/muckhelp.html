@@ -88,7 +88,6 @@
   </tr>
   <tr>
     <td nowrap> &nbsp; <a href="#@unlock">@unlock</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#@usage">@usage</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#@wall">@wall</a> &nbsp; </td>
   </tr>
 </table></blockquote>
@@ -2073,7 +2072,7 @@ program to be @listed.
 restrictions, and able to use wizard commands. It is only meaningful for
 players and programs. In general, WIZARDs can do anything using #&lt;number&gt;
 or *&lt;player&gt;.  Only player #1 can set and unset the WIZARD flag of other
-players if GOD_PRIV is used.
+players.
 <p>
 
 
@@ -2756,7 +2755,6 @@ of using the text edit mode.
     <td width="20%"> &nbsp; <a href="#@shutdown">@shutdown</a> &nbsp; </td>
     <td width="20%"> &nbsp; <a href="#@toad">@toad</a> &nbsp; </td>
     <td width="20%"> &nbsp; <a href="#@unbless">@unbless</a> &nbsp; </td>
-    <td width="20%"> &nbsp; <a href="#@usage">@usage</a> &nbsp; </td>
     <td width="20%"> &nbsp; <a href="#@wall">@wall</a> &nbsp; </td>
   </tr>
 </table></blockquote>
@@ -2779,8 +2777,7 @@ It may only be used if REGISTRATION is enabled.
 <br>
 </a></h4>
   Only wizards may use this command.  Changes &lt;player&gt;'s password,
-informing &lt;player&gt; that you changed it. Must be typed in full. If
-GOD_PRIV was defined, nobody can change god's password.
+informing &lt;player&gt; that you changed it. Must be typed in full. Nobody can change god's password.
 <p>
 
 
@@ -2795,7 +2792,7 @@ lock is set, then anyone (or any zombie) that passed that lock can use @force
 on them.  Otherwise only a wizard can use @flock on them.
 
 <p>
-  With the compile option GOD_PRIV, God cannot be forced by anything except
+  God cannot be forced by anything except
 God owned, wizbit programs.
 <p>
 
@@ -2905,16 +2902,6 @@ room the _msgmacs prop is on.
 </a></h4>
   Only wizards may use this command. Shouts something to every
 player connected. Must be typed in full.
-<p>
-
-
-<hr><h4><a name="@usage">@USAGE
-<br>
-
-<br>
-</a></h4>
-  A Wizard only command that gives system resource usage stats for the
-muck server process.
 <p>
 
 

@@ -490,7 +490,7 @@ otherwise returns i as the difference between the first non-matching
 character in the strings.  For example, "a" "z" stringcmp returns 25.
 This function is not case sensitive, unlike strcmp.
 
-strlen ( s -- i )
+len ( s -- i )
 Returns the length of string s.
 
 strncmp ( s i -- i' )

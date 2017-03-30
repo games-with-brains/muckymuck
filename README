@@ -53,15 +53,6 @@ also compile and run it on Apple systems (Darwin: ppc and x86_64).
 
 As far as other platforms, you're on your own.
 
-SunOS realloc() is braindead.  On every SunOS system I have seen, TinyMUCK
-runs about 6 megs in memory with a very small database if the option
-DB_DOUBLING is not defined.  If you are running on a Sun3 or Sun4,
-you should definitely compile with this option turned on.  Let me
-know if there are other systems that need this.  This may not be as
-much of a problem with current versions of the server, as databases now
-store a count of their objects, and the entire database generally gets
-allocated in one chunk.
-
 To compile fbmuck:
   ./configure --with-ssl    # if you want SSL support.  Otherwise...
   ./configure               # if you don't/can't.

@@ -100,7 +100,6 @@ COBJ="$(INTDIR)\array.obj" \
 	"$(INTDIR)\set.obj" \
 	"$(INTDIR)\signal.obj" \
 	"$(INTDIR)\smatch.obj" \
-	"$(INTDIR)\snprintf.obj" \
 	"$(INTDIR)\speech.obj" \
 	"$(INTDIR)\strftime.obj" \
 	"$(INTDIR)\stringutil.obj" \

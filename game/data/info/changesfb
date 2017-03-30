@@ -226,5 +226,5 @@ On dbload, if a program is set ABODE (AUTOSTART), *AND* it is owned by
   a wizard, then it will be placed in the timequeue with a delay of 0 and
   a string parm of "Startup"
   
-Any wizard can do an @pcreate, even when GOD_PRIVS is defined.
+Any wizard can do an @pcreate.
   

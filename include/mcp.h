@@ -1,6 +1,3 @@
-#ifndef MCP_H
-#define MCP_H
-
 /* the type used to specify the connection */
 typedef void *connection_t;
 
@@ -19,40 +16,36 @@ typedef void *connection_t;
 #define MAX_MCP_MESG_SIZE  262144 /* max mesg size in bytes. */
 
 /* This is a convenient struct for dealing with MCP versions. */
-typedef struct McpVersion_T {
-	unsigned short vermajor;	/* major version number */
-	unsigned short verminor;	/* minor version number */
-} McpVer;
-
-
+type McpVer struct {
+	major uint8;		/* major version number */
+	minor uint8		/* minor version number */
+}
 
 /* This is one line of a multi-line argument value. */
-typedef struct McpArgPart_T {
-	struct McpArgPart_T *next;
-	char *value;
-} McpArgPart;
-
+type McpArgPart struct {
+	value string
+	next *McpArgPart
+}
 
 /* This is one argument of a message. */
-typedef struct McpArg_T {
-	struct McpArg_T *next;
-	char *name;
-	McpArgPart *value;
-	McpArgPart *last;
-	int was_shown;
-} McpArg;
-
+type McpArg struct {
+	name string
+	value *McpArgPart
+	last *McpArgPart
+	was_shown bool
+	next *McpArg
+}
 
 /* This is an MCP message. */
-typedef struct McpMesg_T {
-	struct McpMesg_T *next;
-	char *package;
-	char *mesgname;
-	char *datatag;
-	McpArg *args;
-	int incomplete;
-	int bytes;
-} McpMesg;
+type McpMesg struct {
+	package string
+	mesgname string
+	datatag string
+	args *McpArgs
+	incomplete int
+	bytes int
+	next *McpMesg
+}
 
 
 struct McpFrame_T;
@@ -92,47 +85,10 @@ typedef struct McpFrame_T {
 
 /*****************************************************************
  *
- * void mcp_package_register(
- *              const char* pkgname,
- *              McpVer minver,
- *              McpVer maxver,
- *              McpPkg_CB callback,
- *              void* context
- *          );
- *
- *****************************************************************
- *
  * void mcp_package_deregister(
  *              const char* pkgname,
  *          );
  *
- *
- *****************************************************************
- *
- * void mcp_initialize();
- *
- *   Initializes MCP globally at startup time.
- *
- *****************************************************************
- *
- * void mcp_negotiation_start(McpFrame* mfr);
- *
- *   Starts MCP negotiations, if any are to be had.
- *
- *****************************************************************
- *
- * void mcp_frame_init(McpFrame* mfr, connection_t con);
- *
- *   Initializes an McpFrame for a new connection.
- *   You MUST call this to initialize a new McpFrame.
- *   The caller is responsible for the allocation of the McpFrame.
- *
- *****************************************************************
- *
- * void mcp_frame_clear(McpFrame* mfr);
- *
- *   Cleans up an McpFrame for a closing connection.
- *   You MUST call this when you are done using an McpFrame.
  *
  *****************************************************************
  *
@@ -197,16 +153,6 @@ typedef struct McpFrame_T {
  *
  *****************************************************************
  *
- * void mcp_frame_output_inband(
- *             McpFrame* mfr,
- *             const char* lineout
- *         );
- *
- *   Sends a string to the given connection, using MCP escaping
- *     if needed and supported.
- *
- *****************************************************************
- *
  * int mcp_frame_output_mesg(
  *             McpFrame* mfr,
  *             McpMesg* msg
@@ -216,28 +162,6 @@ typedef struct McpFrame_T {
  *   Returns EMCP_SUCCESS if successful.
  *   Returns EMCP_NOMCP if MCP isn't supported on this connection.
  *   Returns EMCP_NOPACKAGE if this connection doesn't support the package.
- *
- *****************************************************************
- *
- * void mcp_mesg_init(
- *         McpMesg*    msg,
- *         const char* package,
- *         const char* mesgname
- *     );
- *
- *   Initializes an MCP message.
- *   You MUST initialize a message before using it.
- *   You MUST also mcp_mesg_clear() a mesg once you are done using it.
- *
- *****************************************************************
- *
- * void mcp_mesg_clear(
- *              McpMesg* msg
- *          );
- *
- *   Clear the given MCP message.
- *   You MUST clear every message after you are done using it, to
- *     free the memory used by the message.
  *
  *****************************************************************
  *
@@ -258,22 +182,6 @@ typedef struct McpFrame_T {
  *     );
  *
  *   Gets the value of a named argument in the given message.
- *
- *****************************************************************
- *
- * int mcp_mesg_arg_append(
- *         McpMesg* msg,
- *         const char* argname,
- *         const char* argval
- *     );
- *
- *   Appends to the list value of the named arg in the given mesg.
- *   If that named argument doesn't exist yet, it will be created.
- *   This is used to construct arguments that have lists as values.
- *   Returns the success state of the call.  EMCP_SUCCESS if the
- *   call was successful.  EMCP_ARGCOUNT if this would make too
- *   many arguments in the message.  EMCP_ARGLENGTH is this would
- *   cause an argument to exceed the max allowed number of lines.
  *
  *****************************************************************
  *
@@ -309,50 +217,3 @@ typedef struct McpFrame_T {
  *   Returns a McpVer of {0, 0} if there is no version overlap.
  *
  *****************************************************************/
-
-
-
-
-void mcp_initialize(void);
-void mcp_negotiation_start(McpFrame * mfr);
-
-void mcp_package_register(const char *pkgname, McpVer minver, McpVer maxver,
-						  McpPkg_CB callback, void *context, ContextCleanup_CB cleanup);
-void mcp_package_deregister(const char *pkgname);
-
-void mcp_frame_init(McpFrame * mfr, connection_t con);
-void mcp_frame_clear(McpFrame * mfr);
-
-int mcp_frame_package_add(McpFrame * mfr, const char *package, McpVer minver, McpVer maxver);
-void mcp_frame_package_remove(McpFrame * mfr, const char *package);
-void mcp_frame_package_renegotiate(const char *package);
-McpVer mcp_frame_package_supported(McpFrame * mfr, const char *package);
-int mcp_frame_package_docallback(McpFrame * mfr, McpMesg * msg);
-
-int mcp_frame_process_input(McpFrame * mfr, const char *linein, char *outbuf, int bufsize);
-void mcp_frame_output_inband(McpFrame * mfr, const char *lineout);
-int mcp_frame_output_mesg(McpFrame * mfr, McpMesg * msg);
-
-void mcp_mesg_init(McpMesg * msg, const char *package, const char *mesgname);
-void mcp_mesg_clear(McpMesg * msg);
-
-int mcp_mesg_arg_linecount(McpMesg * msg, const char *name);
-char *mcp_mesg_arg_getline(McpMesg * msg, const char *argname, int linenum);
-int mcp_mesg_arg_append(McpMesg * msg, const char *argname, const char *argval);
-void mcp_mesg_arg_remove(McpMesg * msg, const char *argname);
-
-int mcp_version_compare(McpVer v1, McpVer v2);
-McpVer mcp_version_select(McpVer min1, McpVer max1, McpVer min2, McpVer max2);
-
-#endif							/* MCP_H */
-
-#ifdef DEFINE_HEADER_VERSIONS
-
-#ifndef mcph_version
-#define mcph_version
-const char *mcp_h_version = "$RCSfile: mcp.h,v $ $Revision: 1.11 $";
-#endif
-#else
-extern const char *mcp_h_version;
-#endif
-

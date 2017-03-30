@@ -117,12 +117,6 @@
   </tr>
   <tr>
     <td nowrap> &nbsp; <a href="#and">and</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#ansi_midstr">ansi_midstr</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#ansi_strcut">ansi_strcut</a> &nbsp; </td>
-  </tr>
-  <tr>
-    <td nowrap> &nbsp; <a href="#ansi_strip">ansi_strip</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#ansi_strlen">ansi_strlen</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#array?">array?</a> &nbsp; </td>
   </tr>
   <tr>
@@ -774,7 +768,7 @@
   <tr>
     <td nowrap> &nbsp; <a href="#striplead">striplead</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#striptail">striptail</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#strlen">strlen</a> &nbsp; </td>
+    <td nowrap> &nbsp; <a href="#len">len</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#strncmp">strncmp</a> &nbsp; </td>
   </tr>
   <tr>
@@ -4222,12 +4216,6 @@ identifier.
 <h3><a name="StringOps">String Manipulation Operators</a></h3>
 <blockquote><table border=0>
   <tr>
-    <td width="25%"> &nbsp; <a href="#ansi_midstr">ansi_midstr</a> &nbsp; </td>
-    <td width="25%"> &nbsp; <a href="#ansi_strcut">ansi_strcut</a> &nbsp; </td>
-    <td width="25%"> &nbsp; <a href="#ansi_strip">ansi_strip</a> &nbsp; </td>
-    <td width="25%"> &nbsp; <a href="#ansi_strlen">ansi_strlen</a> &nbsp; </td>
-  </tr>
-  <tr>
     <td width="25%"> &nbsp; <a href="#array_fmtstrings">array_fmtstrings</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#atoi">atoi</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#ctoi">ctoi</a> &nbsp; </td>
@@ -4278,7 +4266,7 @@ identifier.
   <tr>
     <td width="25%"> &nbsp; <a href="#striplead">striplead</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#striptail">striptail</a> &nbsp; </td>
-    <td width="25%"> &nbsp; <a href="#strlen">strlen</a> &nbsp; </td>
+    <td width="25%"> &nbsp; <a href="#len">len</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#strncmp">strncmp</a> &nbsp; </td>
   </tr>
   <tr>
@@ -4316,7 +4304,7 @@ onto the stack.
 <p>
 
 
-<hr><h4><a name="strlen">STRLEN ( s -- i )
+<hr><h4><a name="len">STRLEN ( s -- i )
 <br>
 
 <br>
@@ -4729,45 +4717,6 @@ These are the attributes currently recognized:
 </a></h4>
   Attempts to extract a dbref from s, recognizing both plain numerical
 strings, and those prepended with a '#' sign.
-<p>
-
-
-<hr><h4><a name="ansi_strip">ANSI_STRIP ( s -- s' )
-<br>
-
-<br>
-</a></h4>
-  Takes a string and removes ansi escapes from with in the string, returning
-the de-ansified string.
-<p>
-
-
-<hr><h4><a name="ansi_strlen">ANSI_STRLEN ( s -- i )
-<br>
-
-<br>
-</a></h4>
-  Returns the length of string s ignoring ansi escape within the string.
-<p>
-
-
-<hr><h4><a name="ansi_strcut">ANSI_STRCUT ( s i -- s1 s2 )
-<br>
-
-<br>
-</a></h4>
-  Like STRCUT, but ignores ansi escapes when finding the location to divide
-the string at.
-<p>
-
-
-<hr><h4><a name="ansi_midstr">ANSI_MIDSTR ( s i i -- s' )
-<br>
-
-<br>
-</a></h4>
-  Does exactly what MIDSTR does, except it ignores ansi escapes when
-determining what section of the string to extract.
 <p>
 
 
@@ -6381,7 +6330,7 @@ be able to read, are left out.  (ML3 required.)
 keyed by propname.  Sub- propdirs in the given propdir that do not
 have any value of their own, are left out of the returned dictionary.
 Properties that the program doesn't have perms to read are also
-left out.  Reads up to 511 props maximum. (ML3 required.)
+left out.  (ML3 required.)
 <p>
 
 
@@ -6407,7 +6356,7 @@ or . may require special permissions to save.
 in a dictionary, keyed by propname.  Proplists can be in any of the
 common proplist styles: ie: &quot;propname#/1&quot;, &quot;propname/1&quot;, or &quot;propname1&quot;.
 If the program doesn't have permission to read the list, it returns an
-empty dictionary.  Reads up to 511 props maximum.
+empty dictionary.
 <p>
 
 

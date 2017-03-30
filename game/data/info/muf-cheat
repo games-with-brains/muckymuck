@@ -142,7 +142,7 @@ SYNTAX
         and  or         ( i1 i2 -- i )
         not             ( i -- i' )
   
-        strlen          ( s -- i )
+        len          ( s -- i )
         strcat          ( s1 s2 -- s )
         instr           ( s1 s2 -- i )          finds s2 in s1.  0 if !found
         strcut          ( s i -- s1 s2 )        cuts string at pos. i
