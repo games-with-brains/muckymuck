@@ -309,20 +309,19 @@ func prim_match(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 		tmppp := match_cmdname
 		md := NewMatch(fr.descr, player, name, NOTYPE)
 		if name[0] == REGISTERED_TOKEN {
-			match_registered(&md)
+			md.MatchRegistered()
 		} else {
-			match_all_exits(&md)
-			match_neighbor(&md)
-			match_possession(&md)
-			match_me(&md)
-			match_here(&md)
-			match_home(&md)
+			md.MatchAllExits().
+				MatchNeighbor().
+				MatchPossession().
+				MatchMe().
+				MatchHere().
+				MatchHome()
 		}
 		if Wizard(ProgUID) || mlev >= WIZBIT {
-			match_absolute(&md)
-			match_player(&md)
+			md.MatchAbsolute().MatchPlayer()
 		}
-		ref = match_result(&md)
+		ref = md.MatchResult()
 		match_args = buf
 		match_cmdname = tmppp
 		push(arg, top, name)
@@ -341,8 +340,8 @@ func prim_rmatch(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 		buf := match_args
 		tmppp := match_cmdname
 		md := NewMatch(fr.descr, player, name, TYPE_THING)
-		match_rmatch(obj, &md)
-		ref := match_result(&md)
+		md.RMatch(obj)
+		ref := md.MatchResult()
 		match_args = buf
 		match_cmdname = tmppp
 		push(arg, top, ref)
@@ -945,7 +944,7 @@ func prim_getlockstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		if mlev < MASTER && !permissions(ProgUID, ref) {
 			panic("Permission denied.")
 		}
-		push(arg, top, unparse_boolexp(player, get_property_lock(ref, MESGPROP_LOCK), false))
+		push(arg, top, get_property_lock(ref, MESGPROP_LOCK).Unparse(player, false))
 	})
 }
 

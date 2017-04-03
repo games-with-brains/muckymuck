@@ -1,20 +1,4 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/src/create.c,v 1.28 2007/03/08 17:13:49 winged Exp $ */
-
-
-#include "copyright.h"
-#include "config.h"
-
-/* Commands that create new objects */
-
-#include "db.h"
-#include "props.h"
-#include "params.h"
-#include "tune.h"
-#include "interface.h"
-#include "externs.h"
-#include "match.h"
-#include "fbstrings.h"
-#include <ctype.h>
+package fbmuck
 
 /* parse_linkable_dest()
  *
@@ -23,41 +7,27 @@
  * on failure.
  */
 
-static dbref
-parse_linkable_dest(int descr, dbref player, dbref exit, const char *dest_name)
-{
-	dbref dobj;					/* destination room/player/thing/link */
-	static char buf[BUFFER_LEN];
-
-	md := NewMatch(descr, player, dest_name, NOTYPE)
-	match_absolute(&md);
-	match_everything(&md);
-	match_home(&md);
-
-	if ((dobj = match_result(&md)) == NOTHING || dobj == AMBIGUOUS) {
-		buf = fmt.Sprintf("I couldn't find '%s'.", dest_name);
-		notify(player, buf);
-		return NOTHING;
-
+func parse_linkable_dest(int descr, dbref player, dbref exit, const char *dest_name) (r dbref) {
+	r = NewMatch(descr, player, dest_name, NOTYPE).
+		MatchAbsolute().
+		MatchEverything().
+		MatchHome().
+		MatchResult()
+	switch {
+	case r == NOTHING, r == AMBIGUOUS:
+		notify(player, fmt.Sprintf("I couldn't find '%s'.", dest_name))
+		r = NOTHING
+	case !tp_teleport_to_player && Typeof(r) == TYPE_PLAYER:
+		notify(player, fmt.Sprintf("You can't link to players.  Destination %s ignored.", unparse_object(player, r)))
+		r = NOTHING
+	case !can_link(player, exit):
+		notify(player, "You can't link that.")
+		r = NOTHING
+	case !can_link_to(player, Typeof(exit), r):
+		notify(player, fmt.Sprintf("You can't link to %s.", unparse_object(player, r)))
+		r = NOTHING
 	}
-
-	if (!tp_teleport_to_player && Typeof(dobj) == TYPE_PLAYER) {
-		buf = fmt.Sprintf("You can't link to players.  Destination %s ignored.", unparse_object(player, dobj));
-		notify(player, buf);
-		return NOTHING;
-	}
-
-	if (!can_link(player, exit)) {
-		notify(player, "You can't link that.");
-		return NOTHING;
-	}
-	if (!can_link_to(player, Typeof(exit), dobj)) {
-		buf = fmt.Sprintf("You can't link to %s.", unparse_object(player, dobj));
-		notify(player, buf);
-		return NOTHING;
-	} else {
-		return dobj;
-	}
+	return
 }
 
 /* exit_loop_check()
@@ -248,18 +218,18 @@ func link_exit_dry(int descr, dbref player, dbref exit, char *dest_name, dbref *
  */
 func do_link(descr int, player dbref, thing_name, dest_name string) {
 	NoGuest("@link", player, func() {
-		md := NewMatch(descr, player, thing_name, TYPE_EXIT)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_me(&md)
-		match_here(&md)
-		match_absolute(&md)
-		match_registered(&md)
+		md := NewMatch(descr, player, thing_name, TYPE_EXIT).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchMe().
+			MatchHere().
+			MatchAbsolute().
+			MatchRegistered()
 		if Wizard(db.Fetch(player).owner) {
-			match_player(&md)
+			md.MatchPlayer()
 		}
-		if thing := noisy_match_result(&md); thing != NOTHING {
+		if thing := md.NoisyMatchResult(); thing != NOTHING {
 			switch thing.(type) {
 			case TYPE_EXIT:
 				/* we're ok, check the usual stuff */
@@ -300,16 +270,16 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 					}
 				}
 			case TYPE_THING, TYPE_PLAYER:
-				md := NewMatch(descr, player, dest_name, TYPE_ROOM)
-				match_neighbor(&md)
-				match_absolute(&md)
-				match_registered(&md)
-				match_me(&md)
-				match_here(&md)
+				md := NewMatch(descr, player, dest_name, TYPE_ROOM).
+					MatchNeighbor().
+					MatchAbsolute().
+					MatchRegistered().
+					MatchMe().
+					MatchHere()
 				if Typeof(thing) == TYPE_THING {
-					match_possession(&md)
+					md.MatchPossession()
 				}
-				switch dest := noisy_match_result(&md); {
+				switch dest := md.NoisyMatchResult(); {
 				case dest == NOTHING:
 				case !controls(player, thing), !can_link_to(player, Typeof(thing), dest):
 					notify(player, "Permission denied. (you don't control the thing, or you can't link to dest)")
@@ -326,13 +296,14 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 					db.Fetch(thing).flags |= OBJECT_CHANGED
 				}
 			case TYPE_ROOM:			/* room dropto's */
-				md := NewMatch(descr, player, dest_name, TYPE_ROOM)
-				match_neighbor(&md)
-				match_possession(&md)
-				match_registered(&md)
-				match_absolute(&md)
-				match_home(&md)
-				switch dest = noisy_match_result(&md); {
+				dest = NewMatch(descr, player, dest_name, TYPE_ROOM).
+					MatchNeighbor().
+					MatchPossession().
+					MatchRegistered().
+					MatchAbsolute().
+					MatchHome().
+					NoisyMatchResult()
+				switch {
 				case dest == NOTHING:
 				case !controls(player, thing), !can_link_to(player, Typeof(thing), dest), thing == dest:
 					notify(player, "Permission denied. (you don't control the room, or can't link to the dropto)")
@@ -404,11 +375,12 @@ func do_dig(descr int, player dbref, name, pname string) {
 
 			if qname != "" {
 				notify(player, "Trying to set parent...")
-				md := NewMatch(descr, player, qname, TYPE_ROOM)
-				match_absolute(&md)
-				match_registered(&md)
-				match_here(&md)
-				switch parent := noisy_match_result(&md); {
+				parent := NewMatch(descr, player, qname, TYPE_ROOM).
+					MatchAbsolute().
+					MatchRegistered().
+					MatchHere().
+					NoisyMatchResult()
+				switch {
 				case parent == NOTHING, parent == AMBIGUOUS:
 					notify(player, "Parent set to default.");
 				case !can_link_to(player, Typeof(room), parent), room == parent:
@@ -442,12 +414,13 @@ func do_prog(descr int, player dbref, name string) {
 		case name == "":
 			notify(player, "No program name given.")
 		default:
-			md := NewMatch(descr, player, name, TYPE_PROGRAM)
-			match_possession(&md)
-			match_neighbor(&md)
-			match_registered(&md)
-			match_absolute(&md)
-			switch i := match_result(&md); {
+			i := NewMatch(descr, player, name, TYPE_PROGRAM).
+				MatchPossession().
+				MatchNeighbor().
+				MatchRegistered().
+				MatchAbsolute().
+				MatchResult()
+			switch {
 			case i == NOTHING:
 				newprog := new_object()
 				db.Fetch(newprog).name = name
@@ -507,12 +480,13 @@ func do_edit(descr int, player dbref, name string) {
 		case name == "":
 			notify(player, "No program name given.")
 		default:
-			md := NewMatch(descr, player, name, TYPE_PROGRAM)
-			match_possession(&md)
-			match_neighbor(&md)
-			match_registered(&md)
-			match_absolute(&md)
-			switch i := noisy_match_result(&md); {
+			i := NewMatch(descr, player, name, TYPE_PROGRAM).
+				MatchPossession().
+				MatchNeighbor().
+				MatchRegistered().
+				MatchAbsolute().
+				NoisyMatchResult()
+			switch {
 			case i == NOTHING, i == AMBIGUOUS:
 			case Typeof(i) != TYPE_PROGRAM, !controls(player, i):
 				notify(player, "Permission denied!")
@@ -544,12 +518,13 @@ func do_mcpedit(descr int, player dbref, name string) {
 			case name == "":
 				notify(player, "No program name given.")
 			default:
-				md := NewMatch(descr, player, name, TYPE_PROGRAM)
-				match_possession(&md)
-				match_neighbor(&md)
-				match_registered(&md)
-				match_absolute(&md)
-				switch prog := match_result(&md); prog {
+				prog := NewMatch(descr, player, name, TYPE_PROGRAM).
+					MatchPossession().
+					MatchNeighbor().
+					MatchRegistered().
+					MatchAbsolute().
+					MatchResult()
+				switch prog {
 				case NOTHING:
 					/* FIXME: must arrange this to query user. */
 					notify(player, "I don't see that here!")
@@ -573,13 +548,14 @@ func do_mcpprogram(descr int, player dbref, name string) {
 		case name == "":
 			notify(player, "No program name given.")
 		default:
-			md := NewMatch(descr, player, name, TYPE_PROGRAM)
-			match_possession(&md)
-			match_neighbor(&md)
-			match_registered(&md)
-			match_absolute(&md)
+			prog := NewMatch(descr, player, name, TYPE_PROGRAM).
+				MatchPossession().
+				MatchNeighbor().
+				MatchRegistered().
+				MatchAbsolute().
+				MatchResult()
 
-			switch prog := match_result(&md); prog {
+			switch prog {
 			case AMBIGUOUS:
 				notify(player, "I don't know which one you mean!")
 			case NOTHING:
@@ -666,7 +642,7 @@ func copy_one_prop(source dbref, propname string) (r interface{}) {
 			newprop.data = v
 		case dbref:
 			newprop.data = v
-		case *boolexp:			//	FIXME: lock
+		case Lock:
 			newprop.data = copy_bool(v)
 		}
 	}
@@ -706,13 +682,14 @@ func do_clone(descr int, player dbref, name string) {
 			notify(player, "Clone what?")
 		default:
 			/* All OK so far, so try to find the thing that should be cloned. We do not allow rooms, exits, etc. to be cloned for now. */
-			md := NewMatch(descr, player, name, TYPE_THING)
- 			match_possession(&md)
- 			match_neighbor(&md)
- 			match_registered(&md)
- 			match_absolute(&md)
+			thing := NewMatch(descr, player, name, TYPE_THING).
+				MatchPossession().
+				MatchNeighbor().
+				MatchRegistered().
+				MatchAbsolute().
+				NoisyMatchResult()
 	
-			switch thing := noisy_match_result(&md); {
+			switch {
 			case thing == NOTHING:
 			case thing == AMBIGUOUS:
  				notify(player, "I don't know which one you mean!")
@@ -839,38 +816,26 @@ func do_create(player dbref, name, acost string) {
  * error occurs.
  *
  */
-dbref
-parse_source(int descr, dbref player, const char *source_name)
-{
-	dbref source;
+func parse_source(int descr, dbref player, const char *source_name) (r dbref) {
+	r = NewMatch(descr, player, source_name, NOTYPE).
+		MatchNeighbor().
+		MatchMe().
+		MatchHere().
+		MatchPossession().
+		MatchRegistered().
+		MatchAbsolute().
+		NoisyMatchResult()
 
-	md := NewMatch(descr, player, source_name, NOTYPE)
-	/* source type can be any */
-	match_neighbor(&md);
-	match_me(&md);
-	match_here(&md);
-	match_possession(&md);
-	match_registered(&md);
-	match_absolute(&md);
-	source = noisy_match_result(&md);
-
-	if (source == NOTHING)
-		return NOTHING;
-
-	/* You can only attach actions to things you control */
-	if (!controls(player, source)) {
-		notify(player, "Permission denied. (you don't control the attachment point)");
-		return NOTHING;
+	switch {
+	case r == NOTHING:
+	case !controls(player, r):
+		notify(player, "Permission denied. (you don't control the attachment point)")
+	case Typeof(r) == TYPE_EXIT:
+		notify(player, "You can't attach an action to an action.")
+	case Typeof(source) == TYPE_PROGRAM:
+		notify(player, "You can't attach an action to a program.")
 	}
-	if (Typeof(source) == TYPE_EXIT) {
-		notify(player, "You can't attach an action to an action.");
-		return NOTHING;
-	}
-	if (Typeof(source) == TYPE_PROGRAM) {
-		notify(player, "You can't attach an action to a program.");
-		return NOTHING;
-	}
-	return source;
+	return
 }
 
 /*
@@ -986,12 +951,12 @@ func do_attach(descr int, player dbref, action_name, source_name string) {
 			case action_name == "", source_name == "":
 				notify(player, "You must specify an action name and a source object.")
 			default:
-				md := NewMatch(descr, player, action_name, TYPE_EXIT)
-				match_all_exits(&md)
-				match_registered(&md)
-				match_absolute(&md)
+				md := NewMatch(descr, player, action_name, TYPE_EXIT).
+					MatchAllExits().
+					MatchRegistered().
+					MatchAbsolute()
 
-				if action := noisy_match_result(&md); action != NOTHING {
+				if action := md.NoisyMatchResult(); action != NOTHING {
 					switch source := parse_source(descr, player, source_name); {
 					case Typeof(action) != TYPE_EXIT:
 						notify(player, "That's not an action!")

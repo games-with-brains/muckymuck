@@ -72,7 +72,3 @@ Calls:
 Does:
 #ifdefs:
 Notes:
-
-Caveats: 
-1)	If BOOLEXP_DEBUGGING is #define'd, neither show_program_usage()
-	or main() get compiled.

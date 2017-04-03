@@ -304,45 +304,41 @@ func prim_ispidp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 func prim_parselock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		CHECKOFLOW(1)
-		if lock := POP().data.(string); lock == "" {
-			push(arg, top, TRUE_BOOLEXP)
+		if lock := op[0].(string); lock == "" {
+			push(arg, top, UNLOCKED)
 		} else {
-			push(arg, top, parse_boolexp(fr.descr, ProgUID, lock, 0))
+			push(arg, top, ParseLock(fr.descr, ProgUID, lock, 0))
 		}
 	})
 }
 
 func prim_unparselock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		lock := POP().data.(*boolexp)
-		var ptr string
-		if lock != TRUE_BOOLEXP {
-			ptr = unparse_boolexp(ProgUID, lock, false)
+		if l := op[0].(Lock); l.IsTrue() {
+			push(arg, top, "")
+		} else {
+			push(arg, top, l.Unparse(ProgUID, false))
 		}
-		CHECKOFLOW(1)
-		push(arg, top, ptr)
 	})
 }
 
 func prim_prettylock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		CHECKOFLOW(1)
-		push(arg, top, unparse_boolexp(ProgUID, POP().data.(lock), true))
+		push(arg, top, op[0].(Lock).Unparse(ProgUID, true))
 	})
 }
 
 func prim_testlock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		oper1 := POP()				/* boolexp lock */
-		oper2 := POP()				/* player dbref */
-		obj := valid_remote_object(player, mlev, oper2.data)
+		obj := valid_remote_object(player, mlev, op[0].data)
 		switch {
 		case fr.level > 8:
 			panic("Interp call loops not allowed.")
 		case Typeof(obj) != TYPE_PLAYER && Typeof(obj) != TYPE_THING:
 			panic("Invalid object type (1).")
 		}
-		push(arg, top, eval_boolexp(fr.descr, obj, oper1.data.(*boolexp), player))
+		push(arg, top, copy_bool(op[1].(Lock)).Eval(fr.descr, obj, player))
 	})
 }
 

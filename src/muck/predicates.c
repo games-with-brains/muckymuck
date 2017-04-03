@@ -105,32 +105,19 @@ func could_doit(int descr, dbref player, dbref thing) bool {
 		}
 	}
 	/* Check the @lock on the thing, as a final test. */
-	return eval_boolexp(descr, player, get_property_lock(thing, MESGPROP_LOCK), thing)
+	return copy_bool(get_property_lock(thing, MESGPROP_LOCK)).Eval(descr, player, thing)
 }
 
-
-int
-test_lock(int descr, dbref player, dbref thing, const char *lockprop)
-{
-	struct boolexp *lokptr;
-
-	lokptr = get_property_lock(thing, lockprop);
-	return (eval_boolexp(descr, player, lokptr, thing));
+func test_lock(descr int, player, thing dbref, lockprop string) int {
+	return copy_bool(get_property_lock(thing, lockprop)).Eval(descr, player, thing)
 }
 
-
-int
-test_lock_false_default(int descr, dbref player, dbref thing, const char *lockprop)
-{
-	struct boolexp *lok;
-
-	lok = get_property_lock(thing, lockprop);
-
-	if (lok == TRUE_BOOLEXP)
-		return 0;
-	return (eval_boolexp(descr, player, lok, thing));
+func test_lock_false_default(descr int, player, thing dbref, lockprop string) (ok bool) {
+	if lok := get_property_lock(thing, lockprop); !lok.IsTrue() {
+		ok = copy_bool(lok).Eval(descr, player, thing))
+	}
+	return
 }
-
 
 func can_doit(descr int, player, thing dbref, default_fail_msg string) (r bool) {
 	switch loc := db.Fetch(player).location); {

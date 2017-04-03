@@ -288,7 +288,7 @@ func prim_addressp(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_lockp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		_, ok := op[0].(*boolexp)
+		_, ok := op[0].(Lock)
 		push(arg, top, MUFBool(ok))
 	})
 }
@@ -485,7 +485,7 @@ func prim_checkargs(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 						if stackpos < 0 {
 							abort_checkargs(stackpos, "Stack underflow.")
 						}
-						if _, ok := arg[stackpos].data.(*boolexp); !ok {
+						if _, ok := arg[stackpos].data.(Lock); !ok {
 							abort_checkargs(stackpos, "Expected a lock boolean expression.")
 						}
 					case 'v':

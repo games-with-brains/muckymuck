@@ -257,26 +257,23 @@ purge_try_pool(void)
 }
 
 func interp(int descr, dbref player, dbref location, dbref program, dbref source, int nosleeps, int whichperms, int forced_pid) *frame {
-	struct frame *fr;
-	int i;
-
-	if (MLevel(program) == NON_MUCKER || MLevel(db.Fetch(program).owner) == NON_MUCKER || (source != NOTHING && !TrueWizard(db.Fetch(source).owner) && !can_link_to(db.Fetch(source).owner, TYPE_EXIT, program))) {
+	if MLevel(program) == NON_MUCKER || MLevel(db.Fetch(program).owner) == NON_MUCKER || (source != NOTHING && !TrueWizard(db.Fetch(source).owner) && !can_link_to(db.Fetch(source).owner, TYPE_EXIT, program)) {
 		notify_nolisten(player, "Program call: Permission denied.", true)
-		return 0;
+		return 0
 	}
-	fr = &frame{ descr: descr, multitask: nosleeps, perms: whichperms, been_background: nosleeps == 2, trig: source }
+	fr := &frame{ descr: descr, multitask: nosleeps, perms: whichperms, been_background: nosleeps == 2, trig: source }
 	if forced_pid != 0 {
 		fr.pid = forced_pid
 	} else {
 		fr.pid = top_pid
 		top_pid++
 	}
-	fr.caller.st[0] = source;
-	fr.caller.st[1] = program;
+	fr.caller.st[0] = source
+	fr.caller.st[1] = program
 
 	fr.system.top = 1
 	fr.system.st[0].progref = 0
-	fr.system.st[0].offset = 0;
+	fr.system.st[0].offset = 0
 
 	fr.forstack.top = 0
 	fr.forstack.st = nil
@@ -299,49 +296,45 @@ func interp(int descr, dbref player, dbref location, dbref program, dbref source
 		fr.variables[i].data = 0
 	}
 
-	fr->brkpt.force_debugging = 0;
-	fr->brkpt.debugging = 0;
-	fr->brkpt.bypass = 0;
-	fr->brkpt.isread = 0;
-	fr->brkpt.showstack = 0;
-	fr->brkpt.dosyspop = 0;
-	fr->brkpt.lastline = 0;
-	fr->brkpt.lastpc = 0;
-	fr->brkpt.lastlisted = 0;
-	fr->brkpt.lastcmd = NULL;
-	fr->brkpt.breaknum = -1;
+	fr.brkpt.force_debugging = 0
+	fr.brkpt.debugging = 0
+	fr.brkpt.bypass = 0
+	fr.brkpt.isread = 0
+	fr.brkpt.showstack = 0
+	fr.brkpt.dosyspop = 0
+	fr.brkpt.lastline = 0
+	fr.brkpt.lastpc = 0
+	fr.brkpt.lastlisted = 0
+	fr.brkpt.lastcmd = ""
+	fr.brkpt.breaknum = -1
 
-	fr->brkpt.lastproglisted = NOTHING;
-	fr->brkpt.proglines = NULL;
+	fr.brkpt.lastproglisted = NOTHING
+	fr.brkpt.proglines = nil
 
-	fr->brkpt.count = 1;
-	fr->brkpt.temp[0] = 1;
-	fr->brkpt.level[0] = -1;
-	fr->brkpt.line[0] = -1;
-	fr->brkpt.linecount[0] = -2;
-	fr->brkpt.pc[0] = NULL;
-	fr->brkpt.pccount[0] = -2;
-	fr->brkpt.prog[0] = program;
+	fr.brkpt.count = 1
+	fr.brkpt.temp[0] = 1
+	fr.brkpt.level[0] = -1
+	fr.brkpt.line[0] = -1
+	fr.brkpt.linecount[0] = -2
+	fr.brkpt.pc[0] = nil
+	fr.brkpt.pccount[0] = -2
+	fr.brkpt.prog[0] = program
 
-	fr->proftime.tv_sec = 0;
-	fr->proftime.tv_usec = 0;
-	fr->totaltime.tv_sec = 0;
-	fr->totaltime.tv_usec = 0;
+	fr.proftime.tv_sec = 0
+	fr.proftime.tv_usec = 0
+	fr.totaltime.tv_sec = 0
+	fr.totaltime.tv_usec = 0
 
-	fr->variables[0].data = player
-	fr->variables[1].data = location
-	fr->variables[2].data = source
-	fr->variables[3].data = (!*match_cmdname) ? "" : match_cmdname
+	fr.variables[0].data = player
+	fr.variables[1].data = location
+	fr.variables[2].data = source
+	fr.variables[3].data = match_cmdname
 
 	if db.Fetch(program).sp.(program_specific).code {
 		db.Fetch(program).sp.(program_specific).profuses++
 	}
 	db.Fetch(program).sp.(program_specific).instances++
-	if *match_args != nil {
-		push(fr.argument.st, &(fr.argument.top), match_args)
-	} else {
-		push(fr.argument.st, &(fr.argument.top), 0)
-	}
+	push(fr.argument.st, &(fr.argument.top), match_args)
 	return fr
 }
 
@@ -608,8 +601,8 @@ func ValueIsFalse(v interface{}) (r bool) {
 		r = true
 	case stk_array:
 		r = v.Len() == 0
-	case *boolexp:
-		r = v == TRUE_BOOLEXP
+	case Lock:
+		r = v.IsTrue()
 	case dbref:
 		r = v == NOTHING
 	}
@@ -627,9 +620,9 @@ func (from *inst) Dup() (to *inst) {
 			}
 		case addr:
 			db.Fetch(from.data.(addr).progref).sp.(program_specific).instances++
-		case lock:
-		    if from.data.(lock) != TRUE_BOOLEXP {
-				to.data.lock = copy_bool(from.data.lock)
+		case Lock:
+		    if !data.IsTrue() {
+				to.data = copy_bool(from.data)
 			}
 		}
 	}
@@ -876,7 +869,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			}
 		}
 		switch pc.data.(type) {
-		case int, float64, Address, dbref, PROG_VAR, PROG_LVAR, PROG_SVAR, string, *boolexp, Mark, stk_array:
+		case int, float64, Address, dbref, PROG_VAR, PROG_LVAR, PROG_SVAR, string, Lock, Mark, stk_array:
 			if atop >= STACK_SIZE {
 				abort_loop("Stack overflow.", NULL, NULL)
 			}

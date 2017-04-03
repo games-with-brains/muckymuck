@@ -1,15 +1,4 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/src/unparse.c,v 1.11 2009/10/11 05:19:18 points Exp $ */
-
-
-#include "copyright.h"
-#include "config.h"
-
-#include "db.h"
-#include "externs.h"
-#include "params.h"
-#include "tune.h"
-#include "interface.h"
-#include "props.h"
+package fbmuck
 
 func unparse_flag(thing dbref, flag int, f string) (r string) {
 	if db.Fetch(thing).flags & flag != 0 {
@@ -79,40 +68,4 @@ func unparse_object(player, loc dbref) (r string) {
 		}
 	}
 	return
-}
-
-func unparse_boolexp1(player dbref, b *boolexp, outer_type boolexp_type, fullname bool) (r string) {
-	if b == TRUE_BOOLEXP {
-		r = "*UNLOCKED*"
-	} else {
-		switch b.(type) {
-		case BOOLEXP_AND:
-			s := unparse_boolexp1(player, b.sub1, b.type, fullname) + AND_TOKEN + unparse_boolexp1(player, b.sub2, b.type, fullname)
-			if outer_type == BOOLEXP_NOT {
-				r = '(' + s + ')'
-			}
-		case BOOLEXP_OR:
-			s := unparse_boolexp1(player, b.sub1, b.type, fullname) + OR_TOKEN + unparse_boolexp1(player, b.sub2, b.type, fullname)
-			if outer_type == BOOLEXP_NOT || outer_type == BOOLEXP_AND {
-				r = '(' + s + ')'
-			}
-		case BOOLEXP_NOT:
-			r = '!' + unparse_boolexp1(player, b.sub1, b.type, fullname)
-		case BOOLEXP_CONST:
-			if !fullname {
-				r = unparse_object(player, b.thing)
-			} else {
-				r = fmt.Sprintf("#%d", b.thing)
-			}
-		case BOOLEXP_PROP:
-			r = b.prop_check.key + ":" + b.prop_check.data.(string)
-		default:
-			panic("unparse_boolexp1(): bad type !")
-		}
-	}
-	return
-}
-
-func unparse_boolexp(player dbref, b *boolexp, fullname bool) string {
-	return unparse_boolexp1(player, b, BOOLEXP_CONST, fullname)	/* no outer type */
 }

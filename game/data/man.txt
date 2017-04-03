@@ -2893,7 +2893,7 @@ PARSELOCK
 PARSELOCK (s -- l)
 
   Parses a lock string into a lock.  If the parsing failed, then the lock
-returned will be a TRUE_BOOLEXP, which is logically false to an 'if' test.
+returned will be a TRUE, which is logically false to an 'if' test.
 Also see: UNPARSELOCK, LOCK?, PRETTYLOCK, TESTLOCK, GETLOCKSTR, SETLOCKSTR and LOCKED?
 ~
 ~

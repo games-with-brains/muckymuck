@@ -21,9 +21,6 @@
 #define BUFFER_LEN ((MAX_COMMAND_LEN)*4)
 #define FILE_BUFSIZ ((BUFSIZ)*8)
 
-extern char match_args[BUFFER_LEN];
-extern char match_cmdname[BUFFER_LEN];
-
 typedef int dbref;				/* offset into db */
 
 #define TIME_INFINITE ((sizeof(time_t) == 4)? 0xefffffff : 0xefffffffffffffff)
@@ -128,25 +125,6 @@ typedef long object_flag_type;
 #define PREEMPT 0
 #define FOREGROUND 1
 #define BACKGROUND 2
-
-/* Boolean expressions, for locks */
-typedef char boolexp_type;
-
-#define BOOLEXP_AND 0
-#define BOOLEXP_OR 1
-#define BOOLEXP_NOT 2
-#define BOOLEXP_CONST 3
-#define BOOLEXP_PROP 4
-
-struct boolexp {
-	boolexp_type type;
-	struct boolexp *sub1;
-	struct boolexp *sub2;
-	dbref thing;
-	prop_check *Plist
-};
-
-#define TRUE_BOOLEXP ((struct boolexp *) 0)
 
 /* special dbref's */
 #define NOTHING ((dbref) -1)	/* null dbref */

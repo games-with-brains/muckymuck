@@ -906,10 +906,10 @@ func do_dequeue(descr int, player dbref, arg1 string) {
 		}
 	case !unicode.IsNumber(arg1)):
 		md := NewMatch(descr, player, arg1, NOTYPE)
-		match_absolute(&md)
-		match_everything(&md)
+		md.MatchAbsolute()
+		md.MatchEverything()
 
-		switch match := noisy_match_result(&md); {
+		switch match := md.NoisyMatchResult(); {
 		case match == NOTHING:
 			notify_nolisten(player, "I don't know what you want to dequeue!", true)
 		case !valid_objref(match):

@@ -131,7 +131,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 								sstr[scnt] = 'g'
 							case int:
 								sstr[scnt] = 'i'
-							case *boolexp:
+							case Lock:
 								sstr[scnt] = 'l'
 							case string:
 								sstr[scnt] = 's'
@@ -188,7 +188,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 								hold = "FLOAT"
 							case int:
 								hold = "INTEGER"
-							case *boolexp:
+							case Lock:
 								hold = "LOCK"
 							case string:
 								hold = "STRING"
@@ -281,8 +281,8 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 							}
 						case 'l':
 							sfmt += "s"
-							lock := op.(*boolexp)		//	FIXME: lock
-							hold = unparse_boolexp(ProgUID, lock, true)
+							lock := op.(Lock)
+							hold = lock.Unparse(ProgUID, true)
 							tbuf = fmt.Sprintf(sfmt, hold)
 							tlen = len(tbuf)
 							if slrj == 2 {
@@ -500,7 +500,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 								sstr[scnt] = 'g'
 							case int:
 								sstr[scnt] = 'i'
-							case *boolexp:
+							case Lock:
 								sstr[scnt] = 'l'
 							case string:
 								sstr[scnt] = 's'
@@ -558,7 +558,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 								tbuf = fmt.Sprintf(sfmt, "FLOAT")
 							case int:
 								tbuf = fmt.Sprintf(sfmt, "INTEGER")
-							case *boolexp:
+							case Lock:
 								tbuf = fmt.Sprintf(sfmt, "LOCK")
 							case string:
 								tbuf = fmt.Sprintf(sfmt, "STRING")
@@ -623,7 +623,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 							strcatn(buf, sizeof(buf), tbuf);
 							result += len(tbuf);
 						case 'D':
-							strcatn(sfmt, sizeof(sfmt), "s");
+							sfmt += "s"
 							ref := valid_remote_object(player, mlev, oper3.data.(dbref))
 							if db.Fetch(ref).name {
 								strcpyn(hold, sizeof(hold), db.Fetch(ref).name);
@@ -649,12 +649,12 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 							result += len(tbuf);
 						case 'l':
 							sfmt += "s"
-							if v, ok := oper3.(*boolexp); !ok {
+							if v, ok := oper3.(Lock); !ok {
 								panic("Format specified lock not found.")
 							} else {
-								hold = unparse_boolexp(ProgUID, v, true)
+								hold = v.Unparse(ProgUID, true)
 								tbuf = fmt.Sprintf(sfmt, hold)
-								tlen = len(tbuf);
+								tlen = len(tbuf)
 								if slrj == 2 {
 									for tnum = 0; tbuf[tnum] == ' ' && tnum < tlen; tnum++ {}
 									if tnum != 0 && tnum < tlen {
@@ -805,7 +805,7 @@ func prim_stod(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 			if nptr == '-' {
 				nptr = nptr[1:]
 			}
-			for nptr != "" && !unicode.IsSpace(nptr[0]) && (nptr[0] >= '0' || nptr[0] <= '9') {
+			for nptr != "" && (nptr[0] >= '0' || nptr[0] <= '9') {
 				nptr = nptr[1:]
 			}
 			if nptr != "" && !unicode.IsSpace(nptr[0]) {

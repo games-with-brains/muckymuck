@@ -65,9 +65,6 @@ func valid_object_or_home(oper interface{}, panics ...interface{}) (obj dbref) {
 	#define BUFFER_LEN ((MAX_COMMAND_LEN)*4)
 	#define FILE_BUFSIZ ((BUFSIZ)*8)
 
-	extern char match_args[BUFFER_LEN];
-	extern char match_cmdname[BUFFER_LEN];
-
 	typedef int dbref;				/* offset into db */
 
 	#define TIME_INFINITE ((sizeof(time_t) == 4)? 0xefffffff : 0xefffffffffffffff)
@@ -292,24 +289,7 @@ func Linkable(x dbref) (r bool) {
 	}
 }
 
-	/* Boolean expressions, for locks */
-	typedef char boolexp_type;
 
-	#define BOOLEXP_AND 0
-	#define BOOLEXP_OR 1
-	#define BOOLEXP_NOT 2
-	#define BOOLEXP_CONST 3
-	#define BOOLEXP_PROP 4
-
-	struct boolexp {
-		boolexp_type type;
-		struct boolexp *sub1;
-		struct boolexp *sub2;
-		dbref thing;
-		prop_check *Plist
-	};
-
-	#define TRUE_BOOLEXP ((struct boolexp *) 0)
 
 	/* special dbref's */
 	#define NOTHING ((dbref) -1)	/* null dbref */
@@ -387,18 +367,7 @@ type Mark struct {}
 	type inst struct {					/* instruction */
 		line int
 		data interface{}
-	//	union {
-	//		string
-	//		struct boolexp *lock;	/* booleam lock expression */
-	//		int number;				/* used for both primitives and integers */
-	//		double fnumber;			/* used for float storage */
-	//		dbref objref;			/* object reference */
-	//		struct inst *call;		/* use in IF and JMPs */
-	//	} data;
 	};
-
-	#include "array.h"
-	#include "mufevent.h"
 
 	typedef struct inst vars[MAX_VAR];
 
@@ -1053,28 +1022,14 @@ db_write_deltas(FILE * f)
 	return (db_top);
 }
 
-
-
-dbref
-parse_dbref(const char *s)
-{
-	const char *p;
-	long x;
-
-	x = atol(s);
-	if (x > 0) {
-		return x;
-	} else if (x == 0) {
-		/* check for 0 */
-		for (p = s; *p; p++) {
-			if (*p == '0')
-				return 0;
-			if (!unicode.IsSpace(*p))
-				break;
-		}
+func parse_dbref(s string) (r dbref) {
+	s = strings.TrimSpace(s)
+	if x := strconv.Atol(s); x > 0 {
+		r = x;
+	} else {
+		r = NOTHING
 	}
-	/* else x < 0 or s != 0 */
-	return NOTHING;
+	return
 }
 
 #define getstring(x) getstring_noalloc(x)

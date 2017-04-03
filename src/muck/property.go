@@ -53,7 +53,7 @@ func set_property_nofetch(player dbref, name string, dat interface{}) {
 						remove_property_nofetch(player, name)
 					}
 				}
-			case *boolexp:			//	FIXME: lock
+			case Lock:
 				p.data = dat
 			case PROP_DIRTYP:
 				if p.data = nil; p.dir == nil {
@@ -69,11 +69,11 @@ func set_property(player dbref, name string, dat interface{}) {
 	db.Fetch(player).flags |= OBJECT_CHANGED
 }
 
-func set_lock_property(player dbref, pname, lok string) {
-	if len(lok) == 0 {
-		set_property(player, pname, TRUE_BOOLEXP)
+func set_lock_property(player dbref, pname, lock string) {
+	if lock == "" {
+		set_property(player, pname, UNLOCKED)
 	} else {
-		set_property(player, pname, parse_boolexp(-1, 1, lok, 1))
+		set_property(player, pname, ParseLock(-1, 1, lock, 1))
 	}
 }
 
@@ -211,7 +211,6 @@ func get_property_fvalue(player dbref, name string) (r float) {
 	return
 }
 
-/* return boolexp lock of property */
 func get_property_dbref(player dbref, name string) (r dbref) {
 	r = NOTHING
 	if p := get_property(player, name); p != nil {
@@ -222,15 +221,14 @@ func get_property_dbref(player dbref, name string) (r dbref) {
 	return
 }
 
-/* return boolexp lock of property */
-func get_property_lock(player dbref, name string) (r *boolexp) {
+func get_property_lock(player dbref, name string) (r Lock) {
 	if p := get_property(player, pname); p == nil {
-		r = TRUE_BOOLEXP
+		r = UNLOCKED
 	} else {
-		if v, ok := p.data.(*boolexp); ok {	//	FIXME: lock
+		if v, ok := p.data.(Lock); ok {
 			r = v
 		} else {
-			r = TRUE_BOOLEXP
+			r = UNLOCKED
 		}
 	}
 	return
@@ -383,8 +381,8 @@ func displayprop(player, obj dbref, name string) (r string) {
 			r = fmt.Sprintf("%c int %s:%d", blesschar, mybuf, v)
 		case float64:
 			r = fmt.Sprintf("%c flt %s:%.17g", blesschar, mybuf, v)
-		case *boolexp:		//	FIXME: lock
-			r = fmt.Sprintf("%c lok %s:%s", blesschar, mybuf, unparse_boolexp(player, v, true))
+		case Lock:		//	FIXME: lock
+			r = fmt.Sprintf("%c lok %s:%s", blesschar, mybuf, v.Unparse(player, true))
 		case PROP_DIRTYP:
 			r = fmt.Sprintf("%c dir %s:(no value)", blesschar, mybuf)
 		}
@@ -445,12 +443,11 @@ func db_get_single_prop(f *FILE, obj dbref, pos int, pnode *Plist, pdir string) 
 					}
 				case PROP_LOKTYP:
 					if pos != 0 {
-						lok := parse_boolexp(-1, 1, value, 32767)
-						if pnode != nil {
-							pnode.data = lok
+						if lock := ParseLock(-1, 1, value, 32767); pnode != nil {
+							pnode.data = lock
 							SetPFlagsRaw(pnode, flg)
 						} else {
-							set_property_nofetch(obj, name, lok)
+							set_property_nofetch(obj, name, lock)
 						}
 					} else {
 						set_property_nofetch(obj, name, tpos)
@@ -525,9 +522,9 @@ func (p *Plist) db_putprop(f *os.File, dir string) {
 		if v != "" {
 			buf = v
 		}
-	case *boolexp:
-		if v != TRUE_BOOLEXP {
-			buf = unparse_boolexp(1, v, false)
+	case Lock:
+		if !v.IsTrue() {
+			buf = v.Unparse(1, false)
 		}
 	}
 	if buf != "" {

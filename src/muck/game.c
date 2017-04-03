@@ -492,8 +492,8 @@ process_command(int descr, dbref player, char *command)
 	if !TrueWizard(db.Fetch(player).owner) && command[0] == OVERIDE_TOKEN {
 		if (can_move(descr, player, command, 0)) {
 			do_move(descr, player, command, 0);	/* command is exact match for exit */
-			*match_args = 0;
-			*match_cmdname = 0;
+			match_args = ""
+			match_cmdname = ""
 		} else {
 			if tp_enable_prefix {
 				switch command[0] {
@@ -511,8 +511,8 @@ process_command(int descr, dbref player, char *command)
 				}
 				if (can_move(descr, player, command, 0)) {
 					do_move(descr, player, command, 0);	/* command is exact match for exit */
-					*match_args = 0;
-					*match_cmdname = 0;
+					match_args = ""
+					match_cmdname = ""
 				} else {
 					goto bad_pre_command;
 				}
@@ -543,8 +543,8 @@ process_command(int descr, dbref player, char *command)
 			*arg1++ = '\0';
 
 		/* remember command for programs */
-		strcpyn(match_args, sizeof(match_args), full_command);
-		strcpyn(match_cmdname, sizeof(match_cmdname), command);
+		match_args = full_command
+		match_cmdname = command
 
 		/* move over spaces */
 		arg1 = strings.TrimLeftFunc(arg1, unicode.IsSpace)
@@ -778,7 +778,7 @@ process_command(int descr, dbref player, char *command)
 						if !strings.Prefix(command, "@list") {
 							goto bad
 						}
-						match_and_list(descr, player, arg1, arg2);
+						MatchAndList(descr, player, arg1, arg2);
 					default:
 						goto bad;
 					}
@@ -1214,8 +1214,8 @@ process_command(int descr, dbref player, char *command)
 				hbuf := fmt.Sprintf("HUH? %s", command);
 				if(can_move(descr, player, hbuf, 3)) {
 					do_move(descr, player, hbuf, 3);
-					*match_args = 0;
-					*match_cmdname = 0;
+					match_args = ""
+					match_cmdname = ""
 					break;
 				}
 			}	

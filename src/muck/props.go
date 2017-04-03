@@ -277,7 +277,7 @@ func (old *Plist) copy_proplist(obj dbref) (nu *Plist) {
 		p := nu.new_prop(old.key)
 		SetPFlagsRaw(p, PropFlagsRaw(old))
 		switch v := old.data.(type) {
-		case *boolexp:			// FIXME: lock
+		case Lock:			// FIXME: lock
 			p.data = copy_bool(v)
 		case PROP_DIRTYP:
 			p.data = 0

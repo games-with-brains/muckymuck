@@ -1298,11 +1298,11 @@ func is_preprocessor_conditional(token string) (r bool) {
 func do_directive_match(cstat *COMPSTATE, name string) (i int) {
 	tempa := match_args
 	tempb := match_cmdname
-	md := NewMatch(cstat.descr, cstat.player, name, NOTYPE)
-	match_registered(&md)
-	match_absolute(&md)
-	match_me(&md)
-	i = match_result(&md)
+	i = NewMatch(cstat.descr, cstat.player, name, NOTYPE).
+		MatchRegistered().
+		MatchAbsolute().
+		MatchMe().
+		MatchResult()
 	match_args = tempa
 	match_cmdname = tempb
 	return

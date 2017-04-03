@@ -26,12 +26,8 @@ func disassemble(player, program dbref) {
 			buf = fmt.Sprintf("%d: (line %d) ARRAY: %d items", i, v.line, len(op))
 		case MUFProc:
 			buf = fmt.Sprintf("%d: (line %d) FUNCTION: %s, VARS: %d, ARGS: %d", i, v.line, op.name, op.vars, op.args)
-		case *boolexp:
-			if op == TRUE_BOOLEXP {
-				buf = fmt.Sprintf("%d: (line %d) LOCK: [%s]", i, v.line, "TRUE_BOOLEXP")
-			} else {
-				buf = fmt.Sprintf("%d: (line %d) LOCK: [%s]", i, v.line, unparse_boolexp(0, op, false))
-			}
+		case Lock:
+			buf = fmt.Sprintf("%d: (line %d) LOCK: [%s]", i, v.line, op.Unparse(0, false))
 		case int:
 			buf = fmt.Sprintf("%d: (line %d) INTEGER: %d", i, v.line, op)
 		case float64:

@@ -1633,29 +1633,21 @@ func check_connect(d *descriptor_data, msg string) {
 	}
 }
 
-void
-parse_connect(const char *msg, char *command, char *user, char *pass)
-{
-	char *p;
+func parse_connect(msg string) (command, user, pass string) {
+	msg = strings.TrimSpace(msg)
+	if i := strings.IndexFunc(msg, unicode.IsSpace); i != -1 {
+		command = msg[:i]
+		msg = strings.TrimSpace(msg[i:])
+	}
 
-	while (*msg && isinput(*msg) && unicode.IsSpace(*msg))
-		msg++;
-	p = command;
-	while (*msg && isinput(*msg) && !unicode.IsSpace(*msg))
-		*p++ = strings.ToLower(*msg++)
-	*p = '\0';
-	while (*msg && isinput(*msg) && unicode.IsSpace(*msg))
-		msg++;
-	p = user;
-	while (*msg && isinput(*msg) && !unicode.IsSpace(*msg))
-		*p++ = *msg++;
-	*p = '\0';
-	while (*msg && isinput(*msg) && unicode.IsSpace(*msg))
-		msg++;
-	p = pass;
-	while (*msg && isinput(*msg) && !unicode.IsSpace(*msg))
-		*p++ = *msg++;
-	*p = '\0';
+	if i := strings.IndexFunc(msg, unicode.IsSpace); i != -1 {
+		user = msg[:i]
+		msg = strings.TrimSpace(msg[i:])
+	}
+
+	if i := strings.IndexFunc(msg, unicode.IsSpace); i != -1 {
+		pass = msg[:i]
+	}
 }
 
 
@@ -1875,11 +1867,12 @@ func announce_connect(descr int, player dbref) {
 	exit = NOTHING;
 	if (online(player) == 1) {
 		md := NewMatch(descr, player, "connect", TYPE_EXIT)	/* match for connect */
-		md.match_level = 1;
-		match_all_exits(&md);
-		exit = match_result(&md);
-		if (exit == AMBIGUOUS)
-			exit = NOTHING;
+		md.level = 1
+		md.MatchAllExits()
+		exit = md.MatchResult()
+		if exit == AMBIGUOUS {
+			exit = NOTHING
+		}
 	}
 
 	if exit == NOTHING || db.Fetch(exit).flags & STICKY == 0 {
@@ -2308,6 +2301,11 @@ func ignore_prime_cache(player dbref) bool {
 		}
 		ptr = strings.TrimLeftFunc(ptr, func(r rune) bool {
 			return !unicode.IsSpace(r)
+		}
+		if i := strings.IndexFunc(ptr, unicode.IsSpace); i != -1 {
+			ptr = ptr[i:]
+		} else {
+			ptr = ""
 		}
 	}
 

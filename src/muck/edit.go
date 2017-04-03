@@ -311,41 +311,41 @@ func do_quit(player, program dbref) {
 	db.Fetch(program).flags |= OBJECT_CHANGED
 }
 
-func match_and_list(descr int, player dbref, name, linespec string) {
-	md := NewMatch(descr, player, name, TYPE_PROGRAM)
-	match_neighbor(&md)
-	match_possession(&md)
-	match_registered(&md)
-	match_absolute(&md)
-	if thing := noisy_match_result(&md); thing != NOTHING {
-		switch {
-		case Typeof(thing) != TYPE_PROGRAM:
-			notify(player, "You can't list anything but a program.")
-		case !controls(player, thing) && db.Fetch(thing).flags & VEHICLE == 0:
-			notify(player, "Permission denied. (You don't control the program, and it's not set Viewable)")
-		default:
-			var range []int
-			if linespec == "" {
-				range = append(range, 1)
-				range = append(range, -1)
+func MatchAndList(descr int, player dbref, name, linespec string) {
+	thing := NewMatch(descr, player, name, TYPE_PROGRAM).
+		MatchNeighbor().
+		MatchPossession().
+		MatchRegistered().
+		MatchAbsolute().
+		NoisyMatchResult()
+	switch {
+	case thing == NOTHING:
+	case Typeof(thing) != TYPE_PROGRAM:
+		notify(player, "You can't list anything but a program.")
+	case !controls(player, thing) && db.Fetch(thing).flags & VEHICLE == 0:
+		notify(player, "Permission denied. (You don't control the program, and it's not set Viewable)")
+	default:
+		var ranges []int
+		if linespec == "" {
+			ranges = append(ranges, 1)
+			ranges = append(ranges, -1)
+		} else {
+			items := strings.SplitN(strings.TrimLeftFunc(linespec, unicode.IsSpace), 2)
+			if linespec = items[0]; isdigit(linespec[0]) {
+				ranges = append(ranges, strconv.Atoi(linespec))
 			} else {
-				items := strings.SplitN(strings.TrimLeftFunc(linespec, unicode.IsSpace), 2)
-				if linespec = items[0]; isdigit(linespec[0]) {
-					range = append(range, strconv.Atoi(linespec))
-				} else {
-					range = append(range, 1)
-				}
-				if linespec = strings.TrimFunc(items[1], unicode.IsSpace); linespec != "" {
-					range = append(range, strconv.Atoi(linespec))
-				} else {
-					range = append(range, -1)
-				}
+				ranges = append(ranges, 1)
 			}
-			tmpline := db.Fetch(thing).sp.(program_specific).first
-			db.Fetch(thing).sp.(program_specific).first = read_program(thing)
-			do_list(player, thing, range)
-			db.Fetch(thing).sp.(program_specific).first = tmpline
+			if linespec = strings.TrimFunc(items[1], unicode.IsSpace); linespec != "" {
+				ranges = append(ranges, strconv.Atoi(linespec))
+			} else {
+				ranges = append(ranges, -1)
+			}
 		}
+		tmpline := db.Fetch(thing).sp.(program_specific).first
+		db.Fetch(thing).sp.(program_specific).first = read_program(thing)
+		do_list(player, thing, ranges)
+		db.Fetch(thing).sp.(program_specific).first = tmpline
 	}
 	return
 }

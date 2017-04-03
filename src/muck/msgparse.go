@@ -10,9 +10,6 @@
  *   char *abuf            Argument string for {&how}.
  *   int mesgtyp           1 for personal messages, 0 for omessages.
  *
- *   extern char *match_args     Arg string for {&args}
- *   extern char *match_cmdname  Arg string for {&cmd}
- *
  * Returns a pointer to output string.
  */
 
@@ -321,10 +318,8 @@ func mesg_local_perms(dbref player, dbref perms, dbref obj, int mesgtyp) (r bool
 	return
 }
 
-func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) dbref {
-	struct match_data md;
-	dbref obj = UNKNOWN;
-
+func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) (obj dbref) {
+	obj = UNKNOWN
 	switch buf {
 	case "":
 	case "this":
@@ -336,21 +331,21 @@ func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) dbref {
 	case "home":
 		obj = HOME
 	default:
-		md := NewMatch(descr, player, buf, NOTYPE)
-		match_absolute(&md)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_registered(&md)
-		obj = match_result(&md)
+		obj = NewMatch(descr, player, buf, NOTYPE).
+			MatchAbsolute().
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchRegistered().
+			MatchResult()
 		if obj == NOTHING {
-			md := NewMatchRemote(descr, player, what, buf, NOTYPE)
-			match_player(&md)
-			match_all_exits(&md)
-			match_neighbor(&md)
-			match_possession(&md)
-			match_registered(&md)
-			obj = match_result(&md)
+			obj = NewMatchRemote(descr, player, what, buf, NOTYPE).
+				MatchPlayer().
+				MatchAllExits().
+				MatchNeighbor().
+				MatchPossession().
+				MatchRegistered().
+				MatchResult()
 		}
 	}
 

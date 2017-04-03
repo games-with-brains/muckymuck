@@ -352,9 +352,9 @@ func can_move(descr int, player dbref , direction string, lev int) (r bool) {
 	} else {
 		/* otherwise match on exits */
 		md := NewMatch(descr, player, direction, TYPE_EXIT)
-		md.match_level = lev
-		match_all_exits(&md)
-		r = last_match_result(&md) != NOTHING
+		md.level = lev
+		md.MatchAllExits()
+		r = md.LastMatchResult() != NOTHING
 	}
 	return
 }
@@ -519,9 +519,9 @@ func do_move(descr int, player dbref, direction string, lev int) {
 	} else {
 		/* find the exit */
 		md := NewMatchCheckKeys(descr, player, direction, TYPE_EXIT)
-		md.match_level = lev
-		match_all_exits(&md)
-		switch exit := match_result(&md); exit {
+		md.level = lev
+		md.MatchAllExits()
+		switch exit := md.MatchResult(); exit {
 		case NOTHING:
 			notify(player, "You can't go that way.")
 		case AMBIGUOUS:
@@ -561,22 +561,22 @@ func do_get(descr int, player dbref, what, obj string) {
 	int cando;
 
 	md := NewMatchCheckKeys(descr, player, what, TYPE_THING)
-	match_neighbor(&md);
-	match_possession(&md);
+	md.MatchNeighbor()
+	md.MatchPossession()
 	if Wizard(db.Fetch(player).owner) {
-		match_absolute(&md);	/* the wizard has long fingers */
+		md.MatchAbsolute();	/* the wizard has long fingers */
 	}
 
-	if ((thing = noisy_match_result(&md)) != NOTHING) {
-		cont = thing;
+	if thing = md.NoisyMatchResult(); thing != NOTHING {
+		cont = thing
 		if (obj && *obj) {
 			md := NewMatchCheckKeys(descr, player, obj, TYPE_THING)
-			match_rmatch(cont, &md);
+			md.RMatch(cont)
 			if Wizard(db.Fetch(player).owner) {
-				match_absolute(&md);	/* the wizard has long fingers */
+				md.MatchAbsolute();	/* the wizard has long fingers */
 			}
-			if thing = noisy_match_result(&md); thing == NOTHING {
-				return;
+			if thing = md.NoisyMatchResult(); thing == NOTHING {
+				return
 			}
 			if (Typeof(cont) == TYPE_PLAYER) {
 				notify(player, "You can't steal things from players.");
@@ -634,86 +634,82 @@ func do_get(descr int, player dbref, what, obj string) {
 	}
 }
 
-void
-do_drop(int descr, dbref player, const char *name, const char *obj)
-{
-	dbref loc, cont;
-	dbref thing;
+func do_drop(descr int, player dbref, name, obj string) {
+	var cont, thing dbref
 	char buf[BUFFER_LEN];
 
-	if loc = db.Fetch(player).location; loc == NOTHING) {
-		return
-	}
-	md := NewMatch(descr, player, name, NOTYPE)
-	match_possession(&md);
-	if ((thing = noisy_match_result(&md)) == NOTHING || thing == AMBIGUOUS)
-		return;
-
-	cont = loc;
-	if (obj && *obj) {
-		md := NewMatch(descr, player, obj, NOTYPE)
-		match_possession(&md);
-		match_neighbor(&md);
-		if Wizard(db.Fetch(player).owner) {
-			match_absolute(&md)	/* the wizard has long fingers */
+	if loc := db.Fetch(player).location; loc != NOTHING {
+		md := NewMatch(descr, player, name, NOTYPE)
+		md.MatchPossession()
+		if thing = md.NoisyMatchResult(); thing == NOTHING || thing == AMBIGUOUS {
+			return
 		}
-		if ((cont = noisy_match_result(&md)) == NOTHING || thing == AMBIGUOUS) {
-			return;
-		}
-	}
-	switch (Typeof(thing)) {
-	case TYPE_THING:
-		ts_useobject(thing);
-	case TYPE_PROGRAM:
-		switch {
-		case db.Fetch(thing).location != player:
-			/* Shouldn't ever happen. */
-			notify(player, "You can't drop that.")
-		case Typeof(cont) != TYPE_ROOM && Typeof(cont) != TYPE_PLAYER && Typeof(cont) != TYPE_THING:
-			notify(player, "You can't put anything in that.")
-		case Typeof(cont) != TYPE_ROOM && !test_lock_false_default(descr, player, cont, "_/clk"):
-			notify(player, "You don't have permission to put something in that.")
-		case parent_loop_check(thing, cont):
-			notify(player, "You can't put something inside of itself.")
-		default:
-			if Typeof(cont) == TYPE_ROOM && db.Fetch(thing).flags & STICKY != 0 && Typeof(thing) == TYPE_THING {
-				send_home(descr, thing, 0);
-			} else {
-				immediate_dropto := TYPEOF(cont) == TYPE_ROOM && db.Fetch(cont).sp != NOTHING && db.Fetch(cont).flags & STICKY == 0
-				if tp_thing_movement && TYPEOF(thing) == TYPE_THING {
-					enter_room(descr, thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont, player)
-				} else {
-					moveto(thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont)
-				}
+		cont = loc;
+		if obj != "" {
+			md := NewMatch(descr, player, obj, NOTYPE)
+			md.MatchPossession()
+			md.MatchNeighbor()
+			if Wizard(db.Fetch(player).owner) {
+				md.MatchAbsolute()	/* the wizard has long fingers */
 			}
+			if cont = md.NoisyMatchResult(); cont == NOTHING || thing == AMBIGUOUS {
+				return
+			}
+		}
+		switch Typeof(thing) {
+		case TYPE_THING:
+			ts_useobject(thing);
+		case TYPE_PROGRAM:
 			switch {
-			case TYPEOF(cont) == TYPE_THING:
-				notify(player, "Put away.")
-			case TYPEOF(cont) == TYPE_PLAYER:
-				notify_fmt(cont, "%s hands you %s", db.Fetch(player).name, db.Fetch(thing).name)
-				notify_fmt(player, "You hand %s to %s", db.Fetch(thing).name, db.Fetch(cont).name)
+			case db.Fetch(thing).location != player:
+				/* Shouldn't ever happen. */
+				notify(player, "You can't drop that.")
+			case Typeof(cont) != TYPE_ROOM && Typeof(cont) != TYPE_PLAYER && Typeof(cont) != TYPE_THING:
+				notify(player, "You can't put anything in that.")
+			case Typeof(cont) != TYPE_ROOM && !test_lock_false_default(descr, player, cont, "_/clk"):
+				notify(player, "You don't have permission to put something in that.")
+			case parent_loop_check(thing, cont):
+				notify(player, "You can't put something inside of itself.")
 			default:
-				if get_property_class(thing, MESGPROP_DROP) {
-					exec_or_notify_prop(descr, player, thing, MESGPROP_DROP, "(@Drop)");
+				if Typeof(cont) == TYPE_ROOM && db.Fetch(thing).flags & STICKY != 0 && Typeof(thing) == TYPE_THING {
+					send_home(descr, thing, 0);
 				} else {
-					notify(player, "Dropped.")
+					immediate_dropto := TYPEOF(cont) == TYPE_ROOM && db.Fetch(cont).sp != NOTHING && db.Fetch(cont).flags & STICKY == 0
+					if tp_thing_movement && TYPEOF(thing) == TYPE_THING {
+						enter_room(descr, thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont, player)
+					} else {
+						moveto(thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont)
+					}
 				}
-				if get_property_class(loc, MESGPROP_DROP) {
-					exec_or_notify_prop(descr, player, loc, MESGPROP_DROP, "(@Drop)")
-				}
-				if get_property_class(thing, MESGPROP_ODROP) {
-					parse_oprop(descr, player, loc, thing, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
-				} else {
-					buf = fmt.Sprintf("%s drops %s.", db.Fetch(player).name, db.Fetch(thing).name)
-					notify_except(db.Fetch(loc).contents, player, buf, player)
-				}
-				if get_property_class(loc, MESGPROP_ODROP) {
-					parse_oprop(descr, player, loc, loc, MESGPROP_ODROP, db.Fetch(thing).name, "(@Odrop)")
+				switch {
+				case TYPEOF(cont) == TYPE_THING:
+					notify(player, "Put away.")
+				case TYPEOF(cont) == TYPE_PLAYER:
+					notify_fmt(cont, "%s hands you %s", db.Fetch(player).name, db.Fetch(thing).name)
+					notify_fmt(player, "You hand %s to %s", db.Fetch(thing).name, db.Fetch(cont).name)
+				default:
+					if get_property_class(thing, MESGPROP_DROP) {
+						exec_or_notify_prop(descr, player, thing, MESGPROP_DROP, "(@Drop)");
+					} else {
+						notify(player, "Dropped.")
+					}
+					if get_property_class(loc, MESGPROP_DROP) {
+						exec_or_notify_prop(descr, player, loc, MESGPROP_DROP, "(@Drop)")
+					}
+					if get_property_class(thing, MESGPROP_ODROP) {
+						parse_oprop(descr, player, loc, thing, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
+					} else {
+						buf = fmt.Sprintf("%s drops %s.", db.Fetch(player).name, db.Fetch(thing).name)
+						notify_except(db.Fetch(loc).contents, player, buf, player)
+					}
+					if get_property_class(loc, MESGPROP_ODROP) {
+						parse_oprop(descr, player, loc, loc, MESGPROP_ODROP, db.Fetch(thing).name, "(@Odrop)")
+					}
 				}
 			}
+		default:
+			notify(player, "You can't drop that.")
 		}
-	default:
-		notify(player, "You can't drop that.")
 	}
 }
 
@@ -721,14 +717,14 @@ func do_recycle(descr int, player dbref, name string) {
 	var buf [BUFFER_LEN]byte
 
 	NoGuest("@recycle", player, func() {
-		md := NewMatch(descr, player, name, TYPE_THING)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_registered(&md)
-		match_here(&md)
-		match_absolute(&md)
-		if thing := noisy_match_result(&md); thing != NOTHING {
+		md := NewMatch(descr, player, name, TYPE_THING).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchRegistered().
+			MatchHere().
+			MatchAbsolute()
+		if thing := md.NoisyMatchResult(); thing != NOTHING {
 			switch {
 			case player != GOD && db.Fetch(thing).owner == GOD:
 				notify(player, "Only God may reclaim God's property.")

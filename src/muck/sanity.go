@@ -827,9 +827,9 @@ func extract_prop(f *FILE, dir string, p *Plist) {
 			if v != "" {
 				buf += v
 			}
-		case *boolexp:		// FIXME: lock
-			if v != TRUE_BOOLEXP {
-				buf += unparse_boolexp(dbref(1), v, false)
+		case Lock:		// FIXME: lock
+			if !v.IsTrue() {
+				buf += v.Unparse(1, false)
 			}
 		}
 		if buf != "" {
@@ -984,9 +984,9 @@ func hack_it_up() {
 			printf("Running Sanfix...\n")
 			sanfix(NOTHING)
 		case 'p':
-			ptr = strings.TrimLeftFunc(cbuf, func(r rune) bool {
-				return !unicode.IsSpace(r)
-			})
+			if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
+				ptr = cbuf[i:]
+			}
 			if len(ptr) > 0 {
 				ptr = ptr[1:]
 			}
@@ -1000,9 +1000,9 @@ func hack_it_up() {
 			do_dump(GOD, buf2)
 			printf("Done.\n")
 		case 'c':
-			ptr = strings.TrimLeftFunc(cbuf, func(r rune) bool {
-				return !unicode.IsSpace(r)
-			})
+			if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
+				ptr = cbuf[i:]
+			}
 			if len(ptr) > 0 {
 				ptr = ptr[1:]
 			}

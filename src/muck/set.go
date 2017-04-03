@@ -1,20 +1,20 @@
 package fbmuck
 
-func match_controlled(int descr, dbref player, const char *name) (match dbref) {
+func MatchControlled(descr int, player dbref, name string) (match dbref) {
 	md := NewMatch(descr, player, name, NOTYPE)
-	match_absolute(&md)
-	match_everything(&md)
-	match = noisy_match_result(&md)
+	md.MatchAbsolute()
+	md.MatchEverything()
+	match = md.NoisyMatchResult()
 	if match != NOTHING && !controls(player, match) {
 		notify(player, "Permission denied. (You don't control what was matched)")
-		match = NOTHING;
+		match = NOTHING
 	}
 	return
 }
 
 func do_name(descr int, player dbref, name, newname string) {
 	NoGuest("@name", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			switch {
 			case newname == "":
 				notify(player, "Give it what new name?")
@@ -77,7 +77,7 @@ func do_name(descr int, player dbref, name, newname string) {
 
 func do_describe(descr int, player dbref, name, description string) {
 	NoGuest("@describe", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_DESC, description, 0)
 			if(description && *description) {
@@ -91,7 +91,7 @@ func do_describe(descr int, player dbref, name, description string) {
 
 func do_idescribe(descr int, player dbref, name, description string) {
 	NoGuest("@idescribe", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_IDESC, description, 0)
 			if description != "" {
@@ -105,7 +105,7 @@ func do_idescribe(descr int, player dbref, name, description string) {
 
 func do_doing(descr int, player dbref, name, message string) {
 	NoGuest("@doing", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_DOING, message, 0)
 			if message != "" {
@@ -119,7 +119,7 @@ func do_doing(descr int, player dbref, name, message string) {
 
 func do_fail(descr int, player dbref, name, message string) {
 	NoGuest("@fail", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_FAIL, message, 0)
 			if message != "" {
@@ -133,7 +133,7 @@ func do_fail(descr int, player dbref, name, message string) {
 
 func do_success(descr int, player dbref, name, message string) {
 	NoGuest("@success", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_SUCC, message, 0)
 			if message != "" {
@@ -148,7 +148,7 @@ func do_success(descr int, player dbref, name, message string) {
 /* sets the drop message for player */
 func do_drop_message(descr int, player dbref, name, message string) {
 	NoGuest("@drop", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_DROP, message, 0)
 			if message != "" {
@@ -162,7 +162,7 @@ func do_drop_message(descr int, player dbref, name, message string) {
 
 func do_osuccess(descr int, player dbref, name, message string) {
 	NoGuest("@osuccess", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_OSUCC, message, 0)
 			if message != "" {
@@ -176,7 +176,7 @@ func do_osuccess(descr int, player dbref, name, message string) {
 
 func do_ofail(descr int, player dbref, name, message string) {
 	NoGuest("@ofail", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_OFAIL, message, 0)
 			if message != "" {
@@ -190,7 +190,7 @@ func do_ofail(descr int, player dbref, name, message string) {
 
 func do_odrop(descr int, player dbref, name, message string) {
 	NoGuest("@odrop", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_ODROP, message, 0)
 			if message != "" {
@@ -204,7 +204,7 @@ func do_odrop(descr int, player dbref, name, message string) {
 
 func do_oecho(descr int, player dbref, name, message string) {
 	NoGuest("@oecho", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_OECHO, message, 0)
 			if message != "" {
@@ -218,7 +218,7 @@ func do_oecho(descr int, player dbref, name, message string) {
 
 func do_pecho(descr int, player dbref, name, message string) {
 	NoGuest("@pecho", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_PECHO, message, 0)
 			if message != "" {
@@ -231,20 +231,17 @@ func do_pecho(descr int, player dbref, name, message string) {
 }
 
 /* sets a lock on an object to the lockstring passed to it.
-   If the lockstring is null, then it unlocks the object.
-   this returns a 1 or a 0 to represent success. */
+   If the lockstring is null, then it unlocks the object. */
 func setlockstr(descr int, player, thing dbref, keyname string) (r bool) {
 	if keyname != "" {
-		key := parse_boolexp(descr, player, keyname, 0)
-		if key != TRUE_BOOLEXP {
-			/* everything ok, do it */
+		lock := ParseLock(descr, player, keyname, 0)
+		if r = !lock.IsTrue(); r {
 			ts_modifyobject(thing)
-			set_property(thing, MESGPROP_LOCK, key)
-			r = true
+			set_property(thing, MESGPROP_LOCK, LOCKED)
 		}
 	} else {
 		ts_modifyobject(thing)
-		set_property(thing, MESGPROP_LOCK, TRUE_BOOLEXP)
+		set_property(thing, MESGPROP_LOCK, UNLOCKED)
 		db.Fetch(thing).flags |= OBJECT_CHANGED
 		r = true
 	}
@@ -254,9 +251,9 @@ func setlockstr(descr int, player, thing dbref, keyname string) (r bool) {
 void do_conlock(descr int, player dbref, name, keyname string) {
 	NoGuest("@conlock", player, func() {
 		md := NewMatch(descr, player, name, NOTYPE)
-		match_absolute(&md)
-		match_everything(&md)
-		switch thing := match_result(&md); {
+		md.MatchAbsolute()
+		md.MatchEverything()
+		switch thing := md.MatchResult(); {
 		case NOTHING:
 			notify(player, "I don't see what you want to set the container-lock on!")
 			return
@@ -267,15 +264,14 @@ void do_conlock(descr int, player dbref, name, keyname string) {
 			notify(player, "You can't set the container-lock on that!")
 			return
 		case keyname == "":
-			set_property(thing, "_/clk", TRUE_BOOLEXP)
+			set_property(thing, "_/clk", UNLOCKED)
 			ts_modifyobject(thing)
 			notify(player, "Container lock cleared.")
 		default:
-			if key := parse_boolexp(descr, player, keyname, 0); key == TRUE_BOOLEXP {
+			if lock := ParseLock(descr, player, keyname, 0); lock.IsTrue() {
 				notify(player, "I don't understand that key.")
 			} else {
-				/* everything ok, do it */
-				set_property(thing, "_/clk", key)
+				set_property(thing, "_/clk", lock)
 				ts_modifyobject(thing)
 				notify(player, "Container lock set.")
 			}
@@ -286,9 +282,9 @@ void do_conlock(descr int, player dbref, name, keyname string) {
 func do_flock(descr int, player dbref, name, keyname string) {
 	NoGuest("@force_lock", player, func() {
 		md := NewMatch(descr, player, name, NOTYPE)
-		match_absolute(&md)
-		match_everything(&md)
-		switch thing := match_result(&md); {
+		md.MatchAbsolute()
+		md.MatchEverything()
+		switch thing := md.MatchResult(); {
 		case NOTHING:
 			notify(player, "I don't see what you want to set the force-lock on!")
 		case AMBIGUOUS:
@@ -298,15 +294,14 @@ func do_flock(descr int, player dbref, name, keyname string) {
 		case force_level != 0:
 			notify(player, "You can't use @flock from an @force or {force}.")
 		case len(keyname) == 0:
-			set_property(thing, "@/flk", TRUE_BOOLEXP)
+			set_property(thing, "@/flk", UNLOCKED)
 			ts_modifyobject(thing)
 			notify(player, "Force lock cleared.")
 		default:
-			if key := parse_boolexp(descr, player, keyname, 0); key == TRUE_BOOLEXP {
+			if lock := ParseLock(descr, player, keyname, 0); lock.IsTrue() {
 				notify(player, "I don't understand that key.")
 			} else {
-				/* everything ok, do it */
-				set_property(thing, "@/flk", key)
+				set_property(thing, "@/flk", lock)
 				ts_modifyobject(thing)
 				notify(player, "Force lock set.")
 			}
@@ -317,9 +312,9 @@ func do_flock(descr int, player dbref, name, keyname string) {
 func do_chlock(descr int, player dbref, name, keyname string) {
 	NoGuest("@chown_lock", player, func() {
 		md := NewMatch(descr, player, name, NOTYPE)
-		match_absolute(&md)
-		match_everything(&md)
-		switch thing := match_result(&md); {
+		md.MatchAbsolute()
+		md.MatchEverything()
+		switch thing := md.MatchResult(); {
 		case thing == NOTHING:
 			notify(player, "I don't see what you want to set the chown-lock on!")
 		case thing == AMBIGUOUS:
@@ -327,15 +322,14 @@ func do_chlock(descr int, player dbref, name, keyname string) {
 		case !controls(player, thing):
 			notify(player, "You can't set the chown-lock on that!")
 		case len(keyname) == 0:
-			set_property(thing, "_/chlk", TRUE_BOOLEXP)
+			set_property(thing, "_/chlk", UNLOCKED)
 			ts_modifyobject(thing)
 			notify(player, "Chown lock cleared.")
 		default:
-			if key := parse_boolexp(descr, player, keyname, 0); key == TRUE_BOOLEXP {
+			if lock := ParseLock(descr, player, keyname, 0); lock.IsTrue() {
 				notify(player, "I don't understand that key.")
 			} else {
-				/* everything ok, do it */
-				set_property(thing, "_/chlk", key)
+				set_property(thing, "_/chlk", lock)
 				ts_modifyobject(thing)
 				notify(player, "Chown lock set.")
 			}
@@ -346,9 +340,9 @@ func do_chlock(descr int, player dbref, name, keyname string) {
 func do_lock(descr int, player dbref, name, keyname string) {
 	NoGuest("@lock", player, func() {
 		md := NewMatch(descr, player, name, NOTYPE)
-		match_absolute(&md)
-		match_everything(&md)
-		switch thing := match_result(&md); {
+		md.MatchAbsolute()
+		md.MatchEverything()
+		switch thing := md.MatchResult(); {
 		case thing == NOTHING:
 			notify(player, "I don't see what you want to lock!")
 		case thing == AMBIGUOUS:
@@ -356,12 +350,10 @@ func do_lock(descr int, player dbref, name, keyname string) {
 		case !controls(player, thing):
 			notify(player, "You can't lock that!")
 		case len(keyname) != 0:
-			key := parse_boolexp(descr, player, keyname, 0)
-			if key == TRUE_BOOLEXP {
+			if lock := ParseLock(descr, player, keyname, 0); lock.IsTrue() {
 				notify(player, "I don't understand that key.")
 			} else {
-				/* everything ok, do it */
-				set_property(thing, MESGPROP_LOCK, key)
+				set_property(thing, MESGPROP_LOCK, lock)
 				ts_modifyobject(thing)
 				notify(player, "Locked.")
 			}
@@ -373,9 +365,9 @@ func do_lock(descr int, player dbref, name, keyname string) {
 
 func do_unlock(descr int, player dbref, name string) {
 	NoGuest("@unlock", player, func() {
-		if thing = match_controlled(descr, player, name); thing != NOTHING {
+		if thing = MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
-			set_property(thing, MESGPROP_LOCK, TRUE_BOOLEXP)
+			set_property(thing, MESGPROP_LOCK, UNLOCKED)
 			db.Fetch(thing).flags |= OBJECT_CHANGED
 			notify(player, "Unlocked.")
 		}
@@ -405,11 +397,12 @@ func controls_link(dbref who, dbref what) (r bool) {
 /* like do_unlink, but if quiet is true, then only error messages are
    printed. */
 func _do_unlink(int descr, dbref player, const char *name, int quiet) {
-	md := NewMatch(descr, player, name, TYPE_EXIT)
-	match_absolute(&md)
-	match_player(&md)
-	match_everything(&md)
-	switch exit := match_result(&md); exit {
+	exit := NewMatch(descr, player, name, TYPE_EXIT).
+		MatchAbsolute().
+		MatchPlayer().
+		MatchEverything().
+		MatchResult()
+	switch exit {
 	case NOTHING:
 		notify(player, "Unlink what?");
 	case AMBIGUOUS:
@@ -490,18 +483,18 @@ func do_relink(descr int, player dbref, thing_name, dest_name string) {
 	var dest dbref
 
 	NoGuest("@relink", player, func() {
-		md := NewMatch(descr, player, thing_name, TYPE_EXIT)
-		match_all_exits(&md);
-		match_neighbor(&md);
-		match_possession(&md);
-		match_me(&md);
-		match_here(&md);
-		match_absolute(&md);
-		match_registered(&md);
+		md := NewMatch(descr, player, thing_name, TYPE_EXIT).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchMe().
+			MatchHere().
+			MatchAbsolute().
+			MatchRegistered()
 		if Wizard(db.Fetch(player).owner) {
-			match_player(&md)
+			md.MatchPlayer()
 		}
-		if thing := noisy_match_result(&md); thing != NOTHING {
+		if thing := md.NoisyMatchResult(); thing != NOTHING {
 			/* first of all, check if the new target would be valid, so we can avoid breaking the old link if it isn't. */
 			switch thing.(type) {
 			case TYPE_EXIT:
@@ -532,16 +525,16 @@ func do_relink(descr int, player dbref, thing_name, dest_name string) {
 					return
 				}
 			case TYPE_THING, TYPE_PLAYER:
-				md := NewMatch(descr, player, dest_name, TYPE_ROOM)
-				match_neighbor(&md)
-				match_absolute(&md)
-				match_registered(&md)
-				match_me(&md)
-				match_here(&md)
+				md := NewMatch(descr, player, dest_name, TYPE_ROOM).
+					MatchNeighbor().
+					MatchAbsolute().
+					MatchRegistered().
+					MatchMe().
+					MatchHere()
 				if Typeof(thing) == TYPE_THING {
-					match_possession(&md)
+					md.MatchPossession()
 				}
-				if dest = noisy_match_result(&md)); dest != NOTHING {
+				if dest = md.NoisyMatchResult()); dest != NOTHING {
 					if !controls(player, thing) || !can_link_to(player, Typeof(thing), dest) {
 						notify(player, "Permission denied. (You can't link to where you want to.")
 						return
@@ -554,16 +547,17 @@ func do_relink(descr int, player dbref, thing_name, dest_name string) {
 					return
 				}
 			case TYPE_ROOM:			/* room dropto's */
-				md := NewMatch(descr, player, dest_name, TYPE_ROOM)
-				match_neighbor(&md)
-				match_possession(&md)
-				match_registered(&md)
-				match_absolute(&md)
-				match_home(&md)
-				if dest = noisy_match_result(&md); dest == NOTHING {
+				dest = NewMatch(descr, player, dest_name, TYPE_ROOM).
+					MatchNeighbor().
+					MatchPossession().
+					MatchRegistered().
+					MatchAbsolute().
+					MatchHome().
+					NoisyMatchResult()
+				switch {
+				case dest == NOTHING:
 					return
-				}
-				if !controls(player, thing) || !can_link_to(player, Typeof(thing), dest) || thing == dest {
+				case !controls(player, thing), !can_link_to(player, Typeof(thing), dest), thing == dest:
 					notify(player, "Permission denied. (You can't link to the dropto like that)")
 					return
 				}
@@ -585,16 +579,15 @@ func do_relink(descr int, player dbref, thing_name, dest_name string) {
 func do_chown(int descr, dbref player, const char *name, const char *newowner) {
 	dbref thing;
 	dbref owner;
-	struct match_data md;
 
 	if (!*name) {
 		notify(player, "You must specify what you want to take ownership of.");
 		return;
 	}
 	md := NewMatch(descr, player, name, NOTYPE)
-	match_everything(&md);
-	match_absolute(&md);
-	if ((thing = noisy_match_result(&md)) == NOTHING)
+	md.MatchEverything()
+	md.MatchAbsolute()
+	if ((thing = md.NoisyMatchResult()) == NOTHING)
 		return;
 
 	if newowner != "me" {
@@ -678,7 +671,7 @@ func do_set(descr int, player dbref, name, flag string) {
 	object_flag_type f;
 
 	NoGuest("@set", player, func() {
-		if ((thing = match_controlled(descr, player, name)) == NOTHING)
+		if ((thing = MatchControlled(descr, player, name)) == NOTHING)
 			return;
 		/* Only God can set anything on any of his stuff */
 		if player != GOD && db.Fetch(thing).owner == GOD {
@@ -897,156 +890,119 @@ func do_set(descr int, player dbref, name, flag string) {
 }
 
 func do_propset(descr int, player dbref, name, prop string) {
-	char *p, *q;
-	char *type, *pname, *value;
-
 	NoGuest("@propset", player, func() {
-		if thing := match_controlled(descr, player, name); thing != NOTHING {
-			prop = strings.TrimLeftFunc(prop, unicode.IsSpace)
-			buf := prop
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
+			terms := strings.Split(prop, PROP_DELIMITER)
+			if len(terms) < 3 {
+				notify(player, "Not enough arguments to @propset!")
+			} else {
+				datatype := strings.TrimSpace(terms[0])
+				pname := strings.TrimSpace(terms[1])
+				value := strings.TrimSpace(terms[2])
 
-			p = buf
-			type = p
-			while (*p && *p != PROP_DELIMITER)
-				p++
-			if (*p)
-				*p++ = '\0'
-
-			if (*type) {
-				p = strings.TrimRightFunc(p, unicode.IsSpace)
-			}
-
-			pname = p
-			for *p && *p != PROP_DELIMITER {
-				p++
-			}
-			if (*p)
-				*p++ = '\0'
-			value = p
-
-			pname = strings.TrimFunc(buf, func(r rune) bool {
-				return unicode.IsSpace(r) || r == PROPDIR_DELIMITER
-			})
-
-			if pname == "" {
-				notify(player, "I don't know which property you want to set!")
-				return
-			}
-
-			if Prop_System(pname) || (!Wizard(db.Fetch(player).owner) && (Prop_SeeOnly(pname) || Prop_Hidden(pname))) {
-				notify(player, "Permission denied. (can't set a property that's restricted against you)")
-				return
-			}
-
-			switch {
-			case *type == nil, strings.Prefix("string", type):
-				add_property(thing, pname, value, 0)
-			case strings.Prefix("integer", type):
-				if !unicode.IsNumber(value) {
-					notify(player, "That's not an integer!")
+				if Prop_System(pname) || (!Wizard(db.Fetch(player).owner) && (Prop_SeeOnly(pname) || Prop_Hidden(pname))) {
+					notify(player, "Permission denied. (can't set a property that's restricted against you)")
 					return
-				}
-				add_property(thing, pname, nil, atoi(value))
-			case strings.Prefix("float", type):
-				if !ifloat(value) {
-					notify(player, "That's not a floating point number!")
-					return
-				}
-				if f, e := strconv.ParseFloat(value, 64); e == nil {
-					set_property(thing, pname, f)
 				} else {
-					return
+					switch {
+					case datatype == "", strings.HasPrefix(datatype, "string"):
+						add_property(thing, pname, value, 0)
+						notify(player, "Property set.")
+					case strings.HasPrefix(datatype, "integer"):
+						if !unicode.IsNumber(value) {
+							add_property(thing, pname, nil, strconv.Atoi(value))
+							notify(player, "Property set.")
+						} else {
+							notify(player, "That's not an integer!")
+						}
+					case strings.HasPrefix(datatype, "float"):
+						if f, e := strconv.ParseFloat(value, 64); e == nil {
+							set_property(thing, pname, f)
+							notify(player, "Property set.")
+						} else {
+							notify(player, "That's not a floating point number!")
+						}
+					case strings.HasPrefix(datatype, "dbref"):
+						md := NewMatch(descr, player, value, NOTYPE)
+						md.MatchAbsolute()
+						md.MatchEverything()
+						if ref := md.NoisyMatchResult(); ref != NOTHING {
+							set_property(thing, pname, ref)
+							notify(player, "Property set.")
+						}
+					case strings.HasPrefix(datatype, "lock"):
+						if lock := ParseLock(descr, player, value, 0); lock.IsTrue() {
+							notify(player, "I don't understand that lock.")
+						} else {
+							set_property(thing, pname, lock)
+							notify(player, "Property set.")
+						}
+					case strings.HasPrefix(datatype, "erase"):
+						if value == "" {
+							remove_property(thing, pname)
+							notify(player, "Property erased.")
+						} else {
+							notify(player, "Don't give a value when erasing a property.")
+						}
+					default:
+						notify(player, "I don't know what type of property you want to set!")
+						notify(player, "Valid types are string, integer, float, dbref, lock, and erase.")
+					}
 				}
-			case strings.Prefix("dbref", type):
-				md := NewMatch(descr, player, value, NOTYPE)
-				match_absolute(&md)
-				match_everything(&md)
-				ref := noisy_match_result(&md)
-				if ref == NOTHING {
-					return
-				}
-				set_property(thing, pname, ref)
-			case strings.Prefix("lock", type):
-				lok := parse_boolexp(descr, player, value, 0)
-				if lok == TRUE_BOOLEXP {
-					notify(player, "I don't understand that lock.")
-					return
-				}
-				set_property(thing, pname, lok)
-			case strings.Prefix("erase", type):
-				if (*value) {
-					notify(player, "Don't give a value when erasing a property.")
-					return
-				}
-				remove_property(thing, pname)
-				notify(player, "Property erased.")
-				return
-			default:
-				notify(player, "I don't know what type of property you want to set!")
-				notify(player, "Valid types are string, integer, float, dbref, lock, and erase.")
-				return
 			}
-			notify(player, "Property set.")
 		}
 	})
 }
 
-void
-set_flags_from_tunestr(dbref obj, const char* tunestr)
-{
-	const char *p = tunestr;
-	object_flag_type f = 0;
-
-	for (;;) {
-		char pcc = strings.ToUpper(*p)
-		if (pcc == '\0' || pcc == '\n' || pcc == '\r') {
-			break;
-		} else if (pcc == '0') {
-			SetMLevel(obj, NON_MUCKER);
-		} else if (pcc == '1') {
-			SetMLevel(obj, APPRENTICE);
-		} else if (pcc == '2') {
-			SetMLevel(obj, JOURNEYMAN);
-		} else if (pcc == '3') {
-			SetMLevel(obj, MASTER);
-		} else if (pcc == 'A') {
-			f = ABODE;
-		} else if (pcc == 'B') {
-			f = BUILDER;
-		} else if (pcc == 'C') {
-			f = CHOWN_OK;
-		} else if (pcc == 'D') {
-			f = DARK;
-		} else if (pcc == 'H') {
-			f = HAVEN;
-		} else if (pcc == 'J') {
-			f = JUMP_OK;
-		} else if (pcc == 'K') {
-			f = KILL_OK;
-		} else if (pcc == 'L') {
-			f = LINK_OK;
-		} else if (pcc == 'M') {
-			SetMLevel(obj, JOURNEYMAN);
-		} else if (pcc == 'Q') {
-			f = QUELL;
-		} else if (pcc == 'S') {
-			f = STICKY;
-		} else if (pcc == 'V') {
-			f = VEHICLE;
-		} else if (pcc == 'W') {
-			/* f = WIZARD;     This is very bad to auto-set. */
-		} else if (pcc == 'X') {
-			f = XFORCIBLE;
-                } else if (pcc == 'Y') {
-                        f = YIELD;
-                } else if (pcc == 'O') {
-                        f = OVERT;
-		} else if (pcc == 'Z') {
-			f = ZOMBIE;
+func set_flags_from_tunestr(obj dbref, tunestr string) {
+	for f := db.Fetch(obj).flags; len(tunestr) > 0; tunestr = tunestr[1:] {
+		switch pcc := strings.ToUpper(tunestr[0]); pcc {
+		case '\n', '\r':
+			break
+		case '0':
+			SetMLevel(obj, NON_MUCKER)
+		case '1':
+			SetMLevel(obj, APPRENTICE)
+		case '2':
+			SetMLevel(obj, JOURNEYMAN)
+		case '3':
+			SetMLevel(obj, MASTER)
+		case 'A':
+			f |= ABODE
+		case 'B':
+			f |= BUILDER
+		case 'C':
+			f |= CHOWN_OK
+		case 'D':
+			f |= DARK
+		case 'H':
+			f |= HAVEN
+		case 'J':
+			f |= JUMP_OK
+		case 'K':
+			f |= KILL_OK
+		case 'L':
+			f |= LINK_OK
+		case 'M':
+			SetMLevel(obj, JOURNEYMAN)
+		case 'Q':
+			f |= QUELL
+		case 'S':
+			f |= STICKY
+		case 'V':
+			f |= VEHICLE
+		case 'W':
+			/* f |= WIZARD;     This is very bad to auto-set. */
+		case 'X':
+			f |= XFORCIBLE;
+		case 'Y':
+			f |= YIELD
+		case 'O':
+			f |= OVERT
+		case 'Z':
+			f |= ZOMBIE
 		}
-		db.Fetch(obj).flags |= f
-		p++;
 	}
-	ts_modifyobject(obj);
-	db.Fetch(obj).flags |= OBJECT_CHANGED
+	ts_modifyobject(obj)
+	f |= OBJECT_CHANGED
 }

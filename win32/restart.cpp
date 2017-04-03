@@ -141,10 +141,11 @@ int *parse_int_list(char *str, int &count) {
    skipping = true;
    char *iptr = 0; count = 0;
    while (*p && count < acount) {
-      if (skipping && !unicode.IsSpace(*p)) {
+      if skipping && !unicode.IsSpace(p[0]) {
          iptr = p;
          skipping = false;
-      } if (!skipping && unicode.IsSpace(*p)) {
+      }
+	  if !skipping && unicode.IsSpace(p[0]) {
          *p = '\0';
          list[count++] = atoi(iptr);
          skipping = true;

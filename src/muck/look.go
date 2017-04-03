@@ -165,18 +165,14 @@ func do_look_at(int descr, dbref player, const char *name, const char *detail) {
 			look_room(descr, player, thing)
 		}
 	} else {
-		md := NewMatch(descr, player, name, NOTYPE)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
+		md := NewMatch(descr, player, name, NOTYPE).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession()
 		if Wizard(db.Fetch(player).owner) {
-			match_absolute(&md)
-			match_player(&md)
+			md.MatchAbsolute().MatchPlayer()
 		}
-		match_here(&md)
-		match_me(&md)
-
-		switch thing := match_result(&md); {
+		switch thing := md.MatchHere().MatchMe().Matchresult(); {
 		case thing != NOTHING && thing != AMBIGUOUS && detail == "":
 			switch TYPEOF(thing) {
 			case TYPE_ROOM:
@@ -441,22 +437,21 @@ func do_examine(descr int, player dbref, name, dir string) {
 			return
 		}
 	} else {
-		md := NewMatch(descr, player, name, NOTYPE)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_absolute(&md)
-		match_registered(&md)
+		md := NewMatch(descr, player, name, NOTYPE).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchAbsolute().
+			MatchRegistered()
 
 		/* only Wizards can examine other players */
 		if Wizard(db.Fetch(player).owner) {
-			match_player(&md)
+			md.MatchPlayer()
 		}
-		match_here(&md)
-		match_me(&md)
+		md.MatchHere().MatchMe()
 
 		/* get result */
-		if thing = noisy_match_result(&md); thing == NOTHING {
+		if thing = md.NoisyMatchResult(); thing == NOTHING {
 			return
 		}
 	}
@@ -492,10 +487,10 @@ func do_examine(descr int, player dbref, name, dir string) {
 		if get_property_class(thing, MESGPROP_DESC) {
 			notify(player, get_property_class(thing, MESGPROP_DESC))
 		}
-		notify(player, fmt.Sprintf("Key: %s", unparse_boolexp(player, get_property_lock(thing, MESGPROP_LOCK), true)))
-		notify(player, fmt.Sprintf("Chown_OK Key: %s", unparse_boolexp(player, get_property_lock(thing, "_/chlk"), true)))
-		notify(player, fmt.Sprintf("Container Key: %s", unparse_boolexp(player, get_property_lock(thing, "_/clk"), true)))
-		notify(player, fmt.Sprintf("Force Key: %s", unparse_boolexp(player, get_property_lock(thing, "@/flk"), true)))
+		notify(player, fmt.Sprintf("Key: %s", get_property_lock(thing, MESGPROP_LOCK).Unparse(player, true)))
+		notify(player, fmt.Sprintf("Chown_OK Key: %s", get_property_lock(thing, "_/chlk").Unparse(player, true)))
+		notify(player, fmt.Sprintf("Container Key: %s", get_property_lock(thing, "_/clk").Unparse(player, true)))
+		notify(player, fmt.Sprintf("Force Key: %s", get_property_lock(thing, "@/flk").Unparse(player, true)))
 
 		if get_property_class(thing, MESGPROP_SUCC) {
 			notify(player, fmt.Sprintf("Success: %s", get_property_class(thing, MESGPROP_SUCC)))
@@ -990,22 +985,20 @@ func do_owned(dbref player, const char *name, const char *flags) {
 	}
 }
 
-void
-do_trace(int descr, dbref player, const char *name, int depth)
-{
+func do_trace(int descr, dbref player, const char *name, int depth) {
 	dbref thing;
 	int i;
 
-	md := NewMatch(descr, player, name, NOTYPE)
-	match_absolute(&md);
-	match_here(&md);
-	match_me(&md);
-	match_neighbor(&md);
-	match_possession(&md);
-	match_registered(&md);
-	if ((thing = noisy_match_result(&md)) == NOTHING || thing == AMBIGUOUS)
-		return;
-
+	md := NewMatch(descr, player, name, NOTYPE).
+		MatchAbsolute().
+		MatchHere().
+		MatchMe().
+		MatchNeighbor().
+		MatchPossession().
+		MatchRegistered()
+	if thing = md.NoisyMatchResult(); thing == NOTHING || thing == AMBIGUOUS {
+		return
+	}
 	for (i = 0; (!depth || i < depth) && thing != NOTHING; i++) {
 		if controls(player, thing) || can_link_to(player, NOTYPE, thing) {
 			notify(player, unparse_object(player, thing))
@@ -1022,18 +1015,17 @@ func do_entrances(int descr, dbref player, const char *name, const char *flags) 
 	if name == "" {
 		thing = db.Fetch(player).location
 	} else {
-		md := NewMatch(descr, player, name, NOTYPE)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_registered(&md)
+		md := NewMatch(descr, player, name, NOTYPE).
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchRegistered()
 		if Wizard(db.Fetch(player).owner) {
-			match_absolute(&md)
-			match_player(&md)
+			md.MatchAbsolute().MatchPlayer()
 		}
-		match_here(&md)
-		match_me(&md)
-		thing = noisy_match_result(&md)
+		md.MatchHere()
+		md.MatchMe()
+		thing = md.NoisyMatchResult()
 	}
 	var total int
 	switch output_type, check := init_checkflags(player, flags); {
@@ -1082,18 +1074,17 @@ func do_contents(int descr, dbref player, const char *name, const char *flags) {
 	if name == "" {
 		thing = db.Fetch(player).location
 	} else {
-		md := NewMatch(descr, player, name, NOTYPE)
-		match_me(&md)
-		match_here(&md)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_registered(&md)
+		md := NewMatch(descr, player, name, NOTYPE).
+			MatchMe().
+			MatchHere().
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchRegistered()
 		if Wizard(db.Fetch(player).owner) {
-			match_absolute(&md)
-			match_player(&md)
+			md.MatchAbsolute().MatchPlayer()
 		}
-		thing = noisy_match_result(&md)
+		thing = md.NoisyMatchResult()
 	}
 	if thing != NOTHING {
 		if !controls(db.Fetch(player).owner, thing) {
@@ -1140,15 +1131,12 @@ func exit_matches_name(exit dbref, name string, exactMatch bool) bool {
 	return false
 }
 
-func exit_match_exists(dbref player, dbref obj, const char *name, int exactMatch) bool {
-	dbref exit;
-	char buf[BUFFER_LEN];
-
-	for exit = db.Fetch(obj).exits; exit != NOTHING; exit = db.Fetch(exit).next {
+func ExitMatchExists(player, obj dbref, name string, exactMatch bool) (r bool) {
+	for exit := db.Fetch(obj).exits; exit != NOTHING; exit = db.Fetch(exit).next {
 		if exit_matches_name(exit, name, exactMatch) {
-			buf = fmt.Sprintf("  %ss are trapped on %.2048s", name, unparse_object(player, obj))
-			notify(player, buf)
-			return true
+			notify(player, fmt.Sprintf("  %ss are trapped on %.2048s", name, unparse_object(player, obj)))
+			r = true
+			break
 		}
 	}
 	return false
@@ -1159,18 +1147,17 @@ func do_sweep(descr int, player dbref, name string) {
 	if name == "" {
 		thing = db.Fetch(player).location
 	} else {
-		md := NewMatch(descr, player, name, NOTYPE)
-		match_me(&md)
-		match_here(&md)
-		match_all_exits(&md)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_registered(&md)
+		md := NewMatch(descr, player, name, NOTYPE).
+			MatchMe().
+			MatchHere().
+			MatchAllExits().
+			MatchNeighbor().
+			MatchPossession().
+			MatchRegistered()
 		if Wizard(db.Fetch(player).owner) {
-			match_absolute(&md)
-			match_player(&md)
+			md.MatchAbsolute().MatchPlayer()
 		}
-		thing = noisy_match_result(&md)
+		thing = md.NoisyMatchResult()
 	}
 	switch {
 	case thing == NOTHING:
@@ -1213,12 +1200,12 @@ func do_sweep(descr int, player dbref, name string) {
 						notify(player, buf)
 					}
 				}
-				exit_match_exists(player, ref, "page", 0)
-				exit_match_exists(player, ref, "whisper", 0)
-				if !exit_match_exists(player, ref, "pose", 1) && !exit_match_exists(player, ref, "pos", 1) {
-					exit_match_exists(player, ref, "po", 1)
+				ExitMatchExists(player, ref, "page", false)
+				ExitMatchExists(player, ref, "whisper", false)
+				if !ExitMatchExists(player, ref, "pose", true) && !ExitMatchExists(player, ref, "pos", true) {
+					ExitMatchExists(player, ref, "po", true)
 				}
-				exit_match_exists(player, ref, "say", 0)
+				ExitMatchExists(player, ref, "say", false)
 			}
 		}
 		var flag bool
@@ -1230,12 +1217,12 @@ func do_sweep(descr int, player dbref, name string) {
 			if db.Fetch(loc).flags & LISTENER != 0 && (get_property(loc, "_listen") || get_property(loc, "~listen") || get_property(loc, "~olisten")) {
 				notify(player, fmt.Sprintf("  %s is a listening room.", unparse_object(player, loc)))
 			}
-			exit_match_exists(player, loc, "page", 0)
-			exit_match_exists(player, loc, "whisper", 0)
-			if !exit_match_exists(player, loc, "pose", 1) && !exit_match_exists(player, loc, "pos", 1) {
-				exit_match_exists(player, loc, "po", 1)
+			ExitMatchExists(player, loc, "page", false)
+			ExitMatchExists(player, loc, "whisper", false)
+			if !ExitMatchExists(player, loc, "pose", true) && !ExitMatchExists(player, loc, "pos", true) {
+				ExitMatchExists(player, loc, "po", true)
 			}
-			exit_match_exists(player, loc, "say", 0)
+			ExitMatchExists(player, loc, "say", false)
 		}
 		notify(player, "**End of list**")
 	}

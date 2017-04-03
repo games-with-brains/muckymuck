@@ -88,10 +88,10 @@ func mfn_testlock(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 				ABORT_MPI("TESTLOCK", "Permission denied. (arg2)")
 			default:
 				switch lok := get_property_lock(obj, argv[1]); {
-				// FIXME: This case is probably wrong - surely default should be for FALSE_BOOLEXP?
-				case len(argv) > 3 && lok == TRUE_BOOLEXP:
+				// FIXME: This case is probably wrong - surely default should be for LOCKED?
+				case len(argv) > 3 && lok == UNLOCKED:
 					r = argv[3]
-				case eval_boolexp(descr, who, lok, obj):
+				case copy_bool(lok).Eval(descr, who, obj):
 					r = "1"
 				default:
 					r = "0"
@@ -778,7 +778,7 @@ func mfn_muf(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (b
 		ABORT_MPI("MUF", "Too many call levels.")
 	}
 
-	match_args = os.Args[1]
+	match_args = argv[1]
 	match_cmdname = fmt.Sprintf("%s(MPI)", get_mvalue(MPI_VARIABLES, "how"))
 	if tmpfr := interp(descr, player, db.Fetch(player).location, obj, perms, PREEMPT, STD_HARDUID, 0); tmpfr {
 		rv = interp_loop(player, obj, tmpfr, true)

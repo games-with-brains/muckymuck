@@ -156,12 +156,8 @@ func insttotext(struct frame *fr, int lev, struct inst *theinst, dbref program, 
 			buffer = fmt.Sprintf("INIT FUNC: %s (%d args)", op.name, op.args)
 		}
 		length = len(buffer)
-	case *boolexp:
-		if op == TRUE_BOOLEXP {
-			buffer = "[TRUE_BOOLEXP]"
-		} else {
-			buffer = fmt.Sprintf("[%1.*s]", (strmax - 1), unparse_boolexp(0, op, false))
-		}
+	case Lock:
+		buffer = fmt.Sprintf("[%s]", op.Unparse(0, false))
 	default:
 		buffer = "?"
 	}
@@ -173,10 +169,7 @@ func insttotext(struct frame *fr, int lev, struct inst *theinst, dbref program, 
 
 #define DEBUG_DEPTH 8 /* how far to give a stack list, at most */
 
-char *
-debug_inst(struct frame *fr, int lev, struct inst *pc, int pid, struct inst *stack,
-		   char *buffer, int buflen, int sp, dbref program)
-{
+debug_inst(fr *frame, lev int, pc *inst, pid int, stack *inst, buffer string, buflen, sp int, program dbref) string {
 	char* bend;
 	char* bstart;
 	char* ptr;
@@ -186,22 +179,20 @@ debug_inst(struct frame *fr, int lev, struct inst *pc, int pid, struct inst *sta
 	/* To hold Debug> ... at the beginning */
 	char buf3[64];
 	int count;
-	
-	assert(buflen > 1);
-    
+
 	buffer[buflen - 1] = '\0';
 
 	buf3 = fmt.Sprintf("Debug> Pid %d: #%d %d (", pid, program, pc.line)
 	length = len(buf3)
-	if (length == -1) {
+	if length == -1 {
 		length = sizeof(buf3) - 1;
 	}
-	bstart = buffer + length; /* start far enough away so we can fit Debug> #xxx xxx ( thingy. */
-	length = buflen - length - 1; /* - 1 for the '\0' */
-	bend = buffer + (buflen - 1); /* - 1 for the '\0' */
+	bstart = buffer + length		/* start far enough away so we can fit Debug> #xxx xxx ( thingy. */
+	length = buflen - length - 1	/* - 1 for the '\0' */
+	bend = buffer + (buflen - 1)	/* - 1 for the '\0' */
 
 	/* + 10 because we must at least be able to store " ... ) ..." after that. */
-	if (bstart + 10 > bend) { /* we have no room. Eeek! */
+	if (bstart + 10 > bend) {	/* we have no room. Eeek! */
 	    /*					123456789012345678 */
 	    memcpy((void*)buffer, (const void*)"Need buffer space!", (buflen - 1 > 18) ? 18 : buflen - 1 );
 	    return buffer;
@@ -218,35 +209,33 @@ debug_inst(struct frame *fr, int lev, struct inst *pc, int pid, struct inst *sta
 	
 	length -= prepend_string(&bend, bstart, ") ");
 	
-	count = sp - 1;
-	if (count >= 0) {
-	    for(;;) {
-			if (count && length <= 5) {
-				length -= prepend_string(&bend, bstart, "...");
-				break;
+	if count = sp - 1; count >= 0 {
+	    for {
+			if count && length <= 5 {
+				length -= prepend_string(&bend, bstart, "...")
+				break
 			}
-			ptr = insttotext(fr, lev, stack + count, program, 1);
-			if (*ptr) {
-				length -= prepend_string(&bend, bstart, ptr);
+			ptr = insttotext(fr, lev, stack + count, program, 1)
+			if ptr != "" {
+				length -= prepend_string(&bend, bstart, ptr)
 			} else {
-				length -= prepend_string(&bend, bstart, "...");
-				break; /* done because we couldn't display all that */
+				length -= prepend_string(&bend, bstart, "...")
+				break	/* done because we couldn't display all that */
 			}
-			if (count > 0 && count > sp - 8) {
-				length -= prepend_string(&bend, bstart, ", ");
+			if count > 0 && count > sp - 8 {
+				length -= prepend_string(&bend, bstart, ", ")
 			} else {
-				if (count)
-					length -= prepend_string(&bend, bstart, "..., ");
-				break; /* all done! */
+				if count != 0 {
+					length -= prepend_string(&bend, bstart, "..., ")
+				}
+				break	/* all done! */
 			}
-			count--;
+			count--
 	    }
 	}
 
 	/* we don't use bstart, because it's compensated for the length of this. */
-	prepend_string(&bend, buffer, buf3);
+	prepend_string(&bend, buffer, buf3)
 	/* and return the pointer to the beginning of our backwards grown string. */
-	return bend;
+	return bend
 }
-static const char *inst_c_version = "$RCSfile: inst.c,v $ $Revision: 1.31 $";
-const char *get_inst_c_version(void) { return inst_c_version; }

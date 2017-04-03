@@ -601,11 +601,11 @@ func prim_array_get_propvals(player, program dbref, mlev int, pc, arg *inst, top
 					switch v := prptr.data.(type) {
 					case string:
 						nu[propname] = v
-					case *boolexp:			//	FIXME: lock
-						if v != TRUE_BOOLEXP {
+					case Lock:
+						if !v.IsTrue() {
 							nu[propname] = copy_bool(v)
 						} else {
-							nu[propname] = TRUE_BOOLEXP
+							nu[propname] = UNLOCKED
 						}
 					case dbref:
 						nu[propname] = v
@@ -671,11 +671,11 @@ func prim_array_get_proplist(player, program dbref, mlev int, pc, arg *inst, top
 					switch v := prptr.data.(type) {
 					case string:
 						nu = append(nu, v)
-					case *boolexp:			//	FIXME: lock
-						if v.lock != TRUE_BOOLEXP {
+					case Lock:
+						if !v.lock.IsTrue() {
 							nu = append(nu, copy_bool(v))
 						} else {
-							nu = append(nu, v)
+							nu = append(nu, UNLOCKED)
 						}
 					case dbref:
 						nu = append(nu, v)
@@ -709,8 +709,8 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				switch v.(type) {
 				case string, int, float64, dbref:
 					set_property(ref, propname, v)
-				case *boolexp:		//	FIXME: lock
-					set_property(ref, propname, copy_bool(v.(*boolexp)))
+				case Lock:
+					set_property(ref, propname, copy_bool(v.(Lock)))
 				}
 			}
 		case Dictionary:
@@ -724,8 +724,8 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				switch v.(type) {
 				case string, int, float64, dbref:
 					set_property(ref, propname, v)
-				case *boolexp:		//	FIXME: lock
-					set_property(ref, propname, copy_bool(v.(*boolexp)))
+				case Lock:
+					set_property(ref, propname, copy_bool(v.(Lock)))
 				}
 			}
 		case map[int] interface{}:
@@ -739,8 +739,8 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				switch v.(type) {
 				case string, int, float64, dbref:
 					set_property(ref, propname, v)
-				case *boolexp:		//	FIXME: lock
-					set_property(ref, propname, copy_bool(v.(*boolexp)))
+				case Lock:
+					set_property(ref, propname, copy_bool(v.(Lock)))
 				}
 			}
 		case map[float64] interface{}:
@@ -757,8 +757,8 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				switch v.(type) {
 				case string, int, float64, dbref:
 					set_property(ref, propname, v)
-				case *boolexp:		//	FIXME: lock
-					set_property(ref, propname, copy_bool(v.(*boolexp)))
+				case Lock:
+					set_property(ref, propname, copy_bool(v.(Lock)))
 				}
 			}
 		default:
@@ -813,8 +813,8 @@ func prim_array_put_proplist(player, program dbref, mlev int, pc, arg *inst, top
 			switch v.(type) {
 			case string, int, float64, dbref:
 				propdat = v
-			case *boolexp:		//	FIXME: lock
-				propdat = copy_bool(v.(*boolexp))
+			case Lock:
+				propdat = copy_bool(v.(Lock))
 			default:
 				propdat = nil
 			}
@@ -1050,8 +1050,8 @@ void prim_array_join(player, program dbref, mlev int, pc, arg *inst, top *int, f
 					text += ".0"
 				}
 				items[i] = text
-			case *boolexp:
-				items[i] = unparse_boolexp(ProgUID, v, true)
+			case Lock:
+				items[i] = v.Unparse(ProgUID, true)
 			default:
 				items[i] = "<UNSUPPORTED>"
 			}
@@ -1087,8 +1087,8 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
 				if !strings.ContainsAny(r, '.ne') {
 					text += ".0"
 				}
-			case *boolexp:
-				text += unparse_boolexp(ProgUID, v, true)
+			case Lock:
+				text += v.Unparse(ProgUID, true)
 			default:
 				text += "<UNSUPPORTED>"
 			}

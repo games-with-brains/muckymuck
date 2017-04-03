@@ -1,80 +1,98 @@
+type Match struct {
+	exact dbref					/* holds result of exact match */
+	check_keys bool				/* if non-zero, check for keys */
+	last dbref					/* holds result of last match */
+	count int				/* holds total number of inexact matches */
+	who dbref					/* player used for me, here, and messages */
+	from dbref					/* object which is being matched around */
+	descr int					/* descriptor initiating the match */
+	name string					/* name to match */
+	preferred_type int			/* preferred type */
+	longest int			/* longest matched string */
+	level int				/* the highest priority level so far */
+	block_equals int			/* block matching of same name exits */
+	partial_exits int			/* if non-zero, allow exits to match partially */
+}
+
+#define NOMATCH_MESSAGE "I don't see that here."
+#define AMBIGUOUS_MESSAGE "I don't know which one you mean!"
+
 char match_cmdname[BUFFER_LEN];	/* triggering command */
 char match_args[BUFFER_LEN];	/* remaining text */
 
-func NewMatch(descr int, player dbref, name string, type int) *match_data {
-	return &match_data{
-		exact_match: NOTHING,
-		last_match: NOTHING,
-		match_who: player,
-		match_from: player,
-		match_descr: descr,
-		match_name: name,
+func NewMatch(descr int, player dbref, name string, datatype int) *Match {
+	return &Match{
+		exact: NOTHING,
+		last: NOTHING,
+		who: player,
+		from: player,
+		descr: descr,
+		name: name,
 		preferred_type: type,
-		partial_exits: (TYPE_EXIT == type),
+		partial_exits: (TYPE_EXIT == datatype),
 	}
 }
 
-func NewMatchCheckKeys(descr int, player dbref, name string, type int) (r *match_data) {
-	r = NewMatch(descr, player, name, type)
+func NewMatchCheckKeys(descr int, player dbref, name string, datatype int) (r *Match) {
+	r = NewMatch(descr, player, name, datatype)
 	r.check_keys = true
 	return
 }
 
-func NewMatchRemote(descr int, player, what dbref, name string, type int) (r *match_data) {
-	r = NewMatch(descr, player, name, type)
-	r.match_from = what
+func NewMatchRemote(descr int, player, what dbref, name string, datatype int) (r *Match) {
+	r = NewMatch(descr, player, name, datatype)
+	r.from = what
 	return
 }
 
-static dbref
-choose_thing(int descr, dbref thing1, dbref thing2, struct match_data *md)
-{
-	int has1;
-	int has2;
-	int preferred = md->preferred_type;
-
-	if (thing1 == NOTHING) {
-		return thing2;
-	} else if (thing2 == NOTHING) {
-		return thing1;
-	}
-	if (preferred != NOTYPE) {
-		if (Typeof(thing1) == preferred) {
-			if (Typeof(thing2) != preferred) {
-				return thing1;
+func (m *Match) ChooseBetween(thing1, thing2 dbref) dbref {
+	switch {
+	case thing1 == NOTHING:
+		return thing2
+	case thing2 == NOTHING:
+		return thing1
+	default:
+		preferred := m.preferred_type
+		if preferred != NOTYPE {
+			switch {
+			case Typeof(thing1) == preferred:
+				if Typeof(thing2) != preferred {
+					return thing1
+				}
+			case Typeof(thing2) == preferred:
+				return thing2
 			}
-		} else if (Typeof(thing2) == preferred) {
-			return thing2;
 		}
-	}
-	if (md->check_keys) {
-		has1 = could_doit(descr, md->match_who, thing1);
-		has2 = could_doit(descr, md->match_who, thing2);
+		if m.check_keys {
+			has1 := could_doit(m.descr, m.who, thing1)
+			has2 := could_doit(m.descr, m.who, thing2)
 
-		if (has1 && !has2) {
-			return thing1;
-		} else if (has2 && !has1) {
-			return thing2;
+			switch {
+			case has1 && !has2:
+				return thing1
+			case has2 && !has1:
+				return thing2
+			}
 		}
-		/* else fall through */
+		if RANDOM() % 2 == 0 {
+			return thing1
+		} else {
+			return thing2
+		}
 	}
-	return (RANDOM() % 2 ? thing1 : thing2);
 }
 
-void
-match_player(struct match_data *md)
-{
-	dbref match;
-	const char *p;
-
-	if (*(md->match_name) == LOOKUP_TOKEN && payfor(db.Fetch(md.match_from).owner, tp_lookup_cost)) {
-		p = strings.TrimLeftFunc(md.match_name[1:], func(r rune) bool {
-			return !unicode.IsSpace(r)
-		})
-		if match = lookup_player(p); match != NOTHING {
-			md->exact_match = match;
+func (m *Match) MatchPlayer() *Match {
+	if m.name[0] == LOOKUP_TOKEN && payfor(db.Fetch(m.from).owner, tp_lookup_cost) {
+		var p string
+		if i := strings.IndexFunc(n.name[1:], unicode.IsSpace); i != -1 {
+			p = n.name[i + 1:]
+		}
+		if match := lookup_player(p); match != NOTHING {
+			m.exact = match
 		}
 	}
+	return m
 }
 
 /* returns dbref if registered object found for name, else NOTHING */
@@ -109,286 +127,268 @@ func find_registered_obj(player dbref, name string) (r dbref) {
 	return
 }
 
-func match_registered(md *match_data) {
-	if match := find_registered_obj(md.match_from, md.match_name); match != NOTHING {
-		md.exact_match = match
+func (m *Match) MatchRegistered() *Match {
+	if match := find_registered_obj(m.from, m.name); match != NOTHING {
+		m.exact = match
 	}
+	return m
 }
 
 /* returns nnn if name = #nnn, else NOTHING */
-static dbref
-absolute_name(struct match_data *md)
-{
-	dbref match;
-
-	if (*(md->match_name) == NUMBER_TOKEN) {
-		match = parse_dbref((md->match_name) + 1);
-		if (match < 0 || match >= db_top) {
-			return NOTHING;
-		} else {
-			return match;
+func (m *Match) AbsoluteName() (r dbref) {
+	if m.name[0] == NUMBER_TOKEN {
+		r = parse_dbref(m.name[1:])
+		if match < 0 || match >= db_top {
+			r = NOTHING
 		}
 	} else {
-		return NOTHING;
+		r = NOTHING
 	}
+	return
 }
 
-void
-match_absolute(struct match_data *md)
-{
-	dbref match;
-
-	if ((match = absolute_name(md)) != NOTHING) {
-		md->exact_match = match;
+func (m *Match) MatchAbsolute() *Match {
+	if match := m.AbsoluteName(); match != NOTHING {
+		m.exact = match
 	}
+	return m
 }
 
-func match_me(md *match_data) {
-	if md.match_name == "me" {
-		md->exact_match = md->match_who;
+func (m *Match) MatchMe() *Match {
+	if m.name == "me" {
+		m.exact = m.who
 	}
+	return m
 }
 
-func match_here(md *match_data) {
-	if md.match_name == "here" && db.Fetch(md.match_who).location != NOTHING {
-		md.exact_match = db.Fetch(md.match_who).location
+func (m *Match) MatchHere() *Match {
+	if m.name == "here" && db.Fetch(m.who).location != NOTHING {
+		m.exact = db.Fetch(m.who).location
 	}
+	return m
 }
 
-func match_home(md *match_data) {
-	if md.match_name == "home" {
-		md.exact_match = HOME
+func (m *Match) MatchHome() *Match {
+	if m.name == "home" {
+		m.exact = HOME
 	}
+	return m
 }
 
-func match_list(first dbref, md *match_data) {
-	dbref absolute;
-
-	absolute = absolute_name(md);
-	if (!controls(db.Fetch(md.match_from).owner, absolute))
-		absolute = NOTHING;
-
+func (m *Match) MatchList(first dbref) *Match {
+	absolute := m.AbsoluteName()
+	if !controls(db.Fetch(m.from).owner, absolute) {
+		absolute = NOTHING
+	}
 	for ; first != NOTHING; first = db.Fetch(first).next {
-		if (first == absolute) {
-			md->exact_match = first;
-			return;
-		} else if db.Fetch(first).name == md->match_name {
-			/* if there are multiple exact matches, randomly choose one */
-			md->exact_match = choose_thing(md->match_descr, md->exact_match, first, md);
-		} else if (string_match(db.Fetch(first).name, md->match_name)) {
-			md->last_match = first;
-			(md->match_count)++;
-		}
-	}
-}
-
-func match_possession(md *match_data) {
-	match_list(db.Fetch(md.match_from).contents, md)
-}
-
-func match_neighbor(md  *match_data) {
-	if loc := db.Fetch(md.match_from).location); loc != NOTHING {
-		match_list(db.Fetch(loc).contents, md)
-	}
-}
-
-/*
- * match_exits matches a list of exits, starting with 'first'.
- * It will match exits of players, rooms, or things.
- */
-func match_exits(first dbref, md *match_data) {
-	dbref exit, absolute;
-	const char *exitname, *p;
-	int i, exitprog, lev, partial;
-
-	if first == NOTHING || db.Fetch(md.match_from).location == NOTHING {
-		return
-	}
-	absolute = absolute_name(md);	/* parse #nnn entries */
-	if (!controls(db.Fetch(md.match_from).owner, absolute))
-		absolute = NOTHING;
-
-	for exit := first; exit != NOTHING; exit = db.Fetch(exit).next {
-		if (exit == absolute) {
-			md->exact_match = exit;
-			continue;
-		}
-		exitprog = false
 		switch {
-		case db.Fetch(exit).flags & HAVEN != 0:
-			exitprog = true
-		case db.Fetch(exit).sp.exit.dest != nil:
-			for _, v := range db.Fetch(exit).sp.exit.dest {
-				if TYPEOF(v) == TYPE_PROGRAM {
-					exitprog = true
-					break
-				}
-			}
+		case first == absolute:
+			m.exact = first
+			break
+		case db.Fetch(first).name == m.name:
+			/* if there are multiple exact matches, randomly choose one */
+			m.exact = md.ChooseBetween(m.exact, first)
+		case string_match(db.Fetch(first).name, m.name):
+			m.last = first
+			m.count++
 		}
-		partial = tp_enable_prefix && exitprog && md.partial_exits && (db.Fetch(exit).flags & XFORCIBLE) && db.Fetch(db.Fetch(exit).owner).flags & WIZARD != 0
-		for exitname = db.Fetch(exit).name; exitname != ""; {
-			int notnull = 0;
-			for (p = md.match_name;	p != "" && strings.ToLower(p) == strings.ToLower(exitname) && exitname != EXIT_DELIMITER; p++, exitname++) {
-				if !unicode.IsSpace(p[0]) {
-					notnull = 1;
-				}
-			}
-			/* did we get a match on this alias? */
-			if ((partial && notnull) || ((*p == '\0') || (*p == ' ' && exitprog))) {
-				/* make sure there's nothing afterwards */
-				exitname = strings.TrimLeftFunc(exitname, func(r rune) bool {
-					return !unicode.IsSpace(r)
-				})
-				lev = PLevel(exit);
-				if (tp_compatible_priorities && (lev == 1) && (db.Fetch(exit).location == NOTHING || TYPEOF(db.Fetch(exit).location) != TYPE_THING || controls(db.Fetch(exit).owner, db.Fetch(md.match_from).location))) {
-					lev = 2
-				}
-				if (*exitname == '\0' || *exitname == EXIT_DELIMITER) {
-					/* we got a match on this alias */
-					if (lev >= md->match_level) {
-						if (len(md->match_name) - len(p) > md->longest_match) {
-							if (lev > md->match_level) {
-								md->match_level = lev;
-								md->block_equals = 0;
-							}
-							md->exact_match = exit;
-							md->longest_match = len(md->match_name) - len(p);
-							if ((*p == ' ') || (partial && notnull)) {
-								strcpyn(match_args, sizeof(match_args), (partial && notnull)? p : (p + 1));
-								{
-									char *pp;
-									int ip;
+	}
+	return m
+}
 
-									for (ip = 0, pp = (char *) md->match_name;
-										 *pp && (pp != p); pp++)
-										match_cmdname[ip++] = *pp;
-									match_cmdname[ip] = '\0';
-								}
-							} else {
-								*match_args = '\0';
-								strcpyn(match_cmdname, sizeof(match_cmdname), (char *) md->match_name);
-							}
-						} else if ((len(md->match_name) - len(p) ==
-									md->longest_match) && !((lev == md->match_level) &&
-															(md->block_equals))) {
-							if (lev > md->match_level) {
-								md->exact_match = exit;
-								md->match_level = lev;
-								md->block_equals = 0;
-							} else {
-								md->exact_match =
-										choose_thing(md->match_descr, md->exact_match, exit,
-													 md);
-							}
-							if (md->exact_match == exit) {
-								if ((*p == ' ') || (partial && notnull)) {
-									strcpyn(match_args, sizeof(match_args), (partial && notnull) ? p : (p + 1));
-									{
-										char *pp;
-										int ip;
+func (m *Match) MatchPossession() *Match {
+	m.MatchList(db.Fetch(m.from).contents)
+	return m
+}
 
-										for (ip = 0, pp = (char *) md->match_name;
-											 *pp && (pp != p); pp++)
-											match_cmdname[ip++] = *pp;
-										match_cmdname[ip] = '\0';
-									}
-								} else {
-									*match_args = '\0';
-									strcpyn(match_cmdname, sizeof(match_cmdname), (char *) md->match_name);
-								}
-							}
+func (m *Match) MatchNeighbor() *Match {
+	if loc := db.Fetch(m.from).location); loc != NOTHING {
+		m.MatchList(db.Fetch(loc).contents)
+	}
+	return m
+}
+
+//	MatchExits matches a list of exits, starting with 'first'.
+//	It will match exits of players, rooms, or things.
+func (m *Match) MatchExits(first dbref) *Match {
+	if first != NOTHING && db.Fetch(m.from).location != NOTHING {
+		absolute := m.AbsoluteName()
+		if !controls(db.Fetch(m.from).owner, absolute) {
+			absolute = NOTHING
+		}
+		for exitid := first; exitid != NOTHING; {
+			if exitid == absolute {
+				m.exact = exitid
+			} else {
+				exit := db.Fetch(exitid)
+				var exitprog bool
+				switch {
+				case exit.flags & HAVEN != 0:
+					exitprog = true
+				case exit.sp.exit.dest != nil:
+					for _, v := range exit.sp.exit.dest {
+						if TYPEOF(v) == TYPE_PROGRAM {
+							exitprog = true
+							break
 						}
 					}
-					goto next_exit;
 				}
+				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && db.Fetch(exit.owner).flags & WIZARD != 0
+				for exitname := strings.TrimSpace(exit.name); exitname != ""; exitname = strings.TrimSpace(exitname) {
+					var notnull bool
+					var p string
+					for p = m.name; p != "" && strings.ToLower(p[0]) == strings.ToLower(exitname[0]) && exitname != EXIT_DELIMITER; p = p[1:] {
+						if !unicode.IsSpace(p[0]) {
+							notnull = true
+						}
+						exitname = exitname[1:]
+					}
+					/* did we get a match on this alias? */
+					if (partial && notnull) || p == "" || (p[0] == " " && exitprog) {
+						/* make sure there's nothing afterwards */
+						if i := strings.IndexFunc(exitname, unicode.IsSpace); i != -1 {
+							exitname = exitname[:i]
+						}
+						lev := PLevel(exitid)
+						if tp_compatible_priorities && lev == 1 && (exit.location == NOTHING || TYPEOF(exit.location) != TYPE_THING || controls(exit.owner, db.Fetch(m.from).location)) {
+							lev = 2
+						}
+						if exitname == "" || exitname[0] == EXIT_DELIMITER {
+							/* we got a match on this alias */
+							switch {
+							case lev < m.level:
+							case len(m.name) - len(p) > m.longest:
+								if lev > m.level {
+									m.level = lev
+									m.block_equals = 0
+								}
+								m.exact = exitid
+								m.longest = len(m.name) - len(p)
+								if p[0] == ' ' || (partial && notnull) {
+									if partial && notnull {
+										match_args = p
+									} else {
+										match_args = p[1:]
+									}
+									var ip int
+									for pp := m.name; pp != "" && pp[0] != p; pp = pp[1:] {
+										ip++
+									}
+									match_cmdname = pp[:ip]
+								} else {
+									match_args = ""
+									match_cmdname = m.name
+								}
+							case (len(m.name) - len(p) == m.longest) && !(lev == m.level && m.block_equals):
+								if lev > m.level {
+									m.exact = exitid
+									m.level = lev
+									m.block_equals = 0
+								} else {
+									m.exact = md.ChooseBetween(md.exact, exitid)
+								}
+								if m.exact == exitid {
+									if p[0] == " " || (partial && notnull) {
+										if partial && notnull {
+											match_args = p
+										} else {
+											match_args = p[1:]
+										}
+										var ip int
+										for pp := m.name; pp != "" && pp[0] != p; pp = pp[1:] {
+											ip++
+										}
+										match_cmdname = pp[:ip]
+									} else {
+										match_args = ""
+										match_cmdname = m.name
+									}
+								}
+							}
+							goto next_exit
+						}
+					}
+					/* we didn't get it, go on to next alias */
+					for ; exitname != "" && exitname[0] != EXIT_DELIMITER ; exitname = exitname[1:] {}
+				}
+next_exit:
 			}
-			/* we didn't get it, go on to next alias */
-			while (*exitname && *exitname++ != EXIT_DELIMITER) ;
-			exitname = strings.TrimLeftFunc(exitname, unicode.IsSpace)
-		}						/* end of while alias string matches */
-	  next_exit:
-		;
-	}
-}
-
-/*
- * match_invobj_actions
- * matches actions attached to objects in inventory
- */
-func match_invobj_actions(md *match_data) {
-	for thing := db.Fetch(md.match_from).contents; thing != NOTHING; thing = db.Fetch(thing).next {
-		if TYPEOF(thing) == TYPE_THING && db.Fetch(thing).exits != NOTHING {
-			match_exits(db.Fetch(thing).exits, md)
+			exitid = db.Fetch(exit).next
 		}
 	}
+	return md
 }
 
-/*
- * match_roomobj_actions
- * matches actions attached to objects in the room
- */
-func match_roomobj_actions(md *match_data) {
-	if loc := db.Fetch(md.match_from).location) != NOTHING {
+//	matches actions attached to objects in inventory
+func (m *Match) MatchInvobjActions() *Match {
+	for thing := db.Fetch(m.from).contents; thing != NOTHING; thing = db.Fetch(thing).next {
+		if TYPEOF(thing) == TYPE_THING && db.Fetch(thing).exits != NOTHING {
+			m.MatchExits(db.Fetch(thing).exits)
+		}
+	}
+	return m
+}
+
+//	matches actions attached to objects in the room
+func (m *Match) MatchRoomobjActions() *Match {
+	if loc := db.Fetch(m.from).location) != NOTHING {
 		for thing := db.Fetch(loc).contents; thing != NOTHING; thing = db.Fetch(thing).next {
 			if TYPEOF(thing) == TYPE_THING && db.Fetch(thing).exits != NOTHING {
-				match_exits(db.Fetch(thing).exits, md)
+				m.MatchExits(db.Fetch(thing).exits)
 			}
 		}
 	}
+	return m
 }
 
-/*
- * match_player_actions
- * matches actions attached to player
- */
-func match_player_actions(md *match_data) {
-	switch TYPEOF(md.match_from) {
+//	matches actions attached to player
+func (m *Match) MatchPlayerActions() *Match {
+	switch TYPEOF(m.from) {
 	case TYPE_PLAYER:, TYPE_ROOM, TYPE_THING:
-		match_exits(db.Fetch(md.match_from).exits, md)
+		m.MatchExits(db.Fetch(m.from).exits)
 	}
+	return m
 }
 
-/*
- * match_room_exits
- * Matches exits and actions attached to player's current room.
- * Formerly 'match_exit'.
- */
-func match_room_exits(loc dbref, md *match_data) {
+//	Matches exits and actions attached to player's current room.
+//	Formerly 'match_exit'.
+func (m *Match) MatchRoomExits(loc dbref) *Match {
 	switch TYPEOF(loc) {
 	case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-		match_exits(db.Fetch(loc).exits, md)
+		m.MatchExits(db.Fetch(loc).exits)
 	}
+	return m
 }
 
 /*
- * match_all_exits
+ * MatchAllExits
  * Matches actions on player, objects in room, objects in inventory,
  * and room actions/exits (in reverse order of priority order).
  */
-func match_all_exits(md *match_data) {
+func (m *Match) MatchAllExits() *Match {
 	dbref loc;
 	int limit = 88;
 	int blocking = 0;
 
 	var match_args, match_cmdname string
-	if loc = db.Fetch(md.match_from).location; loc != NOTHING) {
-		match_room_exits(loc, md)
+	if loc = db.Fetch(m.from).location; loc != NOTHING) {
+		md.MatchRoomExits(loc)
 	}
 
-	if md.exact_match != NOTHING {
-		md.block_equals = true
+	if m.exact != NOTHING {
+		m.block_equals = true
 	}
-	match_invobj_actions(md)
+	m.MatchInvobjActions()
 
-	if md.exact_match != NOTHING {
-		md.block_equals = true
+	if m.exact != NOTHING {
+		m.block_equals = true
 	}
-	match_roomobj_actions(md)
+	m.MatchRoomobjActions()
 
-	if md.exact_match != NOTHING {
-		md.block_equals = true
+	if m.exact != NOTHING {
+		m.block_equals = true
 	}
-	match_player_actions(md)
+	m.MatchPlayerActions()
 
 	if loc != NOTHING {
 		/* if player is in a vehicle, use environment of vehicle's home */
@@ -396,10 +396,10 @@ func match_all_exits(md *match_data) {
 			if loc = db.Fetch(loc).sp.(player_specific).home; loc == NOTHING {
 				return
 			}
-			if md->exact_match != NOTHING {
-				md->block_equals = true
+			if m.exact != NOTHING {
+				m.block_equals = true
 			}
-			match_room_exits(loc, md)
+			m.dMatchRoomExits(loc)
 		}
 
         /* Walk the environment chain to #0, or until depth chain limit
@@ -408,10 +408,10 @@ func match_all_exits(md *match_data) {
 			/* If we're blocking (because of a yield), only match a room if
 			   and only if it has overt set on it. */
 			if (blocking && db.Fetch(loc).flags & OVERT != 0) || !blocking {
-				if md.exact_match != NOTHING {
-					md->block_equals = true
+				if m.exact != NOTHING {
+					m.block_equals = true
 				}
-				match_room_exits(loc, md);
+				m.MatchRoomExits(loc)
 			}
 			if !limit-- {
 				break
@@ -421,74 +421,69 @@ func match_all_exits(md *match_data) {
 				blocking = true
 			}
         }
-}
-
-void
-match_everything(struct match_data *md)
-{
-	match_all_exits(md);
-	match_neighbor(md);
-	match_possession(md);
-	match_me(md);
-	match_here(md);
-	match_registered(md);
-	if Wizard(db.Fetch(md.match_from).owner) || Wizard(md.match_who) {
-		match_absolute(md);
-		match_player(md);
 	}
+	return m
 }
 
-dbref
-match_result(struct match_data *md)
-{
-	if (md->exact_match != NOTHING) {
-		return (md->exact_match);
+func (m *Match) MatchEverything() *Match {
+	m.MatchAllExits().
+		MatchNeighbor().
+		MatchPossession().
+		MatchMe().
+		MatchHere().
+		MatchRegistered()
+	if Wizard(db.Fetch(m.from).owner) || Wizard(m.who) {
+		m.MatchAbsolute().MatchPlayer()
+	}
+	return m
+}
+
+func (m *Match) MatchResult() (r dbref) {
+	if md.exact != NOTHING {
+		r = m.exact
 	} else {
-		switch (md->match_count) {
+		switch m.count {
 		case 0:
-			return NOTHING;
+			r = NOTHING
 		case 1:
-			return (md->last_match);
+			r = m.last
 		default:
-			return AMBIGUOUS;
+			r = AMBIGUOUS
 		}
 	}
+	return
 }
 
 /* use this if you don't care about ambiguity */
-dbref
-last_match_result(struct match_data * md)
-{
-	if (md->exact_match != NOTHING) {
-		return (md->exact_match);
+func (m *Match) LastMatchResult() (r dbref) {
+	if m.exact != NOTHING {
+		r = m.exact
 	} else {
-		return (md->last_match);
+		r = m.last
 	}
+	return
 }
 
-dbref
-noisy_match_result(struct match_data * md)
-{
-	dbref match;
-
-	switch (match = match_result(md)) {
+func (m *Match) NoisyMatchResult() (r dbref) {
+	switch r = m.MatchResult(); {
 	case NOTHING:
-		notify(md->match_who, NOMATCH_MESSAGE);
-		return NOTHING;
+		notify(m.who, NOMATCH_MESSAGE)
+		r = NOTHING
 	case AMBIGUOUS:
-		notify(md->match_who, AMBIGUOUS_MESSAGE);
-		return NOTHING;
+		notify(m.who, AMBIGUOUS_MESSAGE)
+		r = NOTHING
 	default:
-		return match;
+		r = match
 	}
+	return
 }
 
-func match_rmatch(arg1 dbref, md *match_data) {
+func (m *Match) RMatch(arg1 dbref) {
 	if arg1 != NOTHING {
 		switch TYPEOF(arg1) {
 		case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-			match_list(db.Fetch(arg1).contents, md)
-			match_exits(db.Fetch(arg1).exits, md)
+			md.MatchList(db.Fetch(arg1).contents)
+			md.MatchExits(db.Fetch(arg1).exits)
 		}
 	}
 }

@@ -9,16 +9,17 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 		victim = player
 		to = arg1
 	} else {
-		md := NewMatch(descr, player, arg1, NOTYPE)
-		match_neighbor(&md)
-		match_possession(&md)
-		match_me(&md)
-		match_here(&md)
-		match_absolute(&md)
-		match_registered(&md)
-		match_player(&md)
+		victim = NewMatch(descr, player, arg1, NOTYPE).
+			MatchNeighbor().
+			MatchPossession().
+			MatchMe().
+			MatchHere().
+			MatchAbsolute().
+			MatchRegistered().
+			MatchPlayer().
+			NoisyMatchResult()
 
-		if victim = noisy_match_result(&md); victim == NOTHING {
+		if victim == NOTHING {
 			return
 		}
 		to = arg2
@@ -29,18 +30,17 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 	}
 
 	/* get destination */
-	md := NewMatch(descr, player, to, TYPE_PLAYER)
-	match_possession(&md)
-	match_me(&md)
-	match_here(&md)
-	match_home(&md)
-	match_absolute(&md)
-	match_registered(&md)
+	md := NewMatch(descr, player, to, TYPE_PLAYER).
+		MatchPossession().
+		MatchMe().
+		MatchHere().
+		MatchHome().
+		MatchAbsolute().
+		MatchRegistered()
 	if Wizard(db.Fetch(player).owner) {
-		match_neighbor(&md)
-		match_player(&md)
+		md.MatchNeighbor().MatchPlayer()
 	}
-	switch destination = match_result(&md); desination {
+	switch destination = md.MatchResult(); desination {
 	case NOTHING:
 		notify(player, "Send it where?")
 	case AMBIGUOUS:
@@ -190,8 +190,8 @@ func do_unbless(descr int, player dbref, what, propname string) {
 	default:
 		/* get victim */
 		md := NewMatch(descr, player, what, NOTYPE)
-		match_everything(&md);
-		switch victim = noisy_match_result(&md); {
+		md.MatchEverything()
+		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
 		case !Wizard(db.Fetch(player).owner):
 			notify(player, "Permission denied. (You're not a wizard)")
@@ -216,8 +216,8 @@ func do_bless(descr int, player dbref, what, propname string) {
 	default:
 		/* get victim */
 		md := NewMatch(descr, player, what, NOTYPE)
-		match_everything(&md)
-		switch victim = noisy_match_result(&md); {
+		md.MatchEverything()
+		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
 		case player != GOD && db.Fetch(victim).owner == GOD:
 			notify(player, "Only God may touch God's stuff.")
@@ -248,18 +248,17 @@ func do_force(descr int, player dbref, what, command string) {
 	}
 
 	/* get victim */
-	md := NewMatch(descr, player, what, NOTYPE)
-	match_neighbor(&md)
-	match_possession(&md)
-	match_me(&md)
-	match_here(&md)
-	match_absolute(&md)
-	match_registered(&md)
-	match_player(&md)
-
-	victim := noisy_match_result(&md)
+	victim := NewMatch(descr, player, what, NOTYPE).
+		MatchNeighbor().
+		MatchPossession().
+		MatchMe().
+		MatchHere().
+		MatchAbsolute().
+		MatchRegistered().
+		MatchPlayer().
+		NoisyMatchResult()
 	v := db.Fetch(victim)
-	terms := strings.SplitN(db.Fetch(victim).name, " ", 2)
+	terms := strings.SplitN(v.name, " ", 2)
 	switch {
 	case victim == NOTHING:
 #ifdef DEBUG
@@ -269,7 +268,7 @@ func do_force(descr int, player dbref, what, command string) {
 		notify(player, "Permission Denied -- Target not a player or thing.")
 	case victim == GOD:
 		notify(player, "You cannot force God to do anything.")
-	case !Wizard(player) && db.Fetch(victim).flags & XFORCIBLE == 0:
+	case !Wizard(player) && v.flags & XFORCIBLE == 0:
 		notify(player, "Permission denied: forced object not @set Xforcible.")
 	case !Wizard(player) && !test_lock_false_default(descr, player, victim, "@/flk"):
 		notify(player, "Permission denied: Object not force-locked to you.")

@@ -128,14 +128,14 @@ func array_tree_compare(a, b *array_iter, case_sens bool) (r int) {
 			case string:
 				r = array_tree_compare_arrays(a, b, case_sens)
 			}
-		case *boolexp:
+		case Lock:
 			switch b := b.data.(type) {
-			case *boolexp:
+			case Lock:
 				/*
 				* In a perfect world, we'd compare the locks by element,
 				* instead of unparsing them into strings for strcmp()s.
 				*/
-				r, ok = strings.Compare(unparse_boolexp(dbref(1), a, false), unparse_boolexp(dbref(1), b, false)), true
+				r, ok = strings.Compare(a.Unparse(1, false), b.Unparse(1, false)), true
 		case Address:
 			switch b := b.data.(type) {
 			case Address:

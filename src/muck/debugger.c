@@ -369,33 +369,20 @@ static struct MUFProc temp_muf_proc_data = {
 };
 
 func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r bool) {
-	char cmd[BUFFER_LEN];
-	char buf[BUFFER_LEN];
 	char buf2[BUFFER_LEN];
-	char *ptr, *ptr2, *arg;
+	char *ptr2
 	struct inst *pinst;
 	int i, j, cnt;
 
-	while (unicode.IsSpace(*text))
-		text++;
-	strcpyn(cmd, sizeof(cmd), text);
-	ptr = cmd + len(cmd);
-	if (ptr > cmd)
-		ptr--;
-	while (ptr >= cmd && unicode.IsSpace(*ptr))
-		*ptr-- = '\0';
-	for (arg = cmd; *arg && !unicode.IsSpace(*arg); arg++) ;
-	if (*arg)
-		*arg++ = '\0';
-	if *cmd == nil && fr.brkpt.lastcmd != "" {
+	cmd := strings.TrimSpace(text)
+	if i := strings.IndexFunc(cmd, unicode.IsSpace); i != -1 {
+		arg = cmd[i:]
+		cmd = cmd[:i]
+	}
+	if cmd == "" && fr.brkpt.lastcmd != "" {
 		cmd = fr.brkpt.lastcmd
 	} else {
-		if fr.brkpt.lastcmd != nil {
-			free(fr.brkpt.lastcmd)
-		}
-		if *cmd != nil {
-			fr.brkpt.lastcmd = cmd
-		}
+		fr.brkpt.lastcmd = cmd
 	}
 	/* delete triggering breakpoint, if it's only temp. */
 	j = fr->brkpt.breaknum
@@ -618,13 +605,12 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 	case "breaks":
 		notify_nolisten(player, "Breakpoints:", true)
 		for i := 0; i < fr.brkpt.count; i++ {
-			ptr = unparse_breakpoint(fr, i)
-			notify_nolisten(player, ptr, true)
+			notify_nolisten(player, unparse_breakpoint(fr, i), true)
 		}
 		notify_nolisten(player, "*done*", true)
 		add_muf_read_event(descr, player, program, fr)
 	case "where":
-		i = atoi(arg)
+		i = strconv.Atoi(arg)
 		muf_backtrace(player, program, i, fr)
 		add_muf_read_event(descr, player, program, fr)
 	case "stack":
@@ -633,14 +619,15 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 		if i == 0 {
 			i = STACK_SIZE
 		}
-		ptr = "";
+		var ptr string
 		for j := fr.argument.top; j > 0 && i > 0; i-- {
 			cnt = 0
 			do {
-				strcpyn(buf, sizeof(buf), ptr);
-				ptr = insttotext(NULL, 0, &fr->argument.st[--j], program, 1);
-				cnt++;
-			} while ptr == buf && j > 0;
+				buf = ptr
+				j--
+				ptr = insttotext(nil, 0, &fr.argument.st[j], program, 1)
+				cnt++
+			} while ptr == buf && j > 0
 			if cnt > 1 {
 				notify_fmt(player, "     [repeats %d times]", cnt)
 			}
@@ -713,11 +700,10 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 				for i := startline; i <= endline; i++ {
 					if pinst = linenum_to_pc(program, i); pinst != nil {
 						if i == fr.pc.line {
-							buf = fmt.Sprintf("line %d: %s", i, show_line_prims(fr, program, fr.pc, STACK_SIZE, 1))
+							notify_nolisten(player, fmt.Sprintf("line %d: %s", i, show_line_prims(fr, program, fr.pc, STACK_SIZE, 1)), true)
 						} else {
-							buf = fmt.Sprintf("line %d: %s", i, show_line_prims(fr, program, pinst, STACK_SIZE, 0))
+							notify_nolisten(player, fmt.Sprintf("line %d: %s", i, show_line_prims(fr, program, pinst, STACK_SIZE, 0)), true)
 						}
-						notify_nolisten(player, buf, true)
 					}
 				}
 			} else {
@@ -739,8 +725,7 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 			fr.brkpt.showstack = false
 			notify_nolisten(player, "Trace turned off.", true)
 		default:
-			buf = fmt.Sprintf("Trace is currently %s.", fr.brkpt.showstack ? "on" : "off")
-			notify_nolisten(player, buf, true)
+			notify_nolisten(player, fmt.Sprintf("Trace is currently %s.", fr.brkpt.showstack ? "on" : "off"), true)
 		}
 	case "words":
 		list_program_functions(player, program, arg)

@@ -1,19 +1,4 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/src/speech.c,v 1.13 2006/04/19 02:58:54 premchai21 Exp $ */
-
-
-#include "copyright.h"
-#include "config.h"
-
-#include "db.h"
-#include "mpi.h"
-#include "interface.h"
-#include "match.h"
-#include "params.h"
-#include "tune.h"
-#include "props.h"
-#include "externs.h"
-#include "speech.h"
-#include <ctype.h>
+package fbmuck
 
 /* Commands which involve speaking */
 
@@ -25,14 +10,13 @@ func do_say(dbref player, const char *message) {
 }
 
 func do_whisper(int descr, dbref player, const char *arg1, const char *arg2) {
-	md := NewMatch(descr, player, arg1, TYPE_PLAYER)
-	match_neighbor(&md)
-	match_me(&md)
+	md := NewMatch(descr, player, arg1, TYPE_PLAYER).
+		MatchNeighbor().
+		MatchMe()
 	if Wizard(player) && Typeof(player) == TYPE_PLAYER {
-		match_absolute(&md)
-		match_player(&md)
+		md.MatchAbsolute().MatchPlayer()
 	}
-	switch who = match_result(&md); who {
+	switch who = md.MatchResult(); who {
 	case NOTHING:
 		notify(player, "Whisper to whom?");
 	case AMBIGUOUS:

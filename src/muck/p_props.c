@@ -85,7 +85,7 @@ func prim_getprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			switch v := ptr.(type) {
 			case string:
 				push(arg, top, v)
-			case *boolexp:			//	FIXME: lock
+			case Lock:
 				push(arg, top, v)
 			case dbref:
 				push(arg, top, v)
@@ -116,8 +116,8 @@ func prim_getpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 				value = v
 			case dbref:
 				value = fmt.Sprintf("#%d", v)
-			case *boolexp:		//	FIXME: lock
-				value = unparse_boolexp(ProgUID, v, true)
+			case Lock:
+				value = v.Unparse(ProgUID, true)
 			}
 		}
 		push(arg, top, temp)
@@ -160,7 +160,7 @@ func prim_envprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				push(arg, top, v)
 			case dbref:
 				push(arg, top, v)
-			case *boolexp:		//	FIXME: lock
+			case Lock:
 				push(arg, top, v)
 			default:
 				push(arg, top, 0)
@@ -182,8 +182,8 @@ func prim_envpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 				value = v
 			case dbref:
 				value = fmt.Sprintf("#%d", v)
-			case *boolexp:		//	FIXME: lock
-				value = unparse_boolexp(ProgUID, v, true)
+			case Lock:
+				value = v.Unparse(ProgUID, true)
 			}
 		}
 		if what != NOTHING && !prop_read_perms(ProgUID, what, rawprop, mlev) {
@@ -233,7 +233,7 @@ func prim_setprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			propdat = value
 		case dbref:
 			propdat = value
-		case *boolexp:		//	FIXME: lock
+		case Lock:
 			propdat = copy_bool(value)
 		default:
 			panic("Invalid argument type (3)")
@@ -329,8 +329,8 @@ func prim_array_filter_prop(player, program dbref, mlev int, pc, arg *inst, top 
 					switch v := pptr.data.(type) {
 					case string:
 						buf = v
-					case *boolexp:			//	FIXME: lock
-						buf = unparse_boolexp(ProgUID, v, false)
+					case Lock:
+						buf = v.Unparse(ProgUID, false)
 					case dbref:
 						buf = fmt.Sprintf("#%i", v)
 					case int:
@@ -424,7 +424,7 @@ func prim_parsepropex(player, program dbref, mlev int, pc, arg *inst, top *int, 
 				flags |= MPI_NOHOW
 			}
 			switch val.(type) {
-			case int, float64, dbref, string, *boolexp:
+			case int, float64, dbref, string, Lock:
 			default:
 				panic("Only integer, float, dbref, string and lock values supported. (3)")
 			}
@@ -442,8 +442,8 @@ func prim_parsepropex(player, program dbref, mlev int, pc, arg *inst, top *int, 
 					set_mvalue(MPI_VARIABLES, key, fmt.Sprintf("#%i", val))
 				case string:
 					set_mvalue(MPI_VARIABLES, key, val)
-				case *boolexp:
-					set_mvalue(MPI_VARIABLES, key, unparse_boolexp(ProgUID, val, true))
+				case Lock:
+					set_mvalue(MPI_VARIABLES, key, val.Unparse(ProgUID, true))
 				default:
 					set_mvalue(MPI_VARIABLES, key, "")
 				}

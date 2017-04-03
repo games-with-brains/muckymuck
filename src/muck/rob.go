@@ -1,14 +1,11 @@
 package fbmuck
 
 func do_rob(int descr, dbref player, const char *what) {
-	md := NewMatch(descr, player, what, TYPE_PLAYER)
-	match_neighbor(&md)
-	match_me(&md)
+	md := NewMatch(descr, player, what, TYPE_PLAYER).MatchNeighbor().MatchMe()
 	if Wizard(db.Fetch(player).owner) {
-		match_absolute(&md)
-		match_player(&md)
+		md.MatchAbsolute().MatchPlayer()
 	}
-	switch thing := match_result(&md); {
+	switch thing := md.MatchResult(); {
 	case thing == NOTHING:
 		notify(player, "Rob whom?")
 	case thing == AMBIGUOUS:
@@ -33,14 +30,11 @@ func do_kill(descr int, player dbref, what string, cost int) {
 	if cost < tp_kill_min_cost {
 		cost = tp_kill_min_cost
 	}
-	md := NewMatch(descr, player, what, TYPE_PLAYER)
-	match_neighbor(&md)
-	match_me(&md)
+	md := NewMatch(descr, player, what, TYPE_PLAYER).MatchNeighbor().MatchMe()
 	if Wizard(db.Fetch(player).owner) {
-		match_player(&md)
-		match_absolute(&md)
+		md.MatchPlayer().MatchAbsolute()
 	}
-	switch victim := match_result(&md); {
+	switch victim := md.MatchResult(); {
 	case victim == NOTHING:
 		notify(player, "I don't see that player here.")
 	case victim == AMBIGUOUS:
@@ -95,14 +89,11 @@ func do_give(descr int, player dbref, recipient string, amount int) {
 		notify_fmt(player, "You must specify a positive number of %s.", tp_pennies)
 	default:
 		/* check recipient */
-		md := NewMatch(descr, player, recipient, TYPE_PLAYER)
-		match_neighbor(&md)
-		match_me(&md)
+		md := NewMatch(descr, player, recipient, TYPE_PLAYER).MatchNeighbor().MatchMe()
 		if Wizard(db.Fetch(player).owner) {
-			match_player(&md)
-			match_absolute(&md)
+			md.MatchPlayer().MatchAbsolute()
 		}
-		switch who := match_result(&md); who {
+		switch who := md.MatchResult(); who {
 		case NOTHING:
 			notify(player, "Give to whom?")
 		case AMBIGUOUS:
