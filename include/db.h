@@ -1,20 +1,4 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/include/db.h,v 1.49 2009/10/11 05:19:18 points Exp $ */
-
-#include "copyright.h"
-
-#ifndef __DB_H
-#define __DB_H
-
-#include "config.h"
-#include "defines.h"
-
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#ifdef HAVE_TIMEBITS_H
-#  define __need_timeval 1
-#  include <timebits.h>
-#endif
+package fbmuck
 
 /* max length of command argument to process_command */
 #define MAX_COMMAND_LEN 2048
@@ -278,40 +262,11 @@ union specific {				/* I've been railroaded! */
 		dbref *dest;
 	} exit;
 	struct {					/* PLAYER-specific fields */
-		struct player_specific *sp;
+		struct Player *sp;
 	} player;
 	struct {					/* PROGRAM-specific fields */
-		struct program_specific *sp;
+		struct Program *sp;
 	} program;
-};
-
-
-/* timestamps record */
-
-struct timestamps {
-	time_t created;
-	time_t modified;
-	time_t lastused;
-	int usecount;
-};
-
-
-struct object {
-
-	const char *name;
-	dbref location;				/* pointer to container */
-	dbref owner;
-	dbref contents;
-	dbref exits;
-	dbref next;					/* pointer to next in contents/exits chain */
-	properties *Plist
-	object_flag_type flags;
-
-	unsigned int mpi_prof_use;
-	struct timeval mpi_proftime;
-
-	struct timestamps ts;
-	union specific sp;
 };
 
 struct macrotable {
@@ -336,7 +291,7 @@ struct macrotable {
 
   Some fields are now handled in a unique way, since they are always memory
   resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
-  flags and owner.  Refer to these by db.Fetch(i).name, db.Fetch(i).flags and db.Fetch(i).owner.
+  flags and owner.  Refer to these by db.Fetch(i).name, db.Fetch(i).flags and db.Fetch(i).Owner.
 
   The programmer is responsible for managing storage for string
   components of entries; db_read will produce malloc'd strings.  Note that db_free and db_read will

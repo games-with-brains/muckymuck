@@ -9,7 +9,7 @@ func print_owner(player, thing dbref) {
 	case TYPE_PLAYER:
 		buf = fmt.Sprintf("%s is a player.", db.Fetch(thing).name)
 	case TYPE_ROOM, TYPE_THING, TYPE_EXIT, TYPE_PROGRAM:
-		buf = fmt.Sprintf("Owner: %s", db.Fetch(db.Fetch(thing).owner).name)
+		buf = fmt.Sprintf("Owner: %s", db.Fetch(db.Fetch(thing).Owner).name)
 	}
 	notify(player, buf)
 }
@@ -65,7 +65,7 @@ func exec_or_notify(descr int, player, thing dbref, message, whatcalled string, 
 				p = p[1:]
 			}
 		}
-		if (i < 0 || i >= db_top || (Typeof(i) != TYPE_PROGRAM)) {
+		if !valid_reference(i) || !IsProgram(i) {
 			if (*p) {
 				notify(player, p);
 			} else {
@@ -76,7 +76,7 @@ func exec_or_notify(descr int, player, thing dbref, message, whatcalled string, 
 			tmpcmd = match_cmdname
 			match_args = do_parse_mesg(descr, player, thing, p, whatcalled, MPI_ISPRIVATE | mpiflags)
 			match_cmdname = whatcalled
-			if tmpfr := interp(descr, player, db.Fetch(player).location, i, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+			if tmpfr := interp(descr, player, db.Fetch(player).Location, i, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
 				interp_loop(player, i, tmpfr, false)
 			}
 			match_args = tmparg
@@ -97,11 +97,11 @@ look_contents(dbref player, dbref loc, const char *contents_name)
 	can_see_loc = (!Dark(loc) || controls(player, loc));
 
 	/* check to see if there is anything there */
-	for thing = db.Fetch(loc).contents; thing != NOTHING; thing = db.Fetch(thing).next {
+	for thing = db.Fetch(loc).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
 		if (can_see(player, thing, can_see_loc)) {
 			/* something exists!  show him everything */
 			notify(player, contents_name);
-			for thing = db.Fetch(loc).contents; thing != NOTHING; thing = db.Fetch(thing).next {
+			for thing = db.Fetch(loc).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
 				if (can_see(player, thing, can_see_loc)) {
 					notify(player, unparse_object(player, thing));
 				}
@@ -154,14 +154,14 @@ func look_room(descr int, player, loc dbref) {
 }
 
 func do_look_around(descr int, player dbref) {
-	if loc = db.Fetch(player).location; loc != NOTHING {
+	if loc = db.Fetch(player).Location; loc != NOTHING {
 		look_room(descr, player, loc)
 	}
 }
 
 func do_look_at(int descr, dbref player, const char *name, const char *detail) {
 	if name == "" || name == "here" {
-		if thing := db.Fetch(player).location; thing != NOTHING {
+		if thing := db.Fetch(player).Location; thing != NOTHING {
 			look_room(descr, player, thing)
 		}
 	} else {
@@ -169,20 +169,20 @@ func do_look_at(int descr, dbref player, const char *name, const char *detail) {
 			MatchAllExits().
 			MatchNeighbor().
 			MatchPossession()
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchAbsolute().MatchPlayer()
 		}
 		switch thing := md.MatchHere().MatchMe().Matchresult(); {
 		case thing != NOTHING && thing != AMBIGUOUS && detail == "":
 			switch TYPEOF(thing) {
 			case TYPE_ROOM:
-				if db.Fetch(player).location != thing && !can_link_to(player, TYPE_ROOM, thing) {
+				if db.Fetch(player).Location != thing && !can_link_to(player, TYPE_ROOM, thing) {
 					notify(player, "Permission denied. (you're not where you want to look, and can't link to it)")
 				} else {
 					look_room(descr, player, thing)
 				}
 			case TYPE_PLAYER:
-				if db.Fetch(player).location != db.Fetch(thing).location && !controls(player, thing) {
+				if db.Fetch(player).Location != db.Fetch(thing).Location && !controls(player, thing) {
 					notify(player, "Permission denied. (Your location isn't the same as what you're looking at)")
 				} else {
 					look_simple(descr, player, thing)
@@ -192,7 +192,7 @@ func do_look_at(int descr, dbref player, const char *name, const char *detail) {
 					}
 				}
 			case TYPE_THING:
-				if db.Fetch(player).location != db.Fetch(thing).location && db.Fetch(thing).location != player && !controls(player, thing) {
+				if db.Fetch(player).Location != db.Fetch(thing).Location && db.Fetch(thing).Location != player && !controls(player, thing) {
 					notify(player, "Permission denied. (You're not in the same room as or carrying the object)")
 				} else {
 					look_simple(descr, player, thing)
@@ -220,7 +220,7 @@ func do_look_at(int descr, dbref player, const char *name, const char *detail) {
 
 			var buf string
 			if thing == NOTHING {
-				thing = db.Fetch(player).location
+				thing = db.Fetch(player).Location
 				buf = fmt.Sprint(name)
 			} else {
 				buf = fmt.Sprint(detail)
@@ -411,7 +411,7 @@ func listprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	for propadr != nil {
 		if !smatch(wldcrd, propname) {
 			buf = fmt.Sprint(dir, PROPDIR_DELIMITER, propname)
-			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(db.Fetch(player).owner))) {
+			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(db.Fetch(player).Owner))) {
 				if (!*ptr || recurse) {
 					cnt++;
 					displayprop(player, thing, buf, buf2, sizeof(buf2));
@@ -430,10 +430,9 @@ func listprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 func do_examine(descr int, player dbref, name, dir string) {
 	var thing, content, exit dbref
 	int i, cnt;
-	struct tm *time_tm;			/* used for timestamps */
 
 	if name == "" {
-		if thing = db.Fetch(player).location; thing == NOTHING {
+		if thing = db.Fetch(player).Location; thing == NOTHING {
 			return
 		}
 	} else {
@@ -445,7 +444,7 @@ func do_examine(descr int, player dbref, name, dir string) {
 			MatchRegistered()
 
 		/* only Wizards can examine other players */
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchPlayer()
 		}
 		md.MatchHere().MatchMe()
@@ -471,13 +470,13 @@ func do_examine(descr int, player dbref, name, dir string) {
 		var buf string
 		switch thing.(type) {
 		case TYPE_ROOM:
-			buf = fmt.Sprintf("%s  Owner: %s  Parent: %s", unparse_object(player, thing), db.Fetch(db.Fetch(thing).owner).name, unparse_object(player, db.Fetch(thing).location)
+			buf = fmt.Sprintf("%s  Owner: %s  Parent: %s", unparse_object(player, thing), db.Fetch(db.Fetch(thing).Owner).name, unparse_object(player, db.Fetch(thing).Location)
 		case TYPE_THING:
-			buf = fmt.Sprintf("%s  Owner: %s  Value: %d", unparse_object(player, thing), db.Fetch(db.Fetch(thing).owner).name, get_property_value(thing, MESGPROP_VALUE))
+			buf = fmt.Sprintf("%s  Owner: %s  Value: %d", unparse_object(player, thing), db.Fetch(db.Fetch(thing).Owner).name, get_property_value(thing, MESGPROP_VALUE))
 		case TYPE_PLAYER:
 			buf = fmt.Sprintf("%s  %s: %d  ", unparse_object(player, thing), tp_cpennies, get_property_value(thing, MESGPROP_VALUE))
 		case TYPE_EXIT, TYPE_PROGRAM:
-			buf = fmt.Sprintf("%s  Owner: %s", unparse_object(player, thing), db.Fetch(db.Fetch(thing).owner).name)
+			buf = fmt.Sprintf("%s  Owner: %s", unparse_object(player, thing), db.Fetch(db.Fetch(thing).Owner).name)
 		}
 		notify(player, buf)
 #ifdef VERBOSE_EXAMINE
@@ -524,91 +523,90 @@ func do_examine(descr int, player dbref, name, dir string) {
 		}
 
 		/* Timestamps */
-		/* ex: time_tm = localtime((time_t *)(&(db.Fetch(thing).ts.created))); */
-		time_tm = localtime((&(db.Fetch(thing).ts.created)))
+		/* ex: time_tm = localtime((time_t *)(&(db.Fetch(thing).Created))); */
+		time_tm := localtime((&(db.Fetch(thing).Created)))
 		notify(player, format_time((char *) "Created:  %a %b %e %T %Z %Y", time_tm))
-		time_tm = localtime((&(db.Fetch(thing).ts.modified)))
+		time_tm = localtime((&(db.Fetch(thing).Modified)))
 		notify(player, format_time((char *) "Modified: %a %b %e %T %Z %Y", time_tm))
-		time_tm = localtime((&(db.Fetch(thing).ts.lastused)))
+		time_tm = localtime((&(db.Fetch(thing).LastUsed)))
 		notify(player, format_time((char *) "Lastused: %a %b %e %T %Z %Y", time_tm))
 		if TYPEOF(thing) == TYPE_PROGRAM {
 			var i int
-			if db.Fetch(thing).sp.(program_specific) != nil {
-				i = db.Fetch(thing).sp.(program_specific).instances
+			if db.Fetch(thing).(Program) != nil {
+				i = db.Fetch(thing).(Program).instances
 			}
-			notify(player, fmt.Sprintf("Usecount: %d     Instances: %d", db.Fetch(thing).ts.usecount, i))
+			notify(player, fmt.Sprintf("Usecount: %d     Instances: %d", db.Fetch(thing).Uses, i))
 		} else {
-			notify(player, fmt.Sprintf("Usecount: %d", db.Fetch(thing).ts.usecount))
+			notify(player, fmt.Sprintf("Usecount: %d", db.Fetch(thing).Uses))
 		}
 
 		notify(player, "[ Use 'examine <object>=/' to list root properties. ]")
 
 		/* show him the contents */
-		if db.Fetch(thing).contents != NOTHING {
+		if db.Fetch(thing).Contents != NOTHING {
 			if TYPEOF(thing) == TYPE_PLAYER {
 				notify(player, "Carrying:");
 			} else {
 				notify(player, "Contents:")
 			}
-			for content = db.Fetch(thing).contents; content != NOTHING; content = db.Fetch(content).next {
+			for content = db.Fetch(thing).Contents; content != NOTHING; content = db.Fetch(content).next {
 				notify(player, unparse_object(player, content))
 			}
 		}
-		switch thing.(type) {
-		case TYPE_ROOM:
+		switch o := db.Fetch(thing).(type) {
+		case Room:
 			/* tell him about exits */
-			if db.Fetch(thing).exits != NOTHING {
-				notify(player, "Exits:");
-				for exit = db.Fetch(thing).exits; exit != NOTHING; exit = db.Fetch(exit)next {
-					notify(player, unparse_object(player, exit));
+			if o.Exits != NOTHING {
+				notify(player, "Exits:")
+				for exit = o.Exits; exit != NOTHING; exit = o.next {
+					notify(player, unparse_object(player, exit))
 				}
 			} else {
 				notify(player, "No exits.");
 			}
 
-			/* print dropto if present */
-			if db.Fetch(thing).sp != NOTHING {
-				notify(player, fmt.Sprintf("Dropped objects go to: %s", unparse_object(player, db.Fetch(thing).sp.(dbref))))
+			if o.dbref != NOTHING {
+				notify(player, fmt.Sprintf("Dropped objects go to: %s", unparse_object(player, o.(dbref))))
 			}
-		case TYPE_THING:
+		case Object:
 			/* print home */
-			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, db.Fetch(thing).sp.(player_specific).home)))	/* home */
+			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.home)))	/* home */
 			/* print location if player can link to it */
-			if db.Fetch(thing).location != NOTHING && (controls(player, db.Fetch(thing).location) || can_link_to(player, NOTYPE, db.Fetch(thing).location)) {
-				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, db.Fetch(thing).location)))
+			if o.Location != NOTHING && (controls(player, o.Location) || can_link_to(player, NOTYPE, o.Location)) {
+				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, o.Location)))
 			}
 			/* print thing's actions, if any */
-			if db.Fetch(thing).exits != NOTHING {
+			if o.Exits != NOTHING {
 				notify(player, "Actions/exits:")
-				for exit = db.Fetch(thing).exits; exit != NOTHING; exit = db.Fetch(exit).next {
+				for exit = o.Exits; exit != NOTHING; exit = o.next {
 					notify(player, unparse_object(player, exit))
 				}
 			} else {
 				notify(player, "No actions attached.")
 			}
-		case TYPE_PLAYER:
+		case Player:
 			/* print home */
-			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, db.Fetch(thing).sp.(player_specific).home)))
+			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.home)))
 
 			/* print location if player can link to it */
-			if db.Fetch(thing).location != NOTHING && (controls(player, db.Fetch(thing).location) || can_link_to(player, NOTYPE, db.Fetch(thing).location)) {
-				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, db.Fetch(thing).location)))
+			if o.Location != NOTHING && (controls(player, o.Location) || can_link_to(player, NOTYPE, o.Location)) {
+				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, o.Location)))
 			}
 			/* print player's actions, if any */
-			if db.Fetch(thing).exits != NOTHING {
+			if o.Exits != NOTHING {
 				notify(player, "Actions/exits:")
-				for exit = db.Fetch(thing.exits); exit != NOTHING; exit = db.Fetch(exit).next {
+				for exit = db.Fetch(o.Exits); exit != NOTHING; exit = db.Fetch(exit).next {
 					notify(player, unparse_object(player, exit))
 				}
 			} else {
 				notify(player, "No actions attached.")
 			}
-		case TYPE_EXIT:
-			if db.Fetch(thing).location != NOTHING {
-				notify(player, fmt.Sprintf("Source: %s", unparse_object(player, db.Fetch(thing).location)))
+		case Exit:
+			if o.Location != NOTHING {
+				notify(player, fmt.Sprintf("Source: %s", unparse_object(player, o.Location)))
 			}
 			/* print destinations */
-			for _, v := range db.Fetch(thing).sp.exit.dest {
+			for _, v := range o.Destinations {
 				switch v {
 				case NOTHING:
 				case HOME:
@@ -617,17 +615,15 @@ func do_examine(descr int, player dbref, name, dir string) {
 					notify(player, fmt.Sprintf("Destination: %s", unparse_object(player, v)))
 				}
 			}
-		case TYPE_PROGRAM:
-			if len(db.Fetch(thing).sp.(program_specific).code) > 0 {
-				struct timeval tv = db.Fetch(thing).sp.(program_specific).proftime
-				notify(player, fmt.Sprintf("Program compiled size: %d instructions", len(db.Fetch(thing).sp.(program_specific).code)))
-				notify(player, fmt.Sprintf("Cumulative runtime: %d.%06d seconds ", int(tv.tv_sec), int(tv.tv_usec)))
+		case Program:
+			if len(o.code) > 0 {
+				notify(player, fmt.Sprintf("Program compiled size: %d instructions", len(o.code)))
+				notify(player, fmt.Sprintf("Cumulative runtime: %v seconds ", o.proftime))
 			} else {
 				notify(player, fmt.Sprintf("Program not compiled."))
 			}
-			/* print location if player can link to it */
-			if db.Fetch(thing).location != NOTHING && (controls(player, db.Fetch(thing).location) || can_link_to(player, NOTYPE, db.Fetch(thing).location)) {
-				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, db.Fetch(thing).location)))
+			if loc := o.Location; loc != NOTHING && (controls(player, loc) || can_link_to(player, NOTYPE, loc)) {
+				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, loc)))
 			}
 		}
 	}
@@ -644,7 +640,7 @@ func do_score(player dbref) {
 func do_inventory(player dbref) {
 	dbref thing;
 
-	if thing := db.Fetch(player).contents; thing == NOTHING {
+	if thing := db.Fetch(player).Contents; thing == NOTHING {
 		notify(player, "You aren't carrying anything.")
 	} else {
 		notify(player, "You are carrying:")
@@ -879,7 +875,7 @@ func checkflags(dbref what, struct flgchkdat check) (r bool) {
 				r = false
 			}
 		case TYPE_EXIT:
-			if (len(db.Fetch(what).sp.exit.dest) == 0) != !check.islinked {
+			if (len(db.Fetch(what).(Exit).Destinations) == 0) != !check.islinked {
 				r = false
 			}
 		case TYPE_PLAYER, TYPE_THING:
@@ -890,7 +886,7 @@ func checkflags(dbref what, struct flgchkdat check) (r bool) {
 	}
 
 	if check.forold {
-		if (((time(nil)) - db.Fetch(what).ts.lastused) < tp_aging_time) || (((time(nil)) - db.Fetch(what).ts.modified) < tp_aging_time) != !check.isold {
+		if (((time(nil)) - db.Fetch(what).LastUsed) < tp_aging_time) || (((time(nil)) - db.Fetch(what),modified) < tp_aging_time) != !check.isold {
 			r = false
 		}
 	}
@@ -904,38 +900,37 @@ const(
 )
 
 func display_objinfo(player, obj dbref, output_type int) {
-	var buf string
 	buf2 := unparse_object(player, obj)
-	switch output_type {
+	switch o := db.Fetch(obj); output_type {
 	case 0:
 	case CHECK_OWNERS:
-		buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).owner));
+		notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Owner)))
 	case CHECK_LINKS:
-		switch Typeof(obj) {
-		case TYPE_ROOM:
-			buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).sp.(dbref)))
-		case TYPE_EXIT:
-			switch n := len(db.Fetch(obj).sp.exit.dest); {
+		switch o := o.(type) {
+		case Room:
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.dbref)))
+		case Exit:
+			switch n := len(o.Destinations); {
 			case n == 0:
-				buf = fmt.Sprintf("%-38.512s  %.512s", buf2, "*UNLINKED*")
+				notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, "*UNLINKED*"))
 			case n > 1:
-				buf = fmt.Sprintf("%-38.512s  %.512s", buf2, "*METALINKED*")
+				notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, "*METALINKED*"))
 			default:
-				buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).sp.exit.dest[0]))
+				notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Destinations[0])))
 			}
-		case TYPE_PLAYER:
-			buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).sp.(player_specific).home))
-		case TYPE_THING:
-			buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).sp.(player_specific).home))
+		case Player:
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.home)))
+		case Object:
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.home)))
 		default:
-			buf = fmt.Sprintf("%-38.512s  %.512s", buf2, "N/A")
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, "N/A"))
 		}
 	case CHECK_LOCATIONS:
-		buf = fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, db.Fetch(obj).location))
+		notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Location)))
 	case 4:
 		return
 	default:
-		buf = buf2
+		notify(player, buf2)
 	}
 	notify(player, buf)
 }
@@ -947,12 +942,12 @@ func do_find(player dbref, name, flags string) {
 		var total int
 		buf := "*" + name + "*"
 		output_type, check := init_checkflags(player, flags)
-		for i := 0; i < db_top; i++ {
-			if (Wizard(db.Fetch(player).owner) || db.Fetch(i).owner == db.Fetch(player).owner) && checkflags(i, check) && db.Fetch(i).name != "" && (name == "" || !smatch(buf, db.Fetch(i).name) {
-				display_objinfo(player, i, output_type)
+		EachObject(func(obj dbref, o *Object) {
+			if (Wizard(db.Fetch(player).Owner) || o.Owner == db.Fetch(player).Owner) && checkflags(obj, check) && o.name != "" && (name == "" || !smatch(buf, o.name) {
+				display_objinfo(player, obj, output_type)
 				total++
 			}
-		}
+		})
 		notify(player, "***End of List***")
 		notify_fmt(player, "%d objects found.", total)
 	}
@@ -964,7 +959,7 @@ func do_owned(dbref player, const char *name, const char *flags) {
 	} else {
 		var victim dbref
 		output_type, check := init_checkflags(player, flags)
-		if Wizard(db.Fetch(player).owner) && name != "" {
+		if Wizard(db.Fetch(player).Owner) && name != "" {
 			if victim = lookup_player(name); victim == NOTHING {
 				notify(player, "I couldn't find that player.")
 				return
@@ -974,12 +969,12 @@ func do_owned(dbref player, const char *name, const char *flags) {
 		}
 
 		var total int
-		for i := 0; i < db_top; i++ {
-			if db.Fetch(i).owner == db.Fetch(victim).owner && checkflags(i, check) {
-				display_objinfo(player, i, output_type)
+		EachObject(func(obj dbref, o *Object) {
+			if o.Owner == db.Fetch(victim).Owner && checkflags(obj, check) {
+				display_objinfo(player, obj, output_type)
 				total++
 			}
-		}
+		})
 		notify(player, "***End of List***")
 		notify_fmt(player, "%d objects found.", total)
 	}
@@ -1005,7 +1000,7 @@ func do_trace(int descr, dbref player, const char *name, int depth) {
 		} else {
 			notify(player, "**Missing**")
 		}
-		thing = db.Fetch(thing).location
+		thing = db.Fetch(thing).Location
 	}
 	notify(player, "***End of List***");
 }
@@ -1013,14 +1008,14 @@ func do_trace(int descr, dbref player, const char *name, int depth) {
 func do_entrances(int descr, dbref player, const char *name, const char *flags) {
 	var thing dbref
 	if name == "" {
-		thing = db.Fetch(player).location
+		thing = db.Fetch(player).Location
 	} else {
 		md := NewMatch(descr, player, name, NOTYPE).
 			MatchAllExits().
 			MatchNeighbor().
 			MatchPossession().
 			MatchRegistered()
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchAbsolute().MatchPlayer()
 		}
 		md.MatchHere()
@@ -1031,38 +1026,38 @@ func do_entrances(int descr, dbref player, const char *name, const char *flags) 
 	switch output_type, check := init_checkflags(player, flags); {
 	case thing == NOTHING:
 		notify(player, "I don't know what object you mean.")
-	case !controls(db.Fetch(player).owner, thing):
+	case !controls(db.Fetch(player).Owner, thing):
 		notify(player, "Permission denied. (You can't list entrances of objects you don't control)")
 	default:
 		_, check = init_checkflags(player, flags)
-		for i := 0; i < db_top; i++ {
-			if checkflags(i, check) {
-				switch TYPEOF(i) {
-				case TYPE_EXIT:
-					for j := len(db.Fetch(i).sp.exit.dest); j > 0; j-- {
-						if db.Fetch(i).sp.exit.dest[j] == thing {
-							display_objinfo(player, i, output_type)
+		EachObject(func(obj dbref, o *Object) {
+			if checkflags(obj, check) {
+				switch o := o.(type) {
+				case Exit:
+					for j := len(o.Destinations) - 1; j > 0; j-- {
+						if o.Destinations[j] == thing {
+							display_objinfo(player, obj, output_type)
 							total++
 						}
 					}
-				case TYPE_PLAYER:
-					if db.Fetch(i).sp.(player_specific).home == thing {
-						display_objinfo(player, i, output_type)
+				case Player:
+					if o.home == thing {
+						display_objinfo(player, obj, output_type)
 						total++
 					}
-				case TYPE_THING:
-					if db.Fetch(i).sp.(player_specific).home == thing {
-						display_objinfo(player, i, output_type)
+				case Object:
+					if o.home == thing {
+						display_objinfo(player, obj, output_type)
 						total++
 					}
-				case TYPE_ROOM:
-					if db.Fetch(i).sp == thing {
-						display_objinfo(player, i, output_type)
+				case Room:
+					if o == thing {
+						display_objinfo(player, obj, output_type)
 						total++
 					}
 				}
 			}
-		}
+		})
 		notify(player, "***End of List***")
 		notify_fmt(player, "%d objects found.", total)
 	}
@@ -1072,7 +1067,7 @@ func do_contents(int descr, dbref player, const char *name, const char *flags) {
 	var total int
 	var i, thing dbref
 	if name == "" {
-		thing = db.Fetch(player).location
+		thing = db.Fetch(player).Location
 	} else {
 		md := NewMatch(descr, player, name, NOTYPE).
 			MatchMe().
@@ -1081,17 +1076,17 @@ func do_contents(int descr, dbref player, const char *name, const char *flags) {
 			MatchNeighbor().
 			MatchPossession().
 			MatchRegistered()
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchAbsolute().MatchPlayer()
 		}
 		thing = md.NoisyMatchResult()
 	}
 	if thing != NOTHING {
-		if !controls(db.Fetch(player).owner, thing) {
+		if !controls(db.Fetch(player).Owner, thing) {
 			notify(player, "Permission denied. (You can't get the contents of something you don't control)")
 		} else {
 			output_type, check := init_checkflags(player, flags)
-			for i := db.Fetch(thing).contents; i != NOTHING; i = db.Fetch(i).next {
+			for i := db.Fetch(thing).Contents; i != NOTHING; i = db.Fetch(i).next {
 				if checkflags(i, check) {
 					display_objinfo(player, i, output_type)
 					total++
@@ -1099,7 +1094,7 @@ func do_contents(int descr, dbref player, const char *name, const char *flags) {
 			}
 			switch TYPEOF(thing) {
 			case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-				for i := db.Fetch(thing).exits; i != NOTHING; i = db.Fetch(i).next {
+				for i := db.Fetch(thing).Exits; i != NOTHING; i = db.Fetch(i).next {
 					if checkflags(i, check) {
 						display_objinfo(player, i, output_type)
 						total++
@@ -1124,7 +1119,7 @@ func exit_matches_name(exit dbref, name string, exactMatch bool) bool {
 			*ptr2++ = '\0';
 		while (*ptr2 == ';')
 			ptr2++;
-		if (exactMatch ? !strcasecmp(name, ptr) : strings.Prefix(name, ptr)) && len(db.Fetch(exit).sp.exit.dest) > 0 && TYPEOF(db.Fetch(exit).sp.exit.dest[0]) == TYPE_PROGRAM {
+		if (exactMatch ? !strcasecmp(name, ptr) : strings.Prefix(name, ptr)) && len(db.Fetch(exit).(Exit).Destinations) > 0 && TYPEOF(db.Fetch(exit).(Exit).Destinations[0]) == TYPE_PROGRAM {
 			return true
 		}
 	}
@@ -1132,7 +1127,7 @@ func exit_matches_name(exit dbref, name string, exactMatch bool) bool {
 }
 
 func ExitMatchExists(player, obj dbref, name string, exactMatch bool) (r bool) {
-	for exit := db.Fetch(obj).exits; exit != NOTHING; exit = db.Fetch(exit).next {
+	for exit := db.Fetch(obj).Exits; exit != NOTHING; exit = db.Fetch(exit).next {
 		if exit_matches_name(exit, name, exactMatch) {
 			notify(player, fmt.Sprintf("  %ss are trapped on %.2048s", name, unparse_object(player, obj)))
 			r = true
@@ -1145,7 +1140,7 @@ func ExitMatchExists(player, obj dbref, name string, exactMatch bool) (r bool) {
 func do_sweep(descr int, player dbref, name string) {
 	var thing dbref
 	if name == "" {
-		thing = db.Fetch(player).location
+		thing = db.Fetch(player).Location
 	} else {
 		md := NewMatch(descr, player, name, NOTYPE).
 			MatchMe().
@@ -1154,7 +1149,7 @@ func do_sweep(descr int, player dbref, name string) {
 			MatchNeighbor().
 			MatchPossession().
 			MatchRegistered()
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchAbsolute().MatchPlayer()
 		}
 		thing = md.NoisyMatchResult()
@@ -1162,12 +1157,12 @@ func do_sweep(descr int, player dbref, name string) {
 	switch {
 	case thing == NOTHING:
 		notify(player, "I don't know what object you mean.")
-	case name != "" && !controls(db.Fetch(player).owner, thing):
+	case name != "" && !controls(db.Fetch(player).Owner, thing):
 		notify(player, "Permission denied. (You can't perform a security sweep in a room you don't own)")
 	default:
 		buf := fmt.Sprintf("Listeners in %s:", unparse_object(player, thing))
 		notify(player, buf)
-		for ref := db.Fetch(thing).contents; ref != NOTHING; ref = db.Fetch(ref).next {
+		for ref := db.Fetch(thing).Contents; ref != NOTHING; ref = db.Fetch(ref).next {
 			switch Typeof(ref) {
 			case TYPE_PLAYER:
 				if !Dark(thing) || online(ref) {
@@ -1183,7 +1178,7 @@ func do_sweep(descr int, player dbref, name string) {
 					buf := fmt.Sprintf("  %.255s is a", unparse_object(player, ref));
 					if db.Fetch(ref).flags & ZOMBIE != 0 {
 						tellflag = true
-						if !online(db.Fetch(ref).owner) {
+						if !online(db.Fetch(ref).Owner) {
 							tellflag = false
 							buf += " sleeping"
 						}
@@ -1194,7 +1189,7 @@ func do_sweep(descr int, player dbref, name string) {
 						tellflag = tell
 					}
 					buf += " object owned by "
-					buf += unparse_object(player, db.Fetch(ref).owner)
+					buf += unparse_object(player, db.Fetch(ref).Owner)
 					buf += "."
 					if tellflag {
 						notify(player, buf)

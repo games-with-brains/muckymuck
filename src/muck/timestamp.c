@@ -1,33 +1,44 @@
-func ts_newobject(thing *object) {
-	now := time(nil)
-	thing.ts.created = now
-	thing.ts.modified = now
-	thing.ts.lastused = now
-	thing.ts.usecount = 0
+package fbmuck
+
+type TimeStamps struct {
+	Created time.Time
+	Modified time.Time
+	LastUsed time.Time
+	Uses int
+	MPIUses int
+	time.Duration
+}
+
+func NewTimeStamps() *TimeStamps {
+	now := time.Now()
+	return &TimeStamps{ Created: now, Modified: now, LastUsed: now }
 }
 
 func ts_useobject(thing dbref) {
 	if thing != NOTHING {
-		db.Fetch(thing).ts.lastused = time(nil)
-		db.Fetch(thing).ts.usecount++
-		db.Fetch(thing).flags |= OBJECT_CHANGED
+		p := db.Fetch(thing)
+		p.LastUsed = time(nil)
+		p.Uses++
+		p.flags |= OBJECT_CHANGED
 		if Typeof(thing) == TYPE_ROOM {
-			ts_useobject(db.Fetch(thing).location)
+			ts_useobject(p.Location)
 		}
 	}
 }
 
 func ts_lastuseobject(thing dbref) {
 	if thing != NOTHING {
-		db.Fetch(thing).ts.lastused = time(nil)
-		db.Fetch(thing).flags |= OBJECT_CHANGED
+		p := db.Fetch(thing)
+		p.LastUsed = time(nil)
+		p.flags |= OBJECT_CHANGED
 		if Typeof(thing) == TYPE_ROOM {
-			ts_lastuseobject(db.Fetch(thing).location)
+			ts_lastuseobject(p.Location)
 		}
 	}
 }
 
 func ts_modifyobject(thing dbref) {
-	db.Fetch(thing).ts.modified = time(nil)
-	db.Fetch(thing).flags |= OBJECT_CHANGED
+	p := db.Fetch(thing)
+	p.Modified = time(nil)
+	p.flags |= OBJECT_CHANGED
 }

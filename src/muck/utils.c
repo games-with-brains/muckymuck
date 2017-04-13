@@ -72,7 +72,7 @@ func remove_first(dbref first, dbref what) dbref {
 
 func member(thing, list dbref) (r bool) {
 	for ; !r && list != NOTHING; list = db.Fetch(list).next {
-		r = list == thing || (db.Fetch(list).contents && member(thing, db.Fetch(list).contents))
+		r = list == thing || (db.Fetch(list).Contents && member(thing, db.Fetch(list).Contents))
 	}
 	return
 }

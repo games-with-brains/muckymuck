@@ -76,7 +76,7 @@ func muf_event_dequeue_pid(pid int) (r int) {
 		if proc := proc.(event_process); !proc.deleted {
 			if proc.fr.pid == pid {
 				if !proc.fr.been_background {
-					db.Fetch(proc.player).sp.(player_specific).block = false
+					db.FetchPlayer(proc.player).block = false
 				}
 				proc.fr.events = nil
 				proc.deleted = true
@@ -133,7 +133,7 @@ func muf_event_dequeue(prog dbref, killmode int) (r int) {
 		default:
 			if proc.fr != nil {
 				if !proc.fr.been_background {
-					db.Fetch(proc.player).sp.(player_specific).block = false
+					db.FetchPlayer(proc.player).block = false
 				}
 				proc.fr.events = nil
 				prog_clean(proc.fr)
@@ -204,7 +204,7 @@ func muf_event_list(player dbref, pat string) (r int) {
 				prognamestr = fmt.Sprint(db.Fetch(proc.prog).name)
 			}
 			buf := fmt.Sprintf(pat, pidstr, "--", time_format_2((long) (rtime - proc.fr.started)), inststr, cpustr, progstr, prognamestr, db.Fetch(proc.player).name, "EVENT_WAITFOR" )
-			if Wizard(db.Fetch(player).owner) || db.Fetch(proc.prog).owner == db.Fetch(player).owner || proc.player == player {
+			if Wizard(db.Fetch(player).Owner) || db.Fetch(proc.prog).Owner == db.Fetch(player).Owner || proc.player == player {
 				notify_nolisten(player, buf, true)
 			}
 			r++
@@ -433,7 +433,7 @@ func muf_event_process() {
 					notify_nolisten(proc.player, "Program stack overflow.", true)
 					prog_clean(proc.fr)
 				} else {
-					player := db.Fetch(proc.player).sp.(player_specific)
+					player := db.FetchPlayer(proc.player)
 					current_program := player.curr_prog
 					block := player.block
 					is_bg := proc.fr.multitask == BACKGROUND

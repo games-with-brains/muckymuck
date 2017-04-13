@@ -261,10 +261,10 @@ func mfn_listprops(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp i
 				if Prop_Hidden(p) {
 					flag = false
 				}
-				if Prop_Private(p) && db.Fetch(what).owner != db.Fetch(obj).owner {
+				if Prop_Private(p) && db.Fetch(what).Owner != db.Fetch(obj).Owner {
 					flag = false
 				}
-				if obj != player && db.Fetch(obj).owner != db.Fetch(what).owner {
+				if obj != player && db.Fetch(obj).Owner != db.Fetch(what).Owner {
 					flag = false
 				}
 			}
@@ -544,7 +544,7 @@ func mfn_ontime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 		ABORT_MPI("ONTIME", "Permission denied.")
 	default:
 		if Typeof(obj) != TYPE_PLAYER {
-			obj = db.Fetch(obj).owner
+			obj = db.Fetch(obj).Owner
 		}
 		if conn := least_idle_player_descr(obj); conn != 0 {
 			r = fmt.Sprint(pontime(conn))
@@ -561,7 +561,7 @@ func mfn_idle(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	case UNKNOWN, AMBIGUOUS, NOTHING, HOME:
 	default:
 		if Typeof(obj) != TYPE_PLAYER {
-			obj = db.Fetch(obj).owner
+			obj = db.Fetch(obj).Owner
 		}
 		if conn := least_idle_player_descr(obj); conn != 0 {
 			r = fmt.Sprint(pidle(conn))
@@ -601,7 +601,7 @@ func mfn_contains(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 		}
 		with_useful_object("CONTAINS (2)", obj, func(obj2 dbref) {
 			for obj2 != NOTHING && obj2 != obj1 {
-				obj2 = db.Fetch(obj2).location
+				obj2 = db.Fetch(obj2).Location
 			}
 			if obj1 == obj2 {
 				r = "1"
@@ -620,7 +620,7 @@ func mfn_holds(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 			obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
 		}
 		with_useful_object("HOLDS (2)", obj, func(obj2 dbref) {
-			if obj2 == db.Fetch(obj1).location {
+			if obj2 == db.Fetch(obj1).Location {
 				r = "1"
 			} else {
 				r = "0"
@@ -732,10 +732,7 @@ func mfn_isdbref(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	buf := strings.TrimLeftFunc(argv[0], unicode.IsSpace)
 	r = "0"
 	if buf[0] == NUMBER_TOKEN && unicode.IsNumber(buf[1]) {
-		obj := dbref(strconv.Atoi(ptr))
-		if !(obj < 0 || obj >= db_top) {
-			r = "1"
-		}
+		r = MUFBool(valid_reference(strconv.Atoi(ptr)))
 	}
 	return
 }
@@ -1196,7 +1193,7 @@ func mfn_convsecs(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 
 func mfn_loc(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("LOC", mesg_dbref_local(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = ref2str(db.Fetch(obj).location)
+		r = ref2str(db.Fetch(obj).Location)
 	})
 	return
 }
@@ -1209,7 +1206,7 @@ func mfn_nearby(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 	case obj == PERMDENIED:
 		ABORT_MPI("NEARBY", "Permission denied (arg1).")
 	case obj == HOME:
-		obj = db.Fetch(player).sp.(player_specific).home
+		obj = db.FetchPlayer(player).home
 	}
 	var obj2 dbref
 	if len(argv) > 1 {
@@ -1220,7 +1217,7 @@ func mfn_nearby(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 		case obj2 == PERMDENIED:
 			ABORT_MPI("NEARBY", "Permission denied (arg2).")
 		case obj2 == HOME:
-			obj2 = db.Fetch(player).sp.(player_specific).home
+			obj2 = db.FetchPlayer(player).home
 		}
 	} else {
 		obj2 = what
@@ -1268,13 +1265,13 @@ func mfn_tell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 			items := strings.Split(argv[0], MPI_LISTSEP)
 			for _, v := range items {
 				var buf string
-				if obj != db.Fetch(perms).owner && obj != player {
+				if obj != db.Fetch(perms).Owner && obj != player {
 					buf = "> "
 				}
-				loc := db.Fetch(what).location
+				loc := db.Fetch(what).Location
 				name := db.Fetch(player).name
 				switch {
-				case Typeof(what) == TYPE_ROOM, db.Fetch(what).owner == obj, player == obj, (Typeof(what) == TYPE_EXIT && Typeof(loc) == TYPE_ROOM), strings.Prefix(argv[0], name):
+				case Typeof(what) == TYPE_ROOM, db.Fetch(what).Owner == obj, player == obj, (Typeof(what) == TYPE_EXIT && Typeof(loc) == TYPE_ROOM), strings.Prefix(argv[0], name):
 					buf += fmt.Sprintf("%.4093s", v)
 				} else {
 					buf += name
@@ -1291,7 +1288,7 @@ func mfn_tell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 }
 
 func mfn_otell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
-	obj := db.Fetch(player).location
+	obj := db.Fetch(player).Location
 	if len(argv) > 1 {
 		obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
 	}
@@ -1305,18 +1302,18 @@ func mfn_otell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 			}
 			items := strings.Split(argv[0], MPI_LISTSEP)
 			for _, v := range items {
-				loc := db.Fetch(what).location
+				loc := db.Fetch(what).Location
 				name := db.Fetch(player).name
 				var buf string
 				switch {
-				case ((db.Fetch(what).owner == db.Fetch(obj).owner || isancestor(what, obj)) && (TYPEOF(what) == TYPE_ROOM || (TYPEOF(what) == TYPE_EXIT && TYPEOF(loc) == TYPE_ROOM))) || strings.Prefix(argv[0], name):
+				case ((db.Fetch(what).Owner == db.Fetch(obj).Owner || isancestor(what, obj)) && (TYPEOF(what) == TYPE_ROOM || (TYPEOF(what) == TYPE_EXIT && TYPEOF(loc) == TYPE_ROOM))) || strings.Prefix(argv[0], name):
 					buf = v
 				case argv[0] == '\'' || unicode.IsSpace(argv[0]):
 					buf = fmt.Sprint(db.Fetch(player).name, v)
 				default:
 					buf = fmt.Sprint(db.Fetch(player).name, " ", v)
 				}
-				for thing := db.Fetch(obj).contents; thing != NOTHING; thing = db.Fetch(thing).next {
+				for thing := db.Fetch(obj).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
 					if thing != eobj {
 						notify_from_echo(player, thing, buf, 0)
 					}
@@ -1390,28 +1387,28 @@ func mfn_center(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 
 func mfn_created(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("CREATED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).ts.created)
+		r = fmt.Sprint(db.Fetch(obj).Created)
 	})
 	return
 }
 
 func mfn_lastused(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("LASTUSED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(onj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).ts.lastused)
+		r = fmt.Sprint(db.Fetch(obj).LastUsed)
 	})
 	return
 }
 
 func mfn_modified(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("MODIFIED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).ts.modified)
+		r = fmt.Sprint(db.Fetch(obj).Modified)
 	})
 	return
 }
 
 func mfn_usecount(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("USECOUNT", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).ts.usecount)
+		r = fmt.Sprint(db.Fetch(obj).Uses)
 	})
 	return
 }

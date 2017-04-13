@@ -48,7 +48,7 @@ func unparse_flags(thing dbref) (r string) {
 func unparse_object(player, loc dbref) (r string) {
 	if player != NOTHING {
 		if _, ok := player.(TYPE_PLAYER); !ok {
-			player = db.Fetch(player).owner
+			player = db.Fetch(player).Owner
 		}
 	}
 	switch loc {
@@ -58,7 +58,7 @@ func unparse_object(player, loc dbref) (r string) {
 		r = "*AMBIGUOUS*"
 	case HOME:
 		r = "*HOME*"
-	case loc < 0, loc >= db_top:
+	case !valid_reference(loc):
 		r = "*INVALID*"
 	default:
 		if player == NOTHING || (db.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (Typeof(loc) != TYPE_PLAYER && (controls_link(player, loc) || db.Fetch(loc).flags & CHOWN_OK != 0)))) {

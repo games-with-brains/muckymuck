@@ -5,7 +5,7 @@ package fbmuck
    be $lib/gui. This could be expanded to check the entire MUF chain. */
 func apply_mcp_primitive(p dbref, fr *frame, mlev, top *int, n int, f func(Array)) {
 	apply_primitive(n, top, func(op Array) {
-		if mlev < tp_mcp_muf_mlev && p != db.Fetch(fr.caller.st[1]).owner {
+		if mlev < tp_mcp_muf_mlev && p != db.Fetch(fr.caller.st[1]).Owner {
 			panic("Permission denied!!!")
 		}
 		f(op)
@@ -16,10 +16,10 @@ func muf_mcp_callback(mfr *McpFrame, mesg *McpMesg, version McpVer, context inte
 	descr := mfr.descriptor.descriptor
 	user := mfr.descriptor.player
 	var ptr *mcp_binding
-	for ptr = db.Fetch(context.(dbref)).sp.(program_specific).mcp_binding; ptr != nil && (ptr.pkgname != mesg.pkgname || ptr.msgname != mesg.mesgname); ptr = ptr.next {}
+	for ptr = db.Fetch(context.(dbref)).(Program).mcp_binding; ptr != nil && (ptr.pkgname != mesg.pkgname || ptr.msgname != mesg.mesgname); ptr = ptr.next {}
 	if ptr != nil {
 		var argarr *stk_array
-		if tmpfr := interp(descr, user, db.Fetch(user).location, obj, -1, PREEMPT, STD_REGUID, 0); tmpfr != nil {
+		if tmpfr := interp(descr, user, db.Fetch(user).Location, obj, -1, PREEMPT, STD_REGUID, 0); tmpfr != nil {
 			tmpfr.argument.top--
 			args := make(Dictionary)
 			for arg := mesg.args; arg != nil; arg = arg.next {
@@ -183,15 +183,15 @@ func prim_mcp_bind(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 		switch {
 		case program != address.progref:
 			panic("Destination address outside current program. (3)")
-		case address.progref < 0, address.progref >= db_top, Typeof(address.progref) != TYPE_PROGRAM:
+		case !valid_reference(address.progref), !IsProgram(address.progref):
 			panic("Invalid address. (3)")
 		}
 
-		ptr := db.Fetch(program).sp.(program_specific).mcp_binding
+		p := db.Fetch(program)
+		ptr := p.(Program).mcp_binding
 		for ; ptr != nil && (ptr.pkgname == pkgname || ptr.msgname == msgname); ptr = ptr.next {}
 		if ptr == nil {
-			ptr = &mcp_binding{ pkgname: pkgname, msgname: msgname, next: db.Fetch(program).sp.(program_specific).mcp_binding }
-			db.Fetch(program).sp.(program_specific).mcp_binding = ptr
+			p.(Program).mcp_binding = &mcp_binding{ pkgname: pkgname, msgname: msgname, next: p.(Program).mcp_binding }
 		}
 		ptr.addr = address.addr.data
 	})

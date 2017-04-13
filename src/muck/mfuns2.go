@@ -6,9 +6,9 @@ import "os"
 func mfn_owner(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("OWNER", mesg_dbref_raw(descr, player, what, perms, argv[0]), func(obj dbref) {
 		if obj == HOME {
-			obj = db.Fetch(player).sp.(player_specific).home
+			obj = db.FetchPlayer(player).home
 		}
-		r = ref2str(db.Fetch(obj).owner)
+		r = ref2str(db.Fetch(obj).Owner)
 	})
 	return
 }
@@ -16,42 +16,38 @@ func mfn_owner(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 func mfn_controls(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("CONTROLS (1)", mesg_dbref_raw(descr, player, what, perms, argv[0]), func(obj dbref) {
 		if obj == HOME {
-			obj = db.Fetch(player).sp.(player_specific).home
+			obj = db.FetchPlayer(player).home
 		}
-		obj2 := db.Fetch(perms).owner
+		obj2 := db.Fetch(perms).Owner
 		if len(argv) >  1 {
 			with_useful_object("CONTROLS (2)", mesg_dbref_raw(descr, player, what, perms, argv[1]), func(o dbref) {
 				if obj2 = o; o == HOME {
-					obj2 = db.Fetch(player).sp.(player_specific).home
+					obj2 = db.FetchPlayer(player).home
 				}
-				if TYPEOF(obj2) != TYPE_PLAYER {
-					obj2 = db.Fetch(obj2).owner
+				if !IsPlayer(obj2) {
+					obj2 = db.Fetch(obj2).Owner
 				}
 			})
 		} else {
-			obj2 = db.Fetch(perms).owner
+			obj2 = db.Fetch(perms).Owner
 		}
-		if controls(obj2, obj) {
-			r = "1"
-		} else {
-			r = "0"
-		}
+		r = MPIBool(controls(obj2, obj))
 	})
 	return
 }
 
 func mfn_links(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("LINKS", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		switch TYPEOF(obj) {
-		case TYPE_ROOM:
-			r = ref2str(db.Fetch(obj).sp.(dbref))
-		case TYPE_PLAYER:
-			r = ref2str(db.Fetch(obj).sp.(player_specific).home)
-		case TYPE_THING:
-			r = ref2str(db.Fetch(obj).sp.(player_specific).home)
-		case TYPE_EXIT:
+		switch o := db.Fetch(o).(type) {
+		case Room:
+			r = ref2str(o.dbref)
+		case Player:
+			r = ref2str(o.home)
+		case Object:
+			r = ref2str(o.home)
+		case Exit:
 			var items []string
-			for _, v := range db.Fetch(obj).sp.exit.dest {
+			for _, v := range o.Destinations {
 				items = append(items, ref2str(v))
 			}
 			r = strings.Join(items, MPI_LISTSEP)
@@ -84,7 +80,7 @@ func mfn_testlock(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 				ABORT_MPI("TESTLOCK", "Permission denied. (arg2)")
 			case mesgtyp & MPI_ISBLESSED == 0 && Prop_Hidden(argv[1]):
 				ABORT_MPI("TESTLOCK", "Permission denied. (arg2)")
-			case mesgtyp & MPI_ISBLESSED == 0 && Prop_Private(argv[1]) && db.Fetch(perms).owner != db.Fetch(what):
+			case mesgtyp & MPI_ISBLESSED == 0 && Prop_Private(argv[1]) && db.Fetch(perms).Owner != db.Fetch(what):
 				ABORT_MPI("TESTLOCK", "Permission denied. (arg2)")
 			default:
 				switch lok := get_property_lock(obj, argv[1]); {
@@ -123,8 +119,8 @@ func mfn_contents(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 		}
 		ownroom := controls(perms, obj)
 		var items []string
-		for obj = db.Fetch(obj).contents; obj != NOTHING; obj = db.Fetch(obj).next {
-			if (T == NOTYPE || Typeof(obj) == T) && (ownroom || controls(perms, obj) || !(db.Fetch(obj).flags & DARK != 0 || db.Fetch(db.Fetch(obj).location).flags & DARK != 0 || (Typeof(obj) == TYPE_PROGRAM && db.Fetch(obj).flags & LINK_OK == 0))) && !(Typeof(obj) == TYPE_ROOM && T != TYPE_ROOM) {
+		for obj = db.Fetch(obj).Contents; obj != NOTHING; obj = db.Fetch(obj).next {
+			if (T == NOTYPE || Typeof(obj) == T) && (ownroom || controls(perms, obj) || !(db.Fetch(obj).flags & DARK != 0 || db.Fetch(db.Fetch(obj).Location).flags & DARK != 0 || (Typeof(obj) == TYPE_PROGRAM && db.Fetch(obj).flags & LINK_OK == 0))) && !(Typeof(obj) == TYPE_ROOM && T != TYPE_ROOM) {
 				items = append(items, ref2str(obj))
 			}
 		}
@@ -137,7 +133,7 @@ func mfn_exits(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	with_useful_object("EXITS", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
 		switch obj.(type) {
 		case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-			obj = db.Fetch(obj).exits
+			obj = db.Fetch(obj).Exits
 		default:
 			obj = NOTHING
 		}
@@ -603,7 +599,7 @@ func mfn_awake(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	default:
 		switch {
 		case Typeof(obj) == TYPE_THING && db.Fetch(obj).flags & ZOMBIE != 0:
-			obj = db.Fetch(obj).owner
+			obj = db.Fetch(obj).Owner
 		case Typeof(obj) != TYPE_PLAYER:
 		default:
 			r = fmt.Sprint(online(obj)) 
@@ -707,22 +703,11 @@ func mfn_revoke(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 }
 
 func mfn_timing(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	var start_time, end_time timeval
-	
-	gettimeofday(&start_time, (struct timezone *) 0)
-
+	start_time := time.Now()
 	r = mesg_parse(descr, player, what, perms, argv[0], mesgtyp)
 	CHECKRETURN(r, "TIMING", "arg 1")
-
-	gettimeofday(&end_time, (struct timezone *) 0)
-	var secs int = end_time.tv_sec - start_time.tv_sec
-	var usecs int = end_time.tv_usec - start_time.tv_usec
-	if usecs > 1000000 {
-		secs += 1
-		usecs -= 1000000
-	}
-	var timelen float64 = float64(secs) + (float64(usecs) / 1000000)
-	notify_nolisten(player, fmt.Sprintf("Time elapsed: %.6f seconds", timelen), true)
+	end_time := time.Now()
+	notify_nolisten(player, fmt.Sprintf("Time elapsed: %.6f seconds", end_time - start_time), true)
 	return
 }
 
@@ -736,7 +721,7 @@ func mfn_delay(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	}
 	cmd := get_mvalue(MPI_VARIABLES, "cmd")
 	arg := get_mvalue(MPI_VARIABLES, "arg")
-	i = add_mpi_event(i, descr, player, db.Fetch(player).location, perms, argv[1], cmd, arg, (mesgtyp & MPI_ISLISTENER != 0), (mesgtyp & MPI_ISPRIVATE == 0), (mesgtyp & MPI_ISBLESSED != 0))
+	i = add_mpi_event(i, descr, player, db.Fetch(player).Location, perms, argv[1], cmd, arg, (mesgtyp & MPI_ISLISTENER != 0), (mesgtyp & MPI_ISPRIVATE == 0), (mesgtyp & MPI_ISBLESSED != 0))
 	return fmt.Sprint(i)
 }
 
@@ -780,7 +765,7 @@ func mfn_muf(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (b
 
 	match_args = argv[1]
 	match_cmdname = fmt.Sprintf("%s(MPI)", get_mvalue(MPI_VARIABLES, "how"))
-	if tmpfr := interp(descr, player, db.Fetch(player).location, obj, perms, PREEMPT, STD_HARDUID, 0); tmpfr {
+	if tmpfr := interp(descr, player, db.Fetch(player).Location, obj, perms, PREEMPT, STD_HARDUID, 0); tmpfr {
 		rv = interp_loop(player, obj, tmpfr, true)
 	}
 	mpi_muf_call_levels--
@@ -811,7 +796,7 @@ func mfn_force(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 			ABORT_MPI("FORCE", "Permission Denied.")
 		}
 		if mesgtyp & MPI_ISBLESSED == 0 {
-			loc := db.Fetch(obj).location
+			loc := db.Fetch(obj).Location
 			if Typeof(obj) == TYPE_THING {
 				switch {
 				case db.Fetch(obj).flags & DARK != 0:

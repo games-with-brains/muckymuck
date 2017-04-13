@@ -141,7 +141,7 @@ func contains_property(descr int, player, what dbref, pname, strval string, valu
 	if has_property(descr, player, what, pname, strval, value) {
 		r = true
 	} else {
-		for things := db.Fetch(what).contents; things != NOTHING; things = db.Fetch(things).next {
+		for things := db.Fetch(what).Contents; things != NOTHING; things = db.Fetch(things).next {
 			if contains_property(descr, player, things, pname, strval, value) {
 				r = true
 			}

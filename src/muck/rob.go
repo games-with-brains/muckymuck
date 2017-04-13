@@ -1,8 +1,8 @@
 package fbmuck
 
 func do_rob(int descr, dbref player, const char *what) {
-	md := NewMatch(descr, player, what, TYPE_PLAYER).MatchNeighbor().MatchMe()
-	if Wizard(db.Fetch(player).owner) {
+	md := NewMatch(descr, player, what, IsPlayer).MatchNeighbor().MatchMe()
+	if Wizard(db.Fetch(player).Owner) {
 		md.MatchAbsolute().MatchPlayer()
 	}
 	switch thing := md.MatchResult(); {
@@ -17,7 +17,7 @@ func do_rob(int descr, dbref player, const char *what) {
 		notify(thing, fmt.Sprintf("%s tried to rob you, but you have no %s to take.", db.Fetch(player).name, tp_pennies))
 	case can_doit(descr, player, thing, "Your conscience tells you not to."):
 		/* steal a penny */
-		add_property(db.Fetch(player).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(player).owner, MESGPROP_VALUE) + 1)
+		add_property(db.Fetch(player).Owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(player).Owner, MESGPROP_VALUE) + 1)
 		db.Fetch(player).flags |= OBJECT_CHANGED
 		add_property(thing, MESGPROP_VALUE, nil, get_property_value(thing, MESGPROP_VALUE) - 1)
 		db.Fetch(thing).flags |= OBJECT_CHANGED
@@ -30,8 +30,8 @@ func do_kill(descr int, player dbref, what string, cost int) {
 	if cost < tp_kill_min_cost {
 		cost = tp_kill_min_cost
 	}
-	md := NewMatch(descr, player, what, TYPE_PLAYER).MatchNeighbor().MatchMe()
-	if Wizard(db.Fetch(player).owner) {
+	md := NewMatch(descr, player, what, IsPlayer).MatchNeighbor().MatchMe()
+	if Wizard(db.Fetch(player).Owner) {
 		md.MatchPlayer().MatchAbsolute()
 	}
 	switch victim := md.MatchResult(); {
@@ -41,7 +41,7 @@ func do_kill(descr int, player dbref, what string, cost int) {
 		notify(player, "I don't know who you mean!")
 	case Typeof(victim) != TYPE_PLAYER:
 		notify(player, "Sorry, you can only kill other players.")
-	case db.Fetch(db.Fetch(player).location).flags & HAVEN != 0:
+	case db.Fetch(db.Fetch(player).Location).flags & HAVEN != 0:
 		notify(player, "You can't kill anyone here!")
 	case tp_restrict_kill && db.Fetch(player).flags & KILL_OK == 0:
 		notify(player, "You have to be set Kill_OK to kill someone.")
@@ -49,7 +49,7 @@ func do_kill(descr int, player dbref, what string, cost int) {
 		notify(player, "They don't want to be killed.")
 	case !payfor(player, cost):
 		notify_fmt(player, "You don't have enough %s.", tp_pennies)
-	case RANDOM() % tp_kill_base_cost < cost && !Wizard(db.Fetch(victim).owner):
+	case RANDOM() % tp_kill_base_cost < cost && !Wizard(db.Fetch(victim).Owner):
 		/* you killed him */
 		if get_property_class(victim, MESGPROP_DROP) {
 			notify(player, get_property_class(victim, MESGPROP_DROP))
@@ -60,11 +60,11 @@ func do_kill(descr int, player dbref, what string, cost int) {
 		var buf string
 		if get_property_class(victim, MESGPROP_ODROP) {
 			buf = fmt.Sprintf("%s killed %s! ", db.Fetch(player).name, db.Fetch(victim).name)
-			parse_oprop(descr, player, db.Fetch(player).location, victim, MESGPROP_ODROP, buf, "(@Odrop)")
+			parse_oprop(descr, player, db.Fetch(player).Location, victim, MESGPROP_ODROP, buf, "(@Odrop)")
 		} else {
 			buf = fmt.Sprintf("%s killed %s!", db.Fetch(player).name, db.Fetch(victim).name)
 		}
-		notify_except(db.Fetch(db.Fetch(player).location).contents, player, buf, player)
+		notify_except(db.Fetch(db.Fetch(player).Location).Contents, player, buf, player)
 
 		/* maybe pay off the bonus */
 		if get_property_value(victim, MESGPROP_VALUE) < tp_max_pennies {
@@ -83,14 +83,14 @@ func do_kill(descr int, player dbref, what string, cost int) {
 
 func do_give(descr int, player dbref, recipient string, amount int) {
 	switch {
-	case amount < 0 && !Wizard(db.Fetch(player).owner):
+	case amount < 0 && !Wizard(db.Fetch(player).Owner):
 		notify(player, "Try using the \"rob\" command.")
 	case amount == 0:
 		notify_fmt(player, "You must specify a positive number of %s.", tp_pennies)
 	default:
 		/* check recipient */
-		md := NewMatch(descr, player, recipient, TYPE_PLAYER).MatchNeighbor().MatchMe()
-		if Wizard(db.Fetch(player).owner) {
+		md := NewMatch(descr, player, recipient, IsPlayer).MatchNeighbor().MatchMe()
+		if Wizard(db.Fetch(player).Owner) {
 			md.MatchPlayer().MatchAbsolute()
 		}
 		switch who := md.MatchResult(); who {
@@ -99,7 +99,7 @@ func do_give(descr int, player dbref, recipient string, amount int) {
 		case AMBIGUOUS:
 			notify(player, "I don't know who you mean!")
 		default:
-			switch wiz_owned := Wizard(db.Fetch(player).owner); {
+			switch wiz_owned := Wizard(db.Fetch(player).Owner); {
 			case !wiz_owned && Typeof(who) != TYPE_PLAYER:
 				notify(player, "You can only give to other players.")
 			case !wiz_owned && GTVALUE(who) + amount > tp_max_pennies:

@@ -1,123 +1,26 @@
-/*
- * signal.c -- Curently included into interface.c
- *
- * Seperates the signal handlers and such into a seperate file
- * for maintainability.
- *
- * Broken off from interface.c, and restructured for POSIX
- * compatible systems by Peter A. Torkelson, aka WhiteFire.
- */
+package fbmuck
 
-#ifdef SOLARIS
-#  ifndef _POSIX_SOURCE
-#    define _POSIX_SOURCE		/* Solaris needs this */
-#  endif
-#endif
-
-#include "config.h"
-#include "interface.h"
-#include "externs.h"
-#include "version.h"
-
-#include <signal.h>
-#include <sys/wait.h>
-
-/*
- * SunOS can't include signal.h and sys/signal.h, stupid broken OS.
- */
-#if defined(HAVE_SYS_SIGNAL_H) && !defined(SUN_OS)
-# include <sys/signal.h>
-#endif
-
-#if defined(ULTRIX) || defined(_POSIX_VERSION)
-#undef RETSIGTYPE
-#define RETSIGTYPE void
-#endif
-
-/*
- * Function prototypes
- */
-void set_signals(void);
-RETSIGTYPE bailout(int);
-RETSIGTYPE sig_dump_status(int i);
-RETSIGTYPE sig_shutdown(int i);
-#ifdef SIGEMERG
-RETSIGTYPE sig_emerg(int i);
-#endif
-
-#ifdef _POSIX_VERSION
-void our_signal(int signo, void (*sighandler) (int));
-#else
 # define our_signal(s,f) signal((s),(f))
-#endif
 
-/*
- * our_signal(signo, sighandler)
- *
- * signo      - Signal #, see defines in signal.h
- * sighandler - The handler function desired.
- *
- * Calls sigaction() to set a signal, if we are posix.
- */
-#ifdef _POSIX_VERSION
-void
-our_signal(int signo, void (*sighandler) (int))
-{
-	struct sigaction act, oact;
-
-	act.sa_handler = sighandler;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	/* Restart long system calls if a signal is caught. */
-#ifdef SA_RESTART
-	act.sa_flags |= SA_RESTART;
-#endif
-
-	/* Make it so */
-	sigaction(signo, &act, &oact);
+func set_dumper_signals() {
+	signal.Ignore(signal.SIGPIPE)		//	Ignore Blocked Pipe
+	signal.Ignore(signal.SIGHUP)		//	Ignore Terminal Hangup
+	signal.Ignore(signal.SIGCHLD)		//	Ignore Child termination
+	signal.Ignore(signal.SIGFPE)		//	Ignore FP exceptions
+	signal.Ignore(signal.SIGUSR1)		//	Ignore SIGUSR1
+	signal.Ignore(signal.SIGUSR2)		//	Ignore SIGUSR2
+	signal.Reset(signal.SIGINT)			//	Take Interrupt signal and die!
+	signal.Reset(signal.SIGTERM)		//	Take Terminate signal and die!
+	signal.Reset(signal.SIGSEGV)		//	Take Segfault and die!
+	signal.Reset(signal.SIGTRAP)
+	signal.Reset(signal.SIGIOT)
+	signal.Reset(signal.SIGEMT)
+	signal.Reset(signal.SIGBUS)
+	signal.Reset(signal.SIGSYS)
+	signal.Ignore(signal.SIGXCPU)		//	CPU usage limit exceeded
+	signal.Ignore(signal.SIGXFSZ)		//	Exceeded file size limit
+	signal.Reset(signal.SIGVTALRM)
 }
-
-#endif							/* _POSIX_VERSION */
-
-void
-set_dumper_signals(void)
-{
-	our_signal(SIGPIPE, SIG_IGN); /* Ignore Blocked Pipe */
-	our_signal(SIGHUP,  SIG_IGN); /* Ignore Terminal Hangup */
-	our_signal(SIGCHLD, SIG_IGN); /* Ignore Child termination */
-	our_signal(SIGFPE,  SIG_IGN); /* Ignore FP exceptions */
-	our_signal(SIGUSR1, SIG_IGN); /* Ignore SIGUSR1 */
-	our_signal(SIGUSR2, SIG_IGN); /* Ignore SIGUSR2 */
-	our_signal(SIGINT,  SIG_DFL); /* Take Interrupt signal and die! */
-	our_signal(SIGTERM, SIG_DFL); /* Take Terminate signal and die! */
-	our_signal(SIGSEGV, SIG_DFL); /* Take Segfault and die! */
-#ifdef SIGTRAP
-	our_signal(SIGTRAP, SIG_DFL);
-#endif
-#ifdef SIGIOT
-	our_signal(SIGIOT, SIG_DFL);
-#endif
-#ifdef SIGEMT
-	our_signal(SIGEMT, SIG_DFL);
-#endif
-#ifdef SIGBUS
-	our_signal(SIGBUS, SIG_DFL);
-#endif
-#ifdef SIGSYS
-	our_signal(SIGSYS, SIG_DFL);
-#endif
-#ifdef SIGXCPU
-	our_signal(SIGXCPU, SIG_IGN);  /* CPU usage limit exceeded */
-#endif
-#ifdef SIGXFSZ
-	our_signal(SIGXFSZ, SIG_IGN);  /* Exceeded file size limit */
-#endif
-#ifdef SIGVTALRM
-	our_signal(SIGVTALRM, SIG_DFL);
-#endif
-}
-
 
 /*
  * set_signals()
@@ -130,122 +33,84 @@ set_dumper_signals(void)
  *
  * Called from main() and bailout()
  */
-#define SET_BAIL (bail ? SIG_DFL : bailout)
-#define SET_IGN  (bail ? SIG_DFL : SIG_IGN)
-
-static void
-set_sigs_intern(int bail)
-{
-	/* we don't care about SIGPIPE, we notice it in select() and write() */
-	our_signal(SIGPIPE, SET_IGN);
-
-	/* didn't manage to lose that control tty, did we? Ignore it anyway. */
-	our_signal(SIGHUP, SET_IGN);
-
-	/* standard termination signals */
-	our_signal(SIGINT, SET_BAIL);
-	our_signal(SIGTERM, SET_BAIL);
-
-	/* catch these because we might as well */
-/*  our_signal(SIGQUIT, SET_BAIL);  */
-#ifdef SIGTRAP
-	our_signal(SIGTRAP, SET_IGN);
-#endif
-#ifdef SIGIOT
-	our_signal(SIGIOT, SET_BAIL);
-#endif
-#ifdef SIGEMT
-	our_signal(SIGEMT, SET_BAIL);
-#endif
-#ifdef SIGBUS
-	our_signal(SIGBUS, SET_BAIL);
-#endif
-#ifdef SIGSYS
-	our_signal(SIGSYS, SET_BAIL);
-#endif
-	our_signal(SIGFPE, SET_BAIL);
-	our_signal(SIGSEGV, SET_BAIL);
-	our_signal(SIGTERM, bail ? SET_BAIL : sig_shutdown);
-#ifdef SIGXCPU
-	our_signal(SIGXCPU, SET_BAIL);
-#endif
-#ifdef SIGXFSZ
-	our_signal(SIGXFSZ, SET_BAIL);
-#endif
-#ifdef SIGVTALRM
-	our_signal(SIGVTALRM, SET_BAIL);
-#endif
+func set_sigs_intern(bail bool) {
+	if bail {
+		signal.Reset(signal.SIGPIPE)
+		signal.Reset(signal.SIGHUP)
+		signal.Reset(signal.SIGINT)
+		signal.Reset(signal.SIGTERM)
+		signal.Reset(signal.SIGTRAP)
+		signal.Reset(signal.SIGIOT)
+		signal.Reset(signal.SIGEMT)
+		signal.Reset(signal.SIGBUS)
+		signal.Reset(signal.SIGSYS)
+		signal.Reset(signal.SIGFPE)
+		signal.Reset(signal.SIGSEGV)
+		signal.Reset(signal.SIGTERM)
+		signal.Reset(signal.SIGXCPU)
+		signal.Reset(signal.SIGXFSZ)
+		signal.Reset(signal.SIGVTALRM)
 #ifdef SIGEMERG
-	/* Clean shutdown signal (may be used with UPS software when power goes down...) */
-	our_signal(SIGUSR2, sig_emerg);
+		our_signal(SIGUSR2, sig_emerg)
 #else
-	our_signal(SIGUSR2, SET_BAIL);
+		signal.Reset(signal.SIGUSR2)
 #endif
-
-	/* status dumper (predates "WHO" command) */
-	our_signal(SIGUSR1, bail ? SIG_DFL : sig_dump_status);
-}
-
-void
-set_signals(void)
-{
-	set_sigs_intern(FALSE);
-}
-
-/*
- * Signal handlers
- */
-
-/*
- * BAIL!
- */
-func bailout(int sig) RETSIGTYPE {
-	/* turn off signals */
-	set_sigs_intern(TRUE);
-
-	message := fmt.Sprintf("BAILOUT: caught signal %d", sig)
-
-	panic(message);
-	exit(7);
-
-#if !defined(SYSV) && !defined(_POSIX_VERSION) && !defined(ULTRIX)
-	return 0;
-#endif
-}
-
-/*
- * Spew WHO to file
- */
-RETSIGTYPE sig_dump_status(int i)
-{
-	dump_status();
-#if !defined(SYSV) && !defined(_POSIX_VERSION) && !defined(ULTRIX)
-	return 0;
-#endif
-}
-
+		signal.Reset(signal.SIGUSR1)
+	} else {
+		our_signal(SIGPIPE, bailout)
+		our_signal(SIGHUP, bailout)
+		our_signal(SIGINT, bailout)
+		our_signal(SIGTERM, bailout)
+		our_signal(SIGTRAP, bailout)
+		our_signal(SIGIOT, bailout)
+		our_signal(SIGEMT, bailout)
+		our_signal(SIGBUS, bailout)
+		our_signal(SIGSYS, bailout)
+		our_signal(SIGFPE, bailout)
+		our_signal(SIGSEGV, bailout)
+		our_signal(SIGTERM, sig_shutdown)
+		our_signal(SIGXCPU, bailout)
+		our_signal(SIGXFSZ, bailout)
+		our_signal(SIGVTALRM, bailout)
 #ifdef SIGEMERG
-RETSIGTYPE sig_emerg(int i)
-{
-	wall_and_flush("\nEmergency signal received ! (power failure ?)\nThe database will be saved.\n");
-	dump_database();
-	shutdown_flag = 1;
-	restart_flag = 0;
-#if !defined(SYSV) && !defined(_POSIX_VERSION) && !defined(ULTRIX)
-	return 0;
+		our_signal(SIGUSR2, sig_emerg)
+#else
+		our_signal(SIGUSR2, bailout)
 #endif
+		our_signal(SIGUSR1, sig_dump_status)
+	}
 }
-#endif
 
-/*
- * Gracefully shut the server down.
- */
-RETSIGTYPE sig_shutdown(int i)
-{
-	log_status("SHUTDOWN: via SIGNAL");
-	shutdown_flag = 1;
-	restart_flag = 0;
-#if !defined(SYSV) && !defined(_POSIX_VERSION) && !defined(ULTRIX)
-	return 0;
-#endif
+func set_signals() {
+	set_sigs_intern(false)
+}
+
+func bailout(sig int) RETSIGTYPE {
+	/* turn off signals */
+	set_sigs_intern(true)
+	message := fmt.Sprintf("BAILOUT: caught signal %d", sig)
+	panic(message)
+	exit(7)
+	return 0
+}
+
+//	Spew WHO to file
+func sig_dump_status(i int) RETSIGTYPE {
+	dump_status()
+	return 0
+}
+
+func sig_emerg(i int) RETSIGTYPE {
+	wall_and_flush("\nEmergency signal received ! (power failure ?)\nThe database will be saved.\n")
+	dump_database()
+	shutdown_flag = true
+	restart_flag = false
+	return 0
+}
+
+func sig_shutdown(i int) RETSIGTYPE {
+	log_status("SHUTDOWN: via SIGNAL")
+	shutdown_flag = true
+	restart_flag = false
+	return 0
 }

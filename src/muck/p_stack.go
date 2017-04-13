@@ -1,9 +1,7 @@
 package fbmuck
 
 func prim_pop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_primitive(1, top, func(op Array) {
-		POP()
-	})
+	apply_primitive(1, top, func(op Array) {})
 }
 
 func prim_dup(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
@@ -20,8 +18,8 @@ func prim_popn(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 			if count < 0 {
 				panic("Operand is negative.")
 			}
-			for i := count; i > 0; i-- {
-				checkop(1, top)
+			checkop(count, top)
+			for ; count > 0; count-- {
 				POP()
 			}
 		}
@@ -196,9 +194,8 @@ func prim_rotate(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 func prim_dbtop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
-		ref = (dbref) db_top
 		CHECKOFLOW(1)
-		push(arg, top, ref)
+		push(arg, top, db_top)
 	})
 }
 
@@ -405,7 +402,7 @@ func prim_checkargs(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 						if ref, ok := arg[stackpos].data.(objref); !ok {
 							abort_checkargs(stackpos, "Expected a dbref.")
 						} else {
-							if ref >= db_top || ref < HOME {
+							if !valid_reference(ref) && ref != HOME {
 								abort_checkargs(stackpos, "Invalid dbref.")
 							}
 						}
@@ -614,7 +611,7 @@ func prim_interp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 		buf := match_args
 		var rv *inst
-		if tmpfr := interp(fr.descr, player, db.Fetch(player).location, program, trigger, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+		if tmpfr := interp(fr.descr, player, db.Fetch(player).Location, program, trigger, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
 			rv = interp_loop(player, oper1->data.objref, tmpfr, true)
 		}
 		match_args = buf

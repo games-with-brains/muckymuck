@@ -422,7 +422,7 @@ init_seed(char *seed)
 	}
 	if (!seed) {
 		/* No fixed seed given... make something up */
-		srand((unsigned int) time(NULL));
+		srand((unsigned int) time.Now().Unix())
 		for (loop = 0; loop < 8; loop++)
 			tbuf[loop] = rand();
 		memcpy(digest, tbuf, 16);

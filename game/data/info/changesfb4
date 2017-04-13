@@ -103,8 +103,7 @@ Changed:
    happen to use functiones named the same as the primitives.
   
   Changed the DBdump to dump out the database in reverse order.  Named the
-   new dbdump format the Foxen2 database dump format.  The reverse dump makes
-   db_grow() allocate the memory for db[] in one shot on loading.
+   new dbdump format the Foxen2 database dump format.
   
   When a MUF error occurrs, it gives the name of the owner of the program
    triggered by the user, instead of the owner of the program running.  This

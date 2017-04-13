@@ -19,9 +19,6 @@
 #define TIME_DAY(x)     ((x) * (TIME_HOUR(24)))	/* 24 hours   */
 
 
-#define DB_INITIAL_SIZE 100		/* initial malloc() size for the db */
-
-
 /* User interface low level commands */
 #define QUIT_COMMAND "QUIT"
 #define WHO_COMMAND "WHO"

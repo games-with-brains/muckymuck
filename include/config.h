@@ -160,16 +160,6 @@
 # define LOG_ERR_FILE "logs/fbmuck.err" /* Log stderr to ... */
 #endif							/* DETACH */
 
-/************************************************************************
-  System Dependency Defines. 
-
-  You probably will not have to monkey with this unless the muck fails
- to compile for some reason.
- ************************************************************************/
-
-/* Prevent Many Fine Cores. */
-#undef NOCOREDUMP
-
 /************************************************************************/
 /************************************************************************/
 /*    FOR INTERNAL USE ONLY.  DON'T CHANGE ANYTHING PAST THIS POINT.    */
@@ -258,11 +248,6 @@
 # define SYS_TYPE "SUN"
 # define SUN_OS
 # define BSD43
-#endif
-
-#ifdef ultrix
-# define SYS_TYPE "ULTRIX"
-# define ULTRIX
 #endif
 
 #ifdef bds4_3

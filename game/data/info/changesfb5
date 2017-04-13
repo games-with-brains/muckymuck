@@ -652,7 +652,6 @@ Changed the Makefile to compile sanity without all the san_*.c files.
 Fixed bugs in {left} and {center}.
 Fixed compile bug with prototyping for {left} {right} and {center}
 Added code to abort the server if process_output() gets a null descriptor.
-Added Nonblocking patch for ULTRIX systems.  (Look Ma, no lockups!)
 Reduced the object struct size by 4 bytes.
 Fixed LOCKED? (d d -- i) prim to work on testing against zombies.
 

@@ -778,13 +778,13 @@ func prim_ctoi(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 
 func prim_itoc(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		switch c := op[0].(int); {
+		switch c := rune(op[0].(int)); {
 		case c < 0:
 			panic("Argument must be a positive integer. (1)")
-		case !isprint(rune(c) & 127 != 0 && rune(c) != '\r' && rune(c) != ESCAPE_CHAR):
+		case !unicode.IsPrint(c & 127 != 0 && c != '\r' && c != ESCAPE_CHAR):
 			push(arg, top, "")
 		default:
-			push(arg, top, rune(c))
+			push(arg, top, c)
 		}
 	})
 }
@@ -920,7 +920,7 @@ func prim_notify(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 			if tp_force_mlev1_name_notify && mlev < JOURNEYMAN && player != target {
 				buf = prefix_message(buf, db.Fetch(player).name)
 			}
-			notify_listeners(player, program, target, db.Fetch(target).location, buf, 1)
+			notify_listeners(player, program, target, db.Fetch(target).Location, buf, 1)
 		}
 	})
 }
@@ -946,7 +946,7 @@ func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *in
 		checkop(1, top)
 		switch where := valid_remote_object(player, mlev, POP().data).(type) {
 		case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-			what := db.Fetch(where).contents
+			what := db.Fetch(where).Contents
 			if buf != "" {
 				for ; what != NOTHING; what = db.Fetch(what).next {
 					if what, ok := what.(TYPE_ROOM); ok {
@@ -974,7 +974,7 @@ func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *in
 					notify_listeners(player, program, where, where, buf, 0)
 				}
 				if tp_listeners_env && false == 0 {
-					for what = db.Fetch(where).location ; what != NOTHING; what = db.Fetch(what).location {
+					for what = db.Fetch(where).Location ; what != NOTHING; what = db.Fetch(what).Location {
 						notify_listeners(player, program, what, where, buf, 0)
 					}
 				}
@@ -1065,7 +1065,7 @@ func prim_unparseobj(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			push(arg, top, fmt.Sprintf("*NOTHING*"))
 		case HOME:
 			push(arg, top, fmt.Sprintf("*HOME*"))
-		case result < 0, result >= db_top:
+		case !valid_reference(result):
 			push(arg, top, fmt.Sprintf("*INVALID*"))
 		default:
 			push(arg, top, fmt.Sprintf("%s(#%d%s)", db.Fetch(v).name, v, unparse_flags(v)))

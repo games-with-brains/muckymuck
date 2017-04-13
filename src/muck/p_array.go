@@ -9,7 +9,7 @@ func prim_array_make(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		checkop(items, top)
 		nu := make(Array, items)
 		for ; items > 0; items-- {
-			nu = append(nu, POP())
+			nu = append(nu, POP().data)
 		}
 		push(arg, top, nu)
 	})
@@ -97,7 +97,7 @@ func prim_array_keys(player, program dbref, mlev int, pc, arg *inst, top *int, f
 
 func prim_array_count(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		result = POP().data.(stk_array).Len()
+		result = op[0].(stk_array).Len()
 		push(arg, top, result)
 	})
 }
@@ -340,7 +340,7 @@ func prim_array_n_union(player, program dbref, mlev int, pc, arg *inst, top *int
 		if items > 0 {
 			new_mash := make(Dictionary)
 			for ; items > 0; items-- {
-				array_mash(POP().(interface{}), &new_mash, 1)
+				array_mash(POP().data.(Array), &new_mash, 1)
 			}
 			new_union = array_demote_only(new_mash, 1)
 		}
@@ -381,9 +381,9 @@ func prim_array_n_difference(player, program dbref, mlev int, pc, arg *inst, top
 		var new_union Array
 		if items > 0 {
 			new_mash := make(Dictionary)
-			array_mash(POP().(Array), &new_mash, 1)
+			array_mash(POP().data.(Array), &new_mash, 1)
 			for ; items > 0; items-- {
-				array_mash(POP().(Array), &new_mash, -1)
+				array_mash(POP().data.(Array), &new_mash, -1)
 			}
 			new_union = array_demote_only(new_mash, 1)
 		}
@@ -408,7 +408,7 @@ func prim_array_notify(player, program dbref, mlev int, pc, arg *inst, top *int,
 			}
 			for _, v := range refarr {
 				obj := v.(dbref)
-				notify_listeners(player, program, obj, db.Fetch(obj).location, data, 1)
+				notify_listeners(player, program, obj, db.Fetch(obj).Location, data, 1)
 			}
 		}
 	})
@@ -1077,7 +1077,7 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
 					text += "*AMBIGUOUS*"
 				case v == HOME:
 					text += "*HOME*"
-				case v < HOME || v >= db_top:
+				case !valid_reference(v):
 					text + = "*INVALID*"
 				default:
 					text += fmt.Sprint(db.Fetch(v).name)
@@ -1099,7 +1099,7 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
 
 func prim_array_get_ignorelist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 1, top, func(op Array) {
-		ref := db.Fetch(valid_object(op[0])).owner
+		ref := db.Fetch(valid_object(op[0])).Owner
 		nu := make(Array)
 		if tp_ignore_support {
 			if rawstr := get_property_class(ref, IGNORE_PROP); rawstr != "" {
@@ -1233,9 +1233,11 @@ func prim_array_filter_flags(player, program dbref, mlev int, pc, arg *inst, top
 		nw := make(Array)
 		_, check := init_checkflags(player, flags)
 		for _, in := range objs {
-			if valid_object(in, false) && checkflags(in.(dbref), check) {
-				nw = append(nw, in)
-			}
+			valid_object(in, func(obj dbref) {
+				if checkflags(obj, check) {
+					nw = append(nw, obj)
+				}
+			})
 		}
 		push(arg, top, nw)
     })

@@ -9,7 +9,7 @@
    */
 
 func get_program_line(program dbref, i int) (r *line) {
-	for r = db.Fetch(program).sp.(program_specific).first; i > 0 && r != nil; i-- {
+	for r = db.Fetch(program).(Program).first; i > 0 && r != nil; i-- {
 		r = r.next
 	}	
 }
@@ -171,10 +171,10 @@ func kill_macro(const char *macroname, dbref player, struct macrotable **mtop) (
  */
 
 func editor(descr int, player dbref, command string) {
-	if db.Fetch(player).sp.(player_specific).insert_mode {
+	if db.Fetch(player).(Player).insert_mode {
 		insert(player, command)	/* insert it! */
 	} else {
-		program := db.Fetch(player).sp.(player_specific).curr_prog
+		program := db.Fetch(player).(Player).curr_prog
 		var words []string
 		var args []int
 		var i int
@@ -248,15 +248,15 @@ func editor(descr int, player dbref, command string) {
 
 /* puts program into insert mode */
 func do_insert(player, program dbref, line int) {
-	db.Fetch(player).sp.(player_specific).insert_mode = true
-	db.Fetch(program).sp.(program_specific).curr_line = line - 1
+	db.Fetch(player).(Player).insert_mode = true
+	db.Fetch(program).(Program).curr_line = line - 1
 }
 
 func delete_program_line(program dbref, curr *line) *line {
 	if curr.prev != nil {
 		curr.prev.next = curr.next
 	} else {
-		db.Fetch(program).sp.(program_specific).first = curr.next
+		db.Fetch(program).(Program).first = curr.next
 	}
 	if curr.next != nil {
 		curr.next.prev = curr.prev
@@ -266,7 +266,7 @@ func delete_program_line(program dbref, curr *line) *line {
 
 func delete_program_lines(player dbref, curr *line, count int) {
 	if curr != nil {
-		db.Fetch(program).sp.(program_specific).curr_line = curr
+		db.Fetch(program).(Program).curr_line = curr
 		n := count
 		for n > 0 && curr != nil {
 			curr = delete_program_line(program, curr)
@@ -284,7 +284,7 @@ func delete_program_lines(player dbref, curr *line, count int) {
 func do_delete(player, program dbref, args []int) {
 	switch len(args) {
 	case 0:
-		delete_program_lines(player, db.Fetch(program).sp.(program_specific).curr_line, 1)
+		delete_program_lines(player, db.Fetch(program).(Program).curr_line, 1)
 	case 1:
 		delete_program_lines(player, get_program_line(program, args[0] - 1), 1)
 	case 2:
@@ -297,22 +297,22 @@ func do_delete(player, program dbref, args []int) {
 /* quit from edit mode.  Put player back into the regular game mode */
 func do_quit(player, program dbref) {
 	log_status("PROGRAM SAVED: %s by %s(%d)", unparse_object(player, program), db.Fetch(player).name, player)
-	write_program(db.Fetch(program).sp.(program_specific).first, program)
+	write_program(db.Fetch(program).(Program).first, program)
 
 	if tp_log_programs {
-		log_program_text(db.Fetch(program).sp.(program_specific).first, player, program)
+		log_program_text(db.Fetch(program).(Program).first, player, program)
 	}
 
-	db.Fetch(program).sp.(program_specific).first = nil
+	db.Fetch(program).(Program).first = nil
 	db.Fetch(program).flags &= ~INTERNAL
 	db.Fetch(player).flags &= ~INTERACTIVE
-	db.Fetch(player).sp.(player_specific).curr_prog = NOTHING
+	db.Fetch(player).(Player).curr_prog = NOTHING
 	db.Fetch(player).flags |= OBJECT_CHANGED
 	db.Fetch(program).flags |= OBJECT_CHANGED
 }
 
 func MatchAndList(descr int, player dbref, name, linespec string) {
-	thing := NewMatch(descr, player, name, TYPE_PROGRAM).
+	thing := NewMatch(descr, player, name, IsProgram).
 		MatchNeighbor().
 		MatchPossession().
 		MatchRegistered().
@@ -342,10 +342,10 @@ func MatchAndList(descr int, player dbref, name, linespec string) {
 				ranges = append(ranges, -1)
 			}
 		}
-		tmpline := db.Fetch(thing).sp.(program_specific).first
-		db.Fetch(thing).sp.(program_specific).first = read_program(thing)
+		tmpline := db.Fetch(thing).(Program).first
+		db.Fetch(thing).(Program).first = read_program(thing)
 		do_list(player, thing, ranges)
-		db.Fetch(thing).sp.(program_specific).first = tmpline
+		db.Fetch(thing).(Program).first = tmpline
 	}
 	return
 }
@@ -388,7 +388,7 @@ func print_program_lines(player dbref, i int, curr *line, count int) {
 func do_list(player, program dbref, args []int) {
 	switch len(args) {
 	case 0:
-		print_program_lines(player, db.Fetch(program).sp.(program_specific).curr_line, 1)
+		print_program_lines(player, db.Fetch(program).(Program).curr_line, 1)
 	case 1:
 		print_program_lines(player, get_program_line(program, args[0] - 1), 1)
 	case 2:
@@ -400,7 +400,7 @@ func do_list(player, program dbref, args []int) {
 
 func val_and_head(player dbref, header int) {
 	switch program := dbref(header); {
-	case program < 0, program >= db_top, Typeof(program) != TYPE_PROGRAM:
+	case !valid_reference(program), !IsProgram(program):
 		notify(player, "That isn't a program.")
 	case !(controls(player, program) || Linkable(program)):
 		notify(player, "That's not a public program.")
@@ -420,7 +420,7 @@ func list_publics(descr int, player dbref, args []int) {
 	var program dbref
 	switch len(args) {
 	case 0:
-		program = db.Fetch(player).sp.(player_specific).curr_prog
+		program = db.Fetch(player).(Player).curr_prog
 	case 1:
 		program = args[0]
 	default:
@@ -434,16 +434,16 @@ func list_publics(descr int, player dbref, args []int) {
 	case !controls(player, program) && !Linkable(program):
 		notify(player, "That's not a public program.")
 	default:
-		if db.Fetch(program).sp.(program_specific).code == nil {
-			if program == db.Fetch(player).sp.(player_specific).curr_prog {
-				do_compile(descr, db.Fetch(program).owner, program, 0)
+		if db.Fetch(program).(Program).code == nil {
+			if program == db.Fetch(player).(Player).curr_prog {
+				do_compile(descr, db.Fetch(program).Owner, program, 0)
 			} else {
-				tmpline := db.Fetch(program).sp.(program_specific).first
-				db.Fetch(program).sp.(program_specific).first = read_program(program)
-				do_compile(descr, db.Fetch(program).owner, program, 0)
-				db.Fetch(program).sp.(program_specific).first = tmpline
+				tmpline := db.Fetch(program).(Program).first
+				db.Fetch(program).(Program).first = read_program(program)
+				do_compile(descr, db.Fetch(program).Owner, program, 0)
+				db.Fetch(program).(Program).first = tmpline
 			}
-			if db.Fetch(program).sp.(program_specific).code == nil {
+			if db.Fetch(program).(Program).code == nil {
 				notify(player, "Program not compilable.")
 				return
 			}
@@ -454,7 +454,7 @@ func list_publics(descr int, player dbref, args []int) {
 
 func do_list_publics(player, program dbref) {
 	notify(player, "PUBLIC funtions:")
-	for ptr := db.Fetch(program).sp.(program_specific).pubs; ptr != nil; ptr = ptr.next {
+	for ptr := db.Fetch(program).(Program).PublicAPI; ptr != nil; ptr = ptr.next {
 		notify(player, ptr.subname)
 	}
 }
@@ -480,13 +480,13 @@ func toggle_numbers(player dbref, args []int) {
 
 /* insert this line into program */
 func insert(player dbref, line string) {
-	program := db.Fetch(player).sp.(player_specific).curr_prog
+	program := db.Fetch(player).(Player).curr_prog
 	if line == EXIT_INSERT {
-		db.Fetch(player).sp.(player_specific).insert_mode = false
+		db.Fetch(player).(Player).insert_mode = false
 		notify_nolisten(player, "Exiting insert mode.", true)
 		return
 	}
-	i := db.Fetch(program).sp.(program_specific).curr_line - 1
+	i := db.Fetch(program).(Program).curr_line - 1
 	curr := get_program_line(program, i)
 
 	new_line := get_new_line();	/* initialize line */
@@ -496,24 +496,24 @@ func insert(player dbref, line string) {
 		new_line.this_line = line
 	}
 	switch {
-	case !db.Fetch(program).sp.(program_specific).first:	/* nothing --- insert in front */
-		db.Fetch(program).sp.(program_specific).first = new_line
-		db.Fetch(program).sp.(program_specific).curr_line = 2
+	case !db.Fetch(program).(Program).first:	/* nothing --- insert in front */
+		db.Fetch(program).(Program).first = new_line
+		db.Fetch(program).(Program).curr_line = 2
 	case curr == nil:				/* insert at the end */
 		i = 1
-		for curr = db.Fetch(program).sp.(program_specific).first; curr.next; curr = curr.next {
+		for curr = db.Fetch(program).(Program).first; curr.next; curr = curr.next {
 			i++				/* count lines */
 		}
-		db.Fetch(program).sp.(program_specific).curr_line = i + 2
+		db.Fetch(program).(Program).curr_line = i + 2
 		new_line.prev = curr
 		curr.next = new_line
-	case !db.Fetch(program).sp.(program_specific).curr_line:	/* insert at the beginning */
-		db.Fetch(program).sp.(program_specific).curr_line = 1
-		new_line.next = db.Fetch(program).sp.(program_specific).first
-		db.Fetch(program).sp.(program_specific).first = new_line
+	case !db.Fetch(program).(Program).curr_line:	/* insert at the beginning */
+		db.Fetch(program).(Program).curr_line = 1
+		new_line.next = db.Fetch(program).(Program).first
+		db.Fetch(program).(Program).first = new_line
 	default:
 		/* inserting in the middle */
-		db.Fetch(program).sp.(program_specific).curr_line = db.Fetch(program).sp.(program_specific).curr_line + 1
+		db.Fetch(program).(Program).curr_line = db.Fetch(program).(Program).curr_line + 1
 		new_line.prev = curr
 		new_line.next = curr.next
 		if new_line.next != nil {

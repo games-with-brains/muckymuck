@@ -4,7 +4,7 @@ func prim_awakep(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	apply_primitive(1, top, func(op Array) {
 		switch ref := valid_object(op[0]); {
 		case Typeof(ref) == TYPE_THING && db.Fetch(ref).flags & ZOMBIE != 0:
-			ref = db.Fetch(ref).owner
+			ref = db.Fetch(ref).Owner
 		case Typeof(ref) != TYPE_PLAYER:
 			panic("invalid argument.")
 		}
@@ -306,11 +306,13 @@ func prim_descr_setuser(player, program dbref, mlev int, pc, arg *inst, top *int
 	apply_restricted_primitive(WIZBIT, mlev, 3, top, func(op Array) {
 		if op[1] != NOTHING {
 			descr := op[0].(int)
-			if ref := valid_player(op[1]); !check_password(ref, op[2].(string)) {
-				panic("Incorrect password.")
-			} else {
-				log_status("DESCR_SETUSER: %s(%d) to %s(%d) on descriptor %d", db.Fetch(player).name, player, db.Fetch(ref).name, ref, descr)
-			}
+			ref := valid_player(op[1], func(obj dbref) {
+				if !check_password(obj, op[2].(string)) {
+					panic("Incorrect password.")
+				} else {
+					log_status("DESCR_SETUSER: %s(%d) to %s(%d) on descriptor %d", db.Fetch(player).name, player, db.Fetch(ref).name, ref, descr)
+				}
+			})
 		    if d := lookup_descriptor(descr); d != nil && d.connected {
 				announce_disconnect(d)
 				if who != NOTHING {
@@ -355,10 +357,12 @@ func prim_firstdescr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			if d := descrdata_by_count(1); d != nil {
 				status = d.descriptor
 		} else {
-			if obj := valid_player(op[0]); online(obj) {
-				arr := get_player_descrs(obj)
-				status = index_descr(arr[len(arr) - 1])
-			}
+			valid_player(op[0], func(obj dbref) {
+				if online(obj) {
+					arr := get_player_descrs(obj)
+					status = index_descr(arr[len(arr) - 1])
+				}
+			})
 		}
 		push(arg, top, status)
 	})
@@ -372,9 +376,9 @@ func prim_lastdescr(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 				status = d.descriptor
 			}
 		} else {
-			if ref := valid_player(op[0]); online(ref) {
-				status = index_descr(get_player_descrs(ref)[0])
-			}
+			valid_player(op[0], func(obj dbref) {
+				status = index_descr(get_player_descrs(obj)[0])
+			})
 		}
 		push(arg, top, status)
 	})

@@ -24,20 +24,20 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 		}
 		to = arg2
 	}
-	if player != GOD && db.Fetch(victim).owner == GOD {
+	if player != GOD && db.Fetch(victim).Owner == GOD {
 		notify(player, "God has already set that where He wants it to be.")
 		return
 	}
 
 	/* get destination */
-	md := NewMatch(descr, player, to, TYPE_PLAYER).
+	md := NewMatch(descr, player, to, IsPlayer).
 		MatchPossession().
 		MatchMe().
 		MatchHere().
 		MatchHome().
 		MatchAbsolute().
 		MatchRegistered()
-	if Wizard(db.Fetch(player).owner) {
+	if Wizard(db.Fetch(player).Owner) {
 		md.MatchNeighbor().MatchPlayer()
 	}
 	switch destination = md.MatchResult(); desination {
@@ -46,32 +46,34 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 	case AMBIGUOUS:
 		notify(player, "I don't know which destination you mean!")
 	case HOME:
+		v := db.FetchPlayer(victim)
 		switch victim.(type) {
 		case TYPE_PLAYER:
-			destination = db.Fetch(victim).sp.(player_specific).home
+			destination = v.home
 			if parent_loop_check(victim, destination) {
-				destination = db.Fetch(db.Fetch(victim).owner).sp.(player_specific).home
+				destination = db.FetchPlayer(v.Owner).home
 			}
 		case TYPE_THING:
-			destination = db.Fetch(victim).sp.(player_specific).home
+			destination = v.home
 			if parent_loop_check(victim, destination) {
-			  destination = db.Fetch(db.Fetch(victim).owner).sp.(player_specific).home
-			  if parent_loop_check(victim, destination) {
-			    destination = dbref(0)
-			  }
+				destination = db.FetchPlayer(v.Owner).home
+				if parent_loop_check(victim, destination) {
+					destination = dbref(0)
+				}
 			}
 		case TYPE_ROOM:
 			destination = GLOBAL_ENVIRONMENT
 		case TYPE_PROGRAM:
-			destination = db.Fetch(victim).owner
+			destination = v.Owner
 		default:
 			destination = tp_player_start
 		}
 	default:
 		switch victim.(type) {
 		case TYPE_PLAYER:
+			v := db.FetchPlayer(victim)
 			switch {
-			case !controls(player, victim), !controls(player, destination), !controls(player, df.Fetch(victim).location), (Typeof(destination) == TYPE_THING && !controls(player, df.Fetch(destination).location)):
+			case !controls(player, victim), !controls(player, destination), !controls(player, v.Location), (Typeof(destination) == TYPE_THING && !controls(player, df.Fetch(destination).Location)):
 				notify(player, "Permission denied. (must control victim, dest, victim's loc, and dest's loc)")
 			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_THING:
 				notify(player, "Bad destination.")
@@ -81,7 +83,7 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 				notify(player, "Objects can't contain themselves.")
 			default:
 				notify(victim, "You feel a wrenching sensation...")
-				enter_room(descr, victim, destination, db.Fetch(victim).location)
+				enter_room(descr, victim, destination, v.Location)
 				notify(player, "Teleported.")
 			}
 		case TYPE_THING:
@@ -94,15 +96,15 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 			switch {
 			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_PLAYER && Typeof(destination) != TYPE_THING:
 				notify(player, "Bad destination.")
-			case !((controls(player, destination) || can_link_to(player, NOTYPE, destination)) && (controls(player, victim) || controls(player, db.Fetch(victim).location))):
+			case !((controls(player, destination) || can_link_to(player, NOTYPE, destination)) && (controls(player, victim) || controls(player, db.Fetch(victim).Location))):
 				notify(player, "Permission denied. (must control dest and be able to link to it, or control dest's loc)")
 			default:
 				/* check for non-sticky dropto */
 				if TYPEOF(destination) == TYPE_ROOM && db.Fetch(destination).sp != NOTHING && db.Fetch(destination).flags & STICKY == 0 {
-					destination = db.Fetch(destination).sp.(dbref)
+					destination = db.Fetch(destination).(dbref)
 				}
 				if tp_thing_movement && TYPEOF(victim) == TYPE_THING {
-					enter_room(descr, victim, destination, db.Fetch(victim).location)
+					enter_room(descr, victim, destination, db.Fetch(victim).Location)
 				} else {
 					moveto(victim, destination)
 				}
@@ -137,7 +139,7 @@ int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	var i, cnt int
 	var recurse int
 
-	if player != GOD && db.Fetch(thing).owner == GOD {
+	if player != GOD && db.Fetch(thing).Owner == GOD {
 		notify(player,"Only God may touch what is God's.");
 		return 0;
 	}
@@ -159,7 +161,7 @@ int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	for propadr != nil {
 		if !smatch(wldcrd, propname) {
 			buf = fmt.Sprint(dir, PROPDIR_DELIMITER, propname)
-			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(db.Fetch(player).owner))) {
+			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(db.Fetch(player).Owner))) {
 				if (!*ptr || recurse) {
 					cnt++;
 					if (blessp) {
@@ -193,7 +195,7 @@ func do_unbless(descr int, player dbref, what, propname string) {
 		md.MatchEverything()
 		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
-		case !Wizard(db.Fetch(player).owner):
+		case !Wizard(db.Fetch(player).Owner):
 			notify(player, "Permission denied. (You're not a wizard)")
 		default:
 			if cnt := blessprops_wildcard(player, victim, "", propname, 0); cnt == 1 {
@@ -219,9 +221,9 @@ func do_bless(descr int, player dbref, what, propname string) {
 		md.MatchEverything()
 		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
-		case player != GOD && db.Fetch(victim).owner == GOD:
+		case player != GOD && db.Fetch(victim).Owner == GOD:
 			notify(player, "Only God may touch God's stuff.")
-		case !Wizard(db.Fetch(player).owner):
+		case !Wizard(db.Fetch(player).Owner):
 			notify(player, "Permission denied. (you're not a wizard)")
 		default:
 			if cnt := blessprops_wildcard(player, victim, "", propname, 1); cnt == 1 {
@@ -257,7 +259,7 @@ func do_force(descr int, player dbref, what, command string) {
 		MatchRegistered().
 		MatchPlayer().
 		NoisyMatchResult()
-	v := db.Fetch(victim)
+	v := db.FetchPlayer(victim)
 	terms := strings.SplitN(v.name, " ", 2)
 	switch {
 	case victim == NOTHING:
@@ -272,16 +274,16 @@ func do_force(descr int, player dbref, what, command string) {
 		notify(player, "Permission denied: forced object not @set Xforcible.")
 	case !Wizard(player) && !test_lock_false_default(descr, player, victim, "@/flk"):
 		notify(player, "Permission denied: Object not force-locked to you.")
-	case !Wizard(player) && TYPEOF(victim) == TYPE_THING && v.location != NOTHING && db.Fetch(v.location).flags & ZOMBIE != 0 && TYPEOF(v.location) == TYPE_ROOM:
+	case !Wizard(player) && TYPEOF(victim) == TYPE_THING && v.Location != NOTHING && db.Fetch(v.Location).flags & ZOMBIE != 0 && TYPEOF(v.Location) == TYPE_ROOM:
 		notify(player, "Sorry, but that's in a no-puppet zone.")
-	case !Wizard(db.Fetch(player).owner) && TYPEOF(victim) == TYPE_THING && db.Fetch(player).flags & ZOMBIE != 0:
+	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && db.FetchPlayer(player).flags & ZOMBIE != 0:
 		notify(player, "Permission denied -- you cannot use zombies.")
-	case !Wizard(db.Fetch(player).owner) && TYPEOF(victim) == TYPE_THING && db.Fetch(player).flags & DARK != 0:
+	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && db.FetchPlayer(player).flags & DARK != 0:
 		notify(player, "Permission denied -- you cannot force dark zombies.")
-	case !Wizard(db.Fetch(player).owner) && TYPEOF(victim) == TYPE_THING && terms > 0 && lookup_player(terms[0]) != NOTHING:
+	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && terms > 0 && lookup_player(terms[0]) != NOTHING:
 		notify(player, "Puppet cannot share the name of a player.")
 	default:
-		log_status("FORCED: %s(%d) by %s(%d): %s", db.Fetch(victim).name, victim, db.Fetch(player).name, player, command)
+		log_status("FORCED: %s(%d) by %s(%d): %s", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player, command)
 		/* force victim to do command */
 		ForceAction(NOTHING, func() {
 			process_command(dbref_first_descr(victim), victim, command)
@@ -291,10 +293,10 @@ func do_force(descr int, player dbref, what, command string) {
 
 func do_stats(player dbref, name string) {
 	var rooms, exits, things, players, programs, garbage, total, altered, oldobjs int
-	time_t currtime = time(NULL);
+	currtime := time.Now()
 	owner := NOTHING
 
-	if !Wizard(db.Fetch(player).owner) && len(name) == 0 {
+	if !Wizard(db.FetchPlayer(player).Owner) && len(name) == 0 {
 		notify(player, fmt.Sprintf("The universe contains %d objects.", db_top))
 	} else {
 		total = rooms = exits = things = players = programs = 0;
@@ -304,67 +306,67 @@ func do_stats(player dbref, name string) {
 				notify(player, "I can't find that player.")
 				return
 			}
-			if !Wizard(db.Fetch(player).owner) && db.Fetch(player).owner != owner {
+			if p := db.FetchPlayer(player); !Wizard(p.Owner) && p.Owner != owner {
 				notify(player, "Permission denied. (you must be a wizard to get someone else's stats)")
 				return
 			}
-			for i := 0; i < db_top; i++ {
-				if db.Fetch(i).owner == owner {
-					if db.Fetch(i).flags & OBJECT_CHANGED != 0 {
+			EachObject(func(obj dbref, o *Object) {
+				if o.Owner == owner {
+					if o.flags & OBJECT_CHANGED != 0 {
 						altered++
 					}
 					/* if unused for 90 days, inc oldobj count */
-					if (currtime - db.Fetch(i).ts.lastused) > tp_aging_time {
+					if (currtime - o.LastUsed) > tp_aging_time {
 						oldobjs++
 					}
 
-					switch TYPEOF(i) {
-					case TYPE_ROOM:
+					switch {
+					case IsRoom(obj):
 						total++
 						rooms++
-					case TYPE_EXIT:
+					case IsExit(obj):
 						total++
 						exits++
-					case TYPE_THING:
+					case IsThing(obj):
 						total++
 						things++
-					case TYPE_PLAYER:
+					case IsPlayer(obj):
 						total++
 						players++
-					case TYPE_PROGRAM:
+					case IsProgram(obj):
 						total++
 						programs++
 					}
 				}
-			}
+			})
 		} else {
-			for i := 0; i < db_top; i++ {
-				if db.Fetch(i).flags & OBJECT_CHANGED != 0 {
+			EachObject(func(obj dbref, o *Object) {
+				if o.flags & OBJECT_CHANGED != 0 {
 					altered++
 				}
 				/* if unused for 90 days, inc oldobj count */
-				if (currtime - db.Fetch(i).ts.lastused) > tp_aging_time {
+				if (currtime - o.LastUsed) > tp_aging_time {
 					oldobjs++
 				}
 
-				switch TYPEOF(i) {
-				case TYPE_ROOM:
+				switch {
+				case IsRoom(obj):
 					total++
 					rooms++
-				case TYPE_EXIT:
+				case IsExit(obj):
 					total++
 					exits++
-				case TYPE_THING:
+				case IsThing(obj):
 					total++
 					things++
-				case TYPE_PLAYER:
+				case IsPlayer(obj):
 					total++
 					players++
-				case TYPE_PROGRAM:
+				case IsProgram(obj):
 					total++
 					programs++
 				}
-			}
+			})
 		}
 		notify_fmt(player, "%7d room%s        %7d exit%s        %7d thing%s", rooms, (rooms == 1) ? " " : "s", exits, (exits == 1) ? " " : "s", things, (things == 1) ? " " : "s")
 		notify_fmt(player, "%7d program%s     %7d player%s      %7d garbage", programs, (programs == 1) ? " " : "s", players, (players == 1) ? " " : "s", garbage)
@@ -400,12 +402,12 @@ func do_boot(player dbref, name string) {
 	default:
 		notify(victim, "You have been booted off the game.")
 		if boot_off(victim) {
-			log_status("BOOTED: %s(%d) by %s(%d)", db.Fetch(victim).name, victim, db.Fetch(player).name, player)
+			log_status("BOOTED: %s(%d) by %s(%d)", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player)
 			if player != victim {
-				notify(player, fmt.Sprintf("You booted %s off!", db.Fetch(victim).name))
+				notify(player, fmt.Sprintf("You booted %s off!", db.FetchPlayer(victim).name))
 			}
 		} else {
-			notify(player, fmt.Sprintf("%s is not connected.", db.Fetch(victim).name))
+			notify(player, fmt.Sprintf("%s is not connected.", db.FetchPlayer(victim).name))
 		}
 	}
 }
@@ -423,7 +425,7 @@ func do_toad(descr int, player dbref, name, recip string) {
 	if victim == GOD {
 		notify(player, "You cannot @toad God.")
 		if player != GOD {
-			log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", db.Fetch(player).name, player)
+			log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", db.FetchPlayer(player).name, player)
 		}
 		return
 	}
@@ -450,45 +452,41 @@ func do_toad(descr int, player dbref, name, recip string) {
 	} else {
 		send_contents(descr, victim, HOME)
 		dequeue_prog(victim, 0)							/* Dequeue the programs that the player's running */
-		for stuff := 0; stuff < db_top; stuff++ {
-			if db.Fetch(stuff).owner == victim {
-				switch stuff.(type) {
-				case TYPE_PROGRAM:
-					dequeue_prog(stuff, 0)				/* dequeue player's progs */
+		EachObject(func(obj dbref, o *Object) {
+			if o.Owner == victim {
+				switch {
+				case IsProgram(obj):
+					dequeue_prog(obj, 0)				/* dequeue player's progs */
 					if TrueWizard(recipient) {
-						db.Fetch(stuff).flags &= ~(ABODE | WIZARD)
-						SetMLevel(stuff, APPRENTICE)
+						o.flags &= ~(ABODE | WIZARD)
+						SetMLevel(obj, APPRENTICE)
 					}
 				case TYPE_ROOM, TYPE_THING, TYPE_EXIT:
-					db.Fetch(stuff).owner = recipient
-					db.Fetch(stuff).flags |= OBJECT_CHANGED
+					o.Owner = recipient
+					o.flags |= OBJECT_CHANGED
 				}
 			}
-			if TYPEOF(stuff) == TYPE_THING && db.Fetch(stuff).sp.(player_specific).home == victim {
+			if p := o.(Player); IsThing(obj) && p.home == victim {
 				/* FIXME: Set a tunable "lost and found" area! */
-				db.Fetch(stuff).sp.(player_specific).home = tp_player_start
+				p.home = tp_player_start
 			}
-		}
-		db.Fetch(victim).sp.(player_specific).password = ""
+		})
 
+		v := db.FetchPlayer(victim)
 		notify(victim, "You have been turned into a toad.")
-		notify(player, fmt.Sprintf("You turned %s into a toad!", db.Fetch(victim).name))
-		log_status("TOADED: %s(%d) by %s(%d)", db.Fetch(victim).name, victim, db.Fetch(player).name, player)
+		notify(player, fmt.Sprintf("You turned %s into a toad!", v.name))
+		log_status("TOADED: %s(%d) by %s(%d)", v.name, victim, db.FetchPlayer(player).name, player)
 
 		/* reset name */
 		delete_player(victim)
-		db.Fetch(victim).name = fmt.Sprintf("A slimy toad named %s", db.Fetch(victim).name)
-		db.Fetch(victim).flags |= OBJECT_CHANGED
+		v.name = fmt.Sprintf("A slimy toad named %s", v.name)
+		v.flags |= OBJECT_CHANGED
 		boot_player_off(victim)
-		db.Fetch(victim).sp.(player_specific).descrs = nil
-
 		ignore_remove_from_all_players(victim)
 		ignore_flush_cache(victim)
-
-		db.Fetch(victim).sp.(player_specific) = new(player_specific)
-		db.Fetch(victim).sp.(player_specific).home = db.Fetch(player).sp.(player_specific).home
-		db.Fetch(victim).flags = (db.Fetch(victim).flags & ~TYPE_MASK) | TYPE_THING
-		db.Fetch(victim).owner = player
+		v.sp = &Player{ home: db.FetchPlayer(player).home }
+		v.flags = (v.flags & ~TYPE_MASK) | TYPE_THING
+		v.Owner = player
 		add_property(victim, MESGPROP_VALUE, NULL, 1)		/* don't let him keep his immense wealth */
 	}
 }
@@ -509,10 +507,10 @@ func do_newpassword(player dbref, name, password string) {
 			notify(player, "Only God can change a wizard's password.")
 		default:
 			set_password(victim, password)
-			db.Fetch(victim).flags |= OBJECT_CHANGED
+			db.FetchPlayer(victim).flags |= OBJECT_CHANGED
 			notify(player, "Password changed.")
-			notify(victim, fmt.Sprintf("Your password has been changed by %s.", db.Fetch(player).name))
-			log_status("NEWPASS'ED: %s(%d) by %s(%d)", db.Fetch(victim).name, victim, db.Fetch(player).name, player)
+			notify(victim, fmt.Sprintf("Your password has been changed by %s.", db.FetchPlayer(player).name))
+			log_status("NEWPASS'ED: %s(%d) by %s(%d)", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player)
 		}
 	}
 }
@@ -524,7 +522,7 @@ func do_pcreate(player dbref, user, password string) {
 		if newguy := create_player(user, password); newguy == NOTHING {
 			notify(player, "Create failed.")
 		} else {
-			log_status("PCREATED %s(%d) by %s(%d)", db.Fetch(newguy).name, newguy, db.Fetch(player).name, player)
+			log_status("PCREATED %s(%d) by %s(%d)", db.FetchPlayer(newguy).name, newguy, db.FetchPlayer(player).name, player)
 			notify(player, fmt.Sprintf("Player %s created as object #%d.", user, newguy))
 		}
 	}
@@ -532,7 +530,7 @@ func do_pcreate(player dbref, user, password string) {
 
 func do_serverdebug(descr int, player dbref, arg1, arg2 string) {
 	switch {
-	case !Wizard(db.Fetch(player).owner):
+	case !Wizard(db.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (@dbginfo is a wizard-only command)")
 	case arg1 == "":
 		notify(player, "Usage: @dbginfo [cache|guitest|misc]")
@@ -561,21 +559,20 @@ func do_muf_topprofs(player dbref, arg1 string) {
 	int nodecount = 0;
 	dbref i = NOTHING;
 	int count = atoi(arg1);
-	time_t current_systime = time(NULL);
+	current_systime := time.Now()
 
 	switch {
-	case !Wizard(db.Fetch(player).owner):
+	case !Wizard(db.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (MUF profiling stats are wiz-only)");
 		return
 	case arg1 == "reset":
-		for i = db_top; i > 0; i-- {
-			if Typeof(i) == TYPE_PROGRAM {
-				db.Fetch(i).sp.(program_specific).proftime.tv_usec = 0
-				db.Fetch(i).sp.(program_specific).proftime.tv_sec = 0
-				db.Fetch(i).sp.(program_specific).profstart = current_systime
-				db.Fetch(i).sp.(program_specific).profuses = 0
+		EachObjectInReverse(func(obj dbref, o *Object) {
+			if p := o.(Program); IsProgram(obj) {
+				p.proftime = 0
+				p.profstart = current_systime
+				p.profuses = 0
 			}
-		}
+		})
 		notify(player, "MUF profiling statistics cleared.")
 		return
 	case count < 0:
@@ -585,21 +582,16 @@ func do_muf_topprofs(player dbref, arg1 string) {
 		count = 10
 	}
 
-	for i := db_top; i > 0; i-- {
-		if Typeof(i) == TYPE_PROGRAM && db.Fetch(i).sp.(program_specific).code != nil {
-			struct profnode *newnode = (struct profnode *)malloc(sizeof(struct profnode));
-			struct timeval tmpt = db.Fetch(i).sp.(program_specific).proftime
-
+	EachObjectInReverse(func(obj dbref, o *Object) {
+		if p := o.(Program); IsProgram(obj) && p.code != nil {
 			newnode := &profnode{
-				prog: i,
-				proftime: tmpt.tv_sec += (tmpt.tv_usec / 1000000.0),
-				comptime: current_systime - db.Fetch(i).sp.(program_specific).profstart,
-				usecount: db.Fetch(i).sp.(program_specific).profuses,
+				prog: obj,
+				proftime: p.proftime,
+				comptime: current_systime - p.profstart,
+				usecount: p.profuses,
 			}
 			if newnode.comptime > 0 {
 				newnode.pcnt = 100.0 * newnode.proftime / newnode.comptime
-			} else {
-				newnode.pcnt =  0.0;
 			}
 			switch {
 			case tops == nil:
@@ -612,30 +604,28 @@ func do_muf_topprofs(player dbref, arg1 string) {
 					nodecount++
 				}
 			default:
-				if (nodecount >= count) {
-					curr = tops;
-					tops = tops->next;
-					free(curr);
+				if nodecount >= count {
+					tops = tops.next
 				} else {
-					nodecount++;
+					nodecount++
 				}
-				if (!tops) {
-					tops = newnode;
-				} else if (newnode->pcnt < tops->pcnt) {
-					newnode->next = tops;
-					tops = newnode;
+				if !tops {
+					tops = newnode
+				} else if newnode.pcnt < tops.pcnt {
+					newnode.next = tops
+					tops = newnode
 				} else {
-					for (curr = tops; curr->next; curr = curr->next) {
-						if (newnode->pcnt < curr->next->pcnt) {
-							break;
+					for curr = tops; curr.next != nil; curr = curr.next {
+						if newnode.pcnt < curr.next.pcnt {
+							break
 						}
 					}
-					newnode->next = curr->next;
-					curr->next = newnode;
+					newnode.next = curr.next
+					curr.next = newnode
 				}
 			}
 		}
-	}
+	})
 	notify(player, "     %CPU   TotalTime  UseCount  Program");
 	for tops != nil {
 		curr = tops
@@ -644,7 +634,7 @@ func do_muf_topprofs(player dbref, arg1 string) {
 	}
 	buf = fmt.Sprintf("Profile Length (sec): %5ld  %%idle: %5.2f%%  Total Cycles: %5lu",
 			(current_systime-sel_prof_start_time),
-			((double)(sel_prof_idle_sec+(sel_prof_idle_usec/1000000.0))*100.0) / (double)((current_systime-sel_prof_start_time)+0.01),
+			float64(sel_prof_idle) / (float64(current_systime - sel_prof_start_time) + 0.01),
 			sel_prof_idle_use
 	)
 	notify(player,buf);
@@ -666,20 +656,20 @@ func do_mpi_topprofs(player dbref, arg1 string) {
 	int nodecount = 0;
 	dbref i = NOTHING;
 	int count = atoi(arg1);
-	time_t current_systime = time(NULL);
+	current_systime := time.Now()
 
-	if !Wizard(db.Fetch(player).owner) {
+	if !Wizard(db.FetchPlayer(player).Owner) {
 		notify(player, "Permission denied. (MPI statistics are wizard-only)")
 		return
 	}
 	if arg1 == "reset" {
-		for (i = db_top; i-->0; ) {
-			if db.Fetch(i).mpi_prof_use {
-				db.Fetch(i).mpi_prof_use = 0
-				db.Fetch(i).mpi_proftime.tv_usec = 0
-				db.Fetch(i).mpi_proftime.tv_sec = 0
+		EachObjectInReverse(func(o *Object) {
+			if o.MPIUses {
+				o.MPIUses = 0
+				o.time.Duration.tv_usec = 0
+				o.time.Duration.tv_sec = 0
 			}
-		}
+		})
 		mpi_prof_start_time = current_systime
 		notify(player, "MPI profiling statistics cleared.")
 		return
@@ -691,65 +681,61 @@ func do_mpi_topprofs(player dbref, arg1 string) {
 		count = 10;
 	}
 
-	for (i = db_top; i-->0; ) {
-		if (db.Fetch(i).mpi_prof_use) {
-			struct profnode *newnode = (struct profnode *)malloc(sizeof(struct profnode));
-			newnode->next = NULL;
-			newnode->prog = i;
-			newnode->proftime = db.Fetch(i).mpi_proftime.tv_sec
-			newnode->proftime += (db.Fetch(i).mpi_proftime.tv_usec / 1000000.0)
-			newnode->comptime = current_systime - mpi_prof_start_time;
-			newnode->usecount = db.Fetch(i).mpi_prof_use
-			if (newnode->comptime > 0) {
-				newnode->pcnt = 100.0 * newnode->proftime / newnode->comptime;
-			} else {
-				newnode->pcnt =  0.0;
+	EachObjectInReverse(func(obj dbref, o *Object) {
+		if o.MPIUses {
+			newnode := &profnode{
+				prog: obj,
+				proftime: o.time.Duration.tv_sec,
+				comptime: current_systime - mpi_prof_start_time,
+				usecount: o.MPIUses,
 			}
-			if (!tops) {
-				tops = newnode;
-				nodecount++;
-			} else if (newnode->pcnt < tops->pcnt) {
-				if (nodecount < count) {
-					newnode->next = tops;
-					tops = newnode;
-					nodecount++;
-				} else {
-					free(newnode);
+			proftime += (o.time.Duration.tv_usec / 1000000.0)
+			if newnode.comptime > 0 {
+				newnode.pcnt = 100.0 * newnode.proftime / newnode.comptime
+			} else {
+				newnode.pcnt =  0.0
+			}
+			if !tops {
+				tops = newnode
+				nodecount++
+			} else if newnode.pcnt < tops.pcnt {
+				if nodecount < count {
+					newnode.next = tops
+					tops = newnode
+					nodecount++
 				}
 			} else {
-				if (nodecount >= count) {
-					curr = tops;
-					tops = tops->next;
-					free(curr);
+				if nodecount >= count {
+					tops = tops.next
 				} else {
-					nodecount++;
+					nodecount++
 				}
-				if (!tops) {
-					tops = newnode;
-				} else if (newnode->pcnt < tops->pcnt) {
-					newnode->next = tops;
-					tops = newnode;
+				if !tops {
+					tops = newnode
+				} else if newnode.pcnt < tops.pcnt {
+					newnode.next = tops
+					tops = newnode
 				} else {
-					for (curr = tops; curr->next; curr = curr->next) {
-						if (newnode->pcnt < curr->next->pcnt) {
-							break;
+					for curr = tops; curr.next != nil; curr = curr.next {
+						if newnode.pcnt < curr.next.pcnt {
+							break
 						}
 					}
-					newnode->next = curr->next;
-					curr->next = newnode;
+					newnode.next = curr.next
+					curr.next = newnode
 				}
 			}
 		}
-	}
+	})
 	notify(player, "     %CPU   TotalTime  UseCount  Object")
 	for tops != nil {
 		curr = tops
-		notify(player, fmt.Sprintf("%10.3f %10.3f %9ld %s", curr.pcnt, curr.proftime, curr.usecount, unparse_object(player, curr.prog)))
+		notify(player, fmt.Sprintf("%10.3f %10.3f %9ld %s", curr.pcnt, curr.proftime, curr.Uses, unparse_object(player, curr.prog)))
 		tops = tops.next
 	}
 	notify(player, fmt.Sprintf("Profile Length (sec): %5ld  %%idle: %5.2f%%  Total Cycles: %5lu",
 			current_systime - sel_prof_start_time,
-			(float64(sel_prof_idle_sec+(sel_prof_idle_usec/1000000.0))*100.0) / float64((current_systime-sel_prof_start_time)+0.01),
+			float64(sel_prof_idle) / (float64((current_systime - sel_prof_start_time)) + 0.01),
 			sel_prof_idle_use,
 	))
 	notify(player, "*Done*")
@@ -760,7 +746,7 @@ type profnode struct {
 	prog dbref
 	proftime float64
 	pcnt float64
-	comptime int
+	comptime time.Duration
 	usecount int
 	is_mpi bool
 }
@@ -769,49 +755,43 @@ func do_all_topprofs(player dbref, arg1 string) {
 	var curr, tops *profnode
 	var buf string
 	var nodecount int
-	var current_systime time_t
 
+	current_systime := time.Now()
 	switch {
-	case !Wizard(db.Fetch(player).owner):
+	case !Wizard(db.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (server profiling statistics are wizard-only)");
 	case arg1 == "reset":
-		for i := db_top; i > 0; i-- {
-			obj := db.Detch(i)
-			if obj.mpi_prof_use {
-				obj.mpi_prof_use = 0
-				obj.mpi_proftime.tv_usec = 0
-				obj.mpi_proftime.tv_sec = 0
+		EachObjectInReverse(func(obj dbref, o *Object) {
+			if o.MPIUses {
+				o.MPIUses = 0
+				o.time.Duration.tv_usec = 0
+				o.time.Duration.tv_sec = 0
 			}
-			if Typeof(i) == TYPE_PROGRAM {
-				obj.sp.(program_specific).proftime.tv_usec = 0
-				obj.sp.(program_specific).proftime.tv_sec = 0
-				obj.sp.(program_specific).profstart = current_systime
-				obj.sp.(program_specific).profuses = 0
+			if p := o.(Program); IsProgram(obj) {
+				p.proftime = 0
+				p.profstart = current_systime
+				p.profuses = 0
 			}
-		}
-		sel_prof_idle_sec = 0
-		sel_prof_idle_usec = 0
+		})
+		sel_prof_idle = 0
 		sel_prof_start_time = current_systime
 		sel_prof_idle_use = 0
 		mpi_prof_start_time = current_systime
 		notify(player, "All profiling statistics cleared.")
 	default:
-		count := strconv.Atoi(arg1)
-		i := NOTHING
-		if count < 0 {
-			notify(player, "Count has to be a positive number.");
+		if count := strconv.Atoi(arg1); count < 0 {
+			notify(player, "Count has to be a positive number.")
 		} else {
 			if count == 0 {
 				count = 10
 			}
-			for i = db_top; i > 0; i-- {
-				obj := db.Fetch(i)
-				if obj.mpi_prof_use {
+			EachObjectInReverse(func(obj dbref, o *Object) {
+				if o.MPIUses {
 					newnode := &profnode{
-						prog: i,
-						proftime: obj.mpi_proftime.tv_sec + (obj.mpi_proftime.tv_usec / 1000000.0),
-						comptime: current_systime - mpi_prof_start_time,
-						usecount: obj.mpi_prof_use,
+						prog: obj,
+						proftime: o.time.Duration.tv_sec + (o.time.Duration.tv_usec / 1000000.0),
+						comptime: current_systime.Sub(mpi_prof_start_time),
+						usecount: o.MPIUses,
 					}
 					if newnode.comptime > 0 {
 						newnode.pcnt = 100.0 * newnode.proftime / newnode.comptime
@@ -848,13 +828,12 @@ func do_all_topprofs(player dbref, arg1 string) {
 						}
 					}
 				}
-				if Typeof(i) == TYPE_PROGRAM && obj.sp.(program_specific).code != nil {
-					tmpt := obj.sp.(program_specific).proftime
+				if p := o.(Program); IsProgram(obj) == TYPE_PROGRAM && p.code != nil {
 					newnode := &profnode{
 						prog: i,
-						proftime: tmpt.tv_sec + (tmpt.tv_usec / 1000000.0),
-						comptime: current_systime - obj.sp.(program_specific).profstart,
-						usecount: obj.sp.(program_specific).profuses,
+						proftime: p.proftime,
+						comptime: current_systime.Sub(p.profstart),
+						usecount: p.profuses,
 						is_mpi: true,
 					}
 					if newnode.comptime > 0 {
@@ -892,19 +871,19 @@ func do_all_topprofs(player dbref, arg1 string) {
 						}
 					}
 				}
-			}
+			})
 			notify(player, "     %CPU   TotalTime  UseCount  Type  Object")
 			for ; tops != nil; tops = tops.next {
 				if curr := tops; curr.is_mpi {
-					notify(player, fmt.Sprintf("%10.3f %10.3f %9ld  MPI   %s", curr.pcnt, curr.proftime, curr.usecount, unparse_object(player, curr.prog)))
+					notify(player, fmt.Sprintf("%10.3f %10.3f %9ld  MPI   %s", curr.pcnt, curr.proftime, curr.Uses, unparse_object(player, curr.prog)))
 				} else {
-					notify(player, fmt.Sprintf("%10.3f %10.3f %9ld  MUF   %s", curr.pcnt, curr.proftime, curr.usecount, unparse_object(player, curr.prog)))
+					notify(player, fmt.Sprintf("%10.3f %10.3f %9ld  MUF   %s", curr.pcnt, curr.proftime, curr.Uses, unparse_object(player, curr.prog)))
 				}
 			}
 			notify(player,
 				fmt.Sprintf("Profile Length (sec): %5ld  %%idle: %5.2f%%  Total Cycles: %5lu",
-					(current_systime - sel_prof_start_time),
-					(double(sel_prof_idle_sec + (sel_prof_idle_usec / 1000000.0)) * 100.0) / double(current_systime - sel_prof_start_time + 0.01),
+					current_systime.Sub(sel_prof_start_time),
+					float64(sel_prof_idle) / (float64(current_systime.Sub(sel_prof_start_time)) + 0.01),
 					sel_prof_idle_use
 				)
 			)

@@ -1,4 +1,13 @@
-/* MPI msgparse.c header file. */
+package fbmuck
+
+func MPIBool(x bool) (r string) {
+	if x {
+		r = "1"
+	} else {
+		r = "0"
+	}
+	return
+}
 
 #define MPI_ISPUBLIC	0x00	/* never test for this one */
 #define MPI_ISPRIVATE	0x01

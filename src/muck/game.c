@@ -28,9 +28,6 @@ FILE *delta_infile;
 FILE *delta_outfile;
 char *in_filename = NULL;
 
-void fork_and_dump(void);
-void dump_database(void);
-
 void
 do_dump(dbref player, const char *newfile)
 {
@@ -143,13 +140,11 @@ dump_database_internal(void)
 	sync();
 }
 
-void
-panic(const char *message)
-{
+func panic(message string) {
 	char panicfile[2048];
 	FILE *f;
 
-	log_status("PANIC: %s", message);
+	log_status("PANIC: %s", message)
 	fprintf(stderr, "PANIC: %s\n", message);
 
 	/* shut down interface */
@@ -161,16 +156,8 @@ panic(const char *message)
 	panicfile = fmt.Sprintf("%s.PANIC", dumpfile);
 	if ((f = fopen(panicfile, "wb")) == NULL) {
 		perror("CANNOT OPEN PANIC FILE, YOU LOSE");
-		sync();
-
-#ifdef NOCOREDUMP
-		exit(135);
-#else							/* !NOCOREDUMP */
-# ifdef SIGIOT
-		signal(SIGIOT, SIG_DFL);
-# endif
-		abort();
-#endif							/* NOCOREDUMP */
+		sync()
+		exit(135)
 	} else {
 		log_status("DUMPING: %s", panicfile);
 		fprintf(stderr, "DUMPING: %s\n", panicfile);
@@ -188,27 +175,11 @@ panic(const char *message)
 		fclose(f);
 	} else {
 		perror("CANNOT OPEN MACRO PANIC FILE, YOU LOSE");
-		sync();
-#ifdef NOCOREDUMP
-		exit(135);
-#else							/* !NOCOREDUMP */
-#ifdef SIGIOT
-		signal(SIGIOT, SIG_DFL);
-#endif
-		abort();
-#endif							/* NOCOREDUMP */
+		sync()
+		exit(135)
 	}
-
-	sync();
-
-#ifdef NOCOREDUMP
-	exit(136);
-#else							/* !NOCOREDUMP */
-#ifdef SIGIOT
-	signal(SIGIOT, SIG_DFL);
-#endif
-	abort();
-#endif							/* NOCOREDUMP */
+	sync()
+	exit(136)
 }
 
 void
@@ -224,41 +195,35 @@ dump_database(void)
 /*
  * Named "fork_and_dump()" mostly for historical reasons...
  */
-void
-fork_and_dump(void)
-{
-	epoch++;
+func fork_and_dump() {
+	epoch++
+	if global_dumper_pid != 0 {
+		wall_wizards("## Dump already in progress.  Skipping redundant scheduled dump.")
+	} else {
+		last_monolithic_time = time(NULL)
+		log_status("CHECKPOINTING: %s.#%d#", dumpfile, epoch)
 
-	if (global_dumper_pid != 0) {
-		wall_wizards("## Dump already in progress.  Skipping redundant scheduled dump.");
-		return;
-	}
-	last_monolithic_time = time(NULL);
-	log_status("CHECKPOINTING: %s.#%d#", dumpfile, epoch);
-
-	if (tp_dbdump_warning)
-		wall_and_flush(tp_dumping_mesg);
-
-	if ((global_dumper_pid=fork())==0) {
-	/* We are the child. */
-		forked_dump_process_flag = 1;
-#  ifdef NICEVAL
-	/* Requested by snout of SPR, reduce the priority of the
-	 * dumper child. */
-		nice(NICEVAL);
-#  endif /* NICEVAL */
-		set_dumper_signals();
-		dump_database_internal();
-		_exit(0);
-	}
-	if (global_dumper_pid < 0) {
-	    global_dumper_pid = 0;
-	    wall_wizards("## Could not fork for database dumping.  Possibly out of memory.");
-	    wall_wizards("## Please restart the server when next convenient.");
+		if tp_dbdump_warning {
+			wall_and_flush(tp_dumping_mesg)
+		}
+		if global_dumper_pid=fork(); global_dumper_pid == 0 {
+			/* We are the child. */
+			forked_dump_process_flag = true
+#ifdef NICEVAL
+			/* Requested by snout of SPR, reduce the priority of the dumper child. */
+			nice(NICEVAL)
+#endif /* NICEVAL */
+			set_dumper_signals()
+			dump_database_internal()
+			_exit(0)
+		}
+		if global_dumper_pid < 0 {
+		    global_dumper_pid = 0
+		    wall_wizards("## Could not fork for database dumping.  Possibly out of memory.");
+		    wall_wizards("## Please restart the server when next convenient.");
+		}		
 	}
 }
-
-extern int deltas_count;
 
 func time_for_monolithic() bool {
 	if !last_monolithic_time {
@@ -269,11 +234,11 @@ func time_for_monolithic() bool {
 	}
 
 	var count int
-	for i := 0; i < db_top; i++ {
-		if db.Fetch(i).flags & (SAVED_DELTA | OBJECT_CHANGED) != 0 {
+	EachObject(func(o *Object) {
+		if o.flags & (SAVED_DELTA | OBJECT_CHANGED) != 0 {
 			count++
 		}
-	}
+	})
 	if count * 100 / db_top > tp_max_delta_objs {
 		return true
 	}
@@ -288,104 +253,84 @@ func time_for_monolithic() bool {
 	return false
 }
 
-void
-dump_warning(void)
-{
-	if (tp_dbdump_warning) {
-		if (time_for_monolithic()) {
-			wall_and_flush(tp_dumpwarn_mesg);
-		} else {
-			if (tp_deltadump_warning) {
-				wall_and_flush(tp_deltawarn_mesg);
-			}
+func dump_warning() {
+	if tp_dbdump_warning {
+		switch {
+		case time_for_monolithic():
+			wall_and_flush(tp_dumpwarn_mesg)
+		case tp_deltadump_warning:
+			wall_and_flush(tp_deltawarn_mesg)
 		}
 	}
 }
 
-void
-dump_deltas(void)
-{
-	if (time_for_monolithic()) {
-		fork_and_dump();
-		deltas_count = 0;
-		return;
+func dump_deltas() {
+	if time_for_monolithic() {
+		fork_and_dump()
+		deltas_count = 0
+	} else {
+		epoch++
+		log_status("DELTADUMP: %s.#%d#", dumpfile, epoch)
+		if tp_deltadump_warning {
+			wall_and_flush(tp_dumpdeltas_mesg)
+		}
+		db_write_deltas(delta_outfile)
+		if tp_deltadump_warning && tp_dumpdone_warning {
+			wall_and_flush(tp_dumpdone_mesg)
+		}
 	}
-
-	epoch++;
-	log_status("DELTADUMP: %s.#%d#", dumpfile, epoch);
-
-	if (tp_deltadump_warning)
-		wall_and_flush(tp_dumpdeltas_mesg);
-
-	db_write_deltas(delta_outfile);
-
-	if (tp_deltadump_warning && tp_dumpdone_warning)
-		wall_and_flush(tp_dumpdone_mesg);
 }
 
-extern short db_conversion_flag;
+func init_game(infile, outfile string) int {
+	var f *FILE
 
-int
-init_game(const char *infile, const char *outfile)
-{
-	FILE *f;
-
-	if ((f = fopen(MACRO_FILE, "rb")) == NULL)
-		log_status("INIT: Macro storage file %s is tweaked.", MACRO_FILE);
-	else {
-		macroload(f);
-		fclose(f);
+	if f = fopen(MACRO_FILE, "rb"); f == nil {
+		log_status("INIT: Macro storage file %s is tweaked.", MACRO_FILE)
+	} else {
+		macroload(f)
+		fclose(f)
 	}
 
-	in_filename = infile;
-	if ((input_file = fopen(infile, "rb")) == NULL)
-		return -1;
-
-	if ((delta_outfile = fopen(DELTAFILE_NAME, "wb")) == NULL)
-		return -1;
-
-	if ((delta_infile = fopen(DELTAFILE_NAME, "rb")) == NULL)
-		return -1;
-
-	db_free();
-	init_primitives();			/* init muf compiler */
-	mesg_init();				/* init mpi interpreter */
-	SRANDOM(getpid());			/* init random number generator */
-	tune_load_parmsfile(NOTHING);	/* load @tune parms from file */
+	in_filename = infile
+	if input_file = fopen(infile, "rb"); input_file == nil {
+		return NOTHING
+	}
+	if delta_outfile = fopen(DELTAFILE_NAME, "wb"); delta_outfile == nil {
+		return NOTHING
+	}
+	if delta_infile = fopen(DELTAFILE_NAME, "rb"); delta_infile == nil {
+		return NOTHING
+	}
+	db_free()
+	init_primitives()				/* init muf compiler */
+	mesg_init()						/* init mpi interpreter */
+	SRANDOM(getpid())				/* init random number generator */
+	tune_load_parmsfile(NOTHING)	/* load @tune parms from file */
 
 	/* ok, read the db in */
-	log_status("LOADING: %s", infile);
-	fprintf(stderr, "LOADING: %s\n", infile);
-	if (db_read(input_file) < 0)
-		return -1;
-	log_status("LOADING: %s (done)", infile);
-	fprintf(stderr, "LOADING: %s (done)\n", infile);
-
-	/* set up dumper */
-	if (dumpfile)
-		free((void *) dumpfile);
+	log_status("LOADING: %s", infile)
+	fprintf(stderr, "LOADING: %s\n", infile)
+	if db_read(input_file) < 0 {
+		return NOTHING
+	}
+	log_status("LOADING: %s (done)", infile)
+	fmt.Fprintf(os.Stderr, "LOADING: %s (done)\n", infile)
 	dumpfile = outfile
-
-	if (!db_conversion_flag) {
+	if !db_conversion_flag {
 		/* initialize the _sys/startuptime property */
-		add_property((dbref) 0, "_sys/startuptime", NULL, (int) time((time_t *) NULL));
-		add_property((dbref) 0, "_sys/maxpennies", NULL, tp_max_pennies);
-		add_property((dbref) 0, "_sys/dumpinterval", NULL, tp_dump_interval);
-		add_property((dbref) 0, "_sys/max_connects", NULL, 0);
+		add_property((dbref) 0, "_sys/startuptime", nil, (int) time((time_t *) NULL))
+		add_property((dbref) 0, "_sys/maxpennies", nil, tp_max_pennies)
+		add_property((dbref) 0, "_sys/dumpinterval", nil, tp_dump_interval)
+		add_property((dbref) 0, "_sys/max_connects", nil, 0)
 	}
 
 	return 0;
 }
 
-
-void
-cleanup_game()
-{
-	if (dumpfile)
-		free((void *) dumpfile);
-	free((void *) in_filename);
+func cleanup_game() {
+	dumpfile = ""
+	in_filename = ""
 }
-
 
 var wizonly_mode bool
 func do_restrict(player dbref, arg string) {
@@ -405,12 +350,10 @@ func do_restrict(player dbref, arg string) {
 	}
 }
 
-int force_level = 0;
-dbref force_prog = NOTHING; /* Set when a program is the source of FORCE */
+var force_level int = 0
+var force_prog dbref = NOTHING		/* Set when a program is the source of FORCE */
 
-void
-process_command(int descr, dbref player, char *command)
-{
+func process_command(descr int, player dbref, command string) {
 	char *arg1;
 	char *arg2;
 	char *full_command;
@@ -418,79 +361,103 @@ process_command(int descr, dbref player, char *command)
 	char pbuf[BUFFER_LEN];
 	char xbuf[BUFFER_LEN];
 	char ybuf[BUFFER_LEN];
-	struct timeval starttime;
-	struct timeval endtime;
 	double totaltime;
 
-	if (command == 0)
-		abort();
+	if command == "" {
+		abort()
+	}
 
 	/* robustify player */
-	if (player < 0 || player >= db_top ||
-		(Typeof(player) != TYPE_PLAYER && Typeof(player) != TYPE_THING)) {
+	if !valid_reference(player) || (!IsPlayer(player) && !IsThing(player)) {
 		log_status("process_command: bad player %d", player);
 		return;
 	}
 
-	if tp_log_commands || Wizard(db.Fetch(player).owner) {
-		if db.Fetch(player).flags & (INTERACTIVE | READMODE) == 0 {
-			if (!*command) {
-				return; 
+	p := db.Fetch(player)
+	if tp_log_commands || Wizard(p.Owner) {
+		switch {
+		case p.flags & (INTERACTIVE | READMODE) == 0:
+			if command == "" {
+				return
 			}
-			log_command("%s%s%s%s(%d) in %s(%d):%s %s",
-						Wizard(db.Fetch(player).owner) ? "WIZ: " : "",
-						(Typeof(player) != TYPE_PLAYER) ? db.Fetch(player).name : "",
-						(Typeof(player) != TYPE_PLAYER) ? " owned by " : "",
-						db.Fetch(db.Fetch(player).owner).name, (int) player,
-						db.Fetch(db.Fetch(player).location).name,
-						(int) db.Fetch(player).location, " ", command);
-		} else {
-			if (tp_log_interactive) {
-				log_command("%s%s%s%s(%d) in %s(%d):%s %s",
-							Wizard(db.Fetch(player).owner) ? "WIZ: " : "",
-							(Typeof(player) != TYPE_PLAYER) ? db.Fetch(player).name : "",
-							(Typeof(player) != TYPE_PLAYER) ? " owned by " : "",
-							db.Fetch(db.Fetch(player).owner).name, (int) player,
-							db.Fetch(db.Fetch(player).location).name,
-							(int) db.Fetch(player).location,
-							(db.Fetch(player).flags & (READMODE) != 0) ? " [READ] " : " [INTERP] ", command);
+			if Typeof(player) == TYPE_PLAYER {
+				if Wizard(p.Owner) {
+					log_command("WIZ: %s(%d) in %s(%d): %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				} else {
+					log_command("%s(%d) in %s(%d): %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				}
+			} else {
+				if Wizard(p.Owner) {
+					log_command("WIZ: %s owned by %s(%d) in %s(%d): %s", p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				} else {
+					log_command("%s owned by %s(%d) in %s(%d): %s", p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				}
+			}
+		case tp_log_interactive:
+			if Typeof(player) == TYPE_PLAYER {
+				if Wizard(p.Owner) {
+					if p.flags & READMODE != 0 {
+						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					} else {
+						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					}
+				} else {
+					if p.flags & READMODE != 0 {
+						log_command("%s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					} else {
+						log_command("%s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					}
+				}
+			} else {
+				if Wizard(p.Owner) {
+					if p.flags & READMODE != 0 {
+						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					} else {
+						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					}
+				} else {
+					if p.flags & READMODE != 0 {
+						log_command("%s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					} else {
+						log_command("%s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					}
+				}
 			}
 		}
 	}
 
 	if db.Fetch(player).flags & INTERACTIVE {
-		interactive(descr, player, command);
-		return;
+		interactive(descr, player, command)
+		return
 	}
-	/* eat leading whitespace */
-	while (*command && unicode.IsSpace(*command))
-		command++;
+	command = strings.TrimSpace(command)
 
 	/* Disable null command once past READ line */
-	if (!*command)
-		return;
-
+	if command == "" {
+		return
+	}
 	/* check for single-character commands */
-	if (!tp_enable_prefix) {
-		if (*command == SAY_TOKEN) {
-			pbuf = fmt.Sprintf("say %s", command + 1);
-			command = &pbuf[0];
-		} else if (*command == POSE_TOKEN) {
-			pbuf = fmt.Sprintf("pose %s", command + 1);
-			command = &pbuf[0];
-		} else if (*command == EXIT_DELIMITER) {
-			pbuf = fmt.Sprintf("delimiter %s", command + 1);
-			command = &pbuf[0];
+	if !tp_enable_prefix {
+		switch command[0] {
+		case SAY_TOKEN:
+			pbuf = fmt.Sprintf("say %s", command[1:])
+			command = &pbuf[0]
+		case POSE_TOKEN:
+			pbuf = fmt.Sprintf("pose %s", command[1:])
+			command = &pbuf[0]
+		case EXIT_DELIMITER:
+			pbuf = fmt.Sprintf("delimiter %s", command[1:])
+			command = &pbuf[0]
 		}
 	}
 
 	/* profile how long command takes. */
-	gettimeofday(&starttime, NULL);
+	starttime := time.Now()
 
 	/* if player is a wizard, and uses overide token to start line... */
 	/* ... then do NOT run actions, but run the command they specify. */
-	if !TrueWizard(db.Fetch(player).owner) && command[0] == OVERIDE_TOKEN {
-		if (can_move(descr, player, command, 0)) {
+	if !TrueWizard(db.Fetch(player).Owner) && command[0] == OVERIDE_TOKEN {
+		if can_move(descr, player, command, 0) {
 			do_move(descr, player, command, 0);	/* command is exact match for exit */
 			match_args = ""
 			match_cmdname = ""
@@ -509,20 +476,20 @@ process_command(int descr, dbref player, char *command)
 				default:
 					goto bad_pre_command;
 				}
-				if (can_move(descr, player, command, 0)) {
+				if can_move(descr, player, command, 0) {
 					do_move(descr, player, command, 0);	/* command is exact match for exit */
 					match_args = ""
 					match_cmdname = ""
 				} else {
-					goto bad_pre_command;
+					goto bad_pre_command
 				}
 			} else {
-				goto bad_pre_command;
+				goto bad_pre_command
 			}
 		}
 	} else {
 	  bad_pre_command:
-		if TrueWizard(db.Fetch(player).owner && (ommand == OVERIDE_TOKEN) {
+		if TrueWizard(db.Fetch(player).Owner && (ommand == OVERIDE_TOKEN) {
 			command++
 		}
 		full_command = strcpyn(xbuf, sizeof(xbuf), command);
@@ -1220,30 +1187,29 @@ process_command(int descr, dbref player, char *command)
 				}
 			}	
 			notify(player, tp_huh_mesg);
-			if tp_log_failed_commands && !controls(player, db.Fetch(player).location) {
-				log_status("HUH from %s(%d) in %s(%d)[%s]: %s %s", db.Fetch(player).name, player, db.Fetch(db.Fetch(player).location).name, db.Fetch(player).location, db.Fetch(db.Fetch(db.Fetch(player).location).owner).name, command, full_command);
+			if tp_log_failed_commands && !controls(player, db.Fetch(player).Location) {
+				log_status("HUH from %s(%d) in %s(%d)[%s]: %s %s", db.Fetch(player).name, player, db.Fetch(db.Fetch(player).Location).name, db.Fetch(player).Location, db.Fetch(db.Fetch(db.Fetch(player).Location).Owner).name, command, full_command);
 			}
 		}
 	}
 
 	/* calculate time command took. */
-	gettimeofday(&endtime, NULL);
-	if (starttime.tv_usec > endtime.tv_usec) {
-		endtime.tv_usec += 1000000;
-		endtime.tv_sec -= 1;
-	}
-	endtime.tv_usec -= starttime.tv_usec;
-	endtime.tv_sec -= starttime.tv_sec;
-
-	totaltime = endtime.tv_sec + (endtime.tv_usec * 1.0e-6);
-	if (totaltime > (tp_cmd_log_threshold_msec / 1000.0)) {
-		log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s%s%s%s(%d) in %s(%d):%s %s",
-					totaltime, ctime((time_t *)&starttime.tv_sec),
-					Wizard(db.Fetch(player).owner) ? "WIZ: " : "",
-					(Typeof(player) != TYPE_PLAYER) ? db.Fetch(player).name : "",
-					(Typeof(player) != TYPE_PLAYER) ? " owned by " : "",
-					db.Fetch(db.Fetch(player).owner).name, (int) player,
-					db.Fetch(db.Fetch(player).location).name,
-					(int) db.Fetch(player).location, " ", command);
+	endtime := time.Now()
+	totaltime = endtime - starttime
+	if totaltime > (tp_cmd_log_threshold_msec / 1000.0) {
+		p := db.Fetch(player)
+		if Typeof(player) == TYPE_PLAYER {
+			if Wizard(p.Owner) {
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+			} else {
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+			}
+		} else {
+			if Wizard(p.Owner) {
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+			} else {
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(player).name, db.Fetch(db.Fetch(player).Owner).name, player, db.Fetch(db.Fetch(player).Location).name, db.Fetch(player).Location, command)
+			}
+		}
 	}
 }

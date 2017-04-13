@@ -843,7 +843,7 @@ func mcp_intern_is_ident(in string) (buf string, ok bool) {
 }
 
 func mcp_intern_is_simplechar(in rune) bool {
-	return in != '*' && in != ':' && in != '\\' && in != '"' && in != ' ' && isprint(in)
+	return in != '*' && in != ':' && in != '\\' && in != '"' && in != ' ' && unicode.IsPrint(in)
 }
 
 func mcp_intern_is_unquoted(in string) (buf string, ok int) {

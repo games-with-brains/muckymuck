@@ -1,4 +1,4 @@
-/* $Header: */
+package fbmuck
 
 /*
  * This file includes the logic needed to parse the start of a database file and
@@ -12,15 +12,7 @@
  *
 */
 
-#include "copyright.h"
-#include "config.h"
-
-#include "db_header.h"
-#include "params.h"
-
-static int
-do_peek(FILE * f)
-{
+func do_peek(f *FILE) int {
 	int peekch;
 
 	ungetc((peekch = getc(f)), f);
@@ -28,9 +20,7 @@ do_peek(FILE * f)
 	return (peekch);
 }
 
-dbref
-getref(FILE * f)
-{
+func getref(f *FILE) dbref {
 	static char buf[BUFFER_LEN];
 	int peekch;
 

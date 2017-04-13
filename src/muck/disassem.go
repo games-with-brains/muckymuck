@@ -1,14 +1,14 @@
 package fbmuck
 
 func disassemble(player, program dbref) {
-	curr := db.Fetch(program).sp.(program_specific).code
+	curr := db.Fetch(program).(Program).code
 	codestart := curr
 	if len(curr) == 0 {
 		notify(player, "Nothing to disassemble!")
 		return
 	}
 	var buf string
-	for i, v := range db.Fetch(program).sp.(program_specific).code {
+	for i, v := range db.Fetch(program).(Program).code {
 		switch op := v.data.(type) {
 		case PROG_PRIMITIVE:
 			if op >= BASE_MIN && op <= BASE_MAX {

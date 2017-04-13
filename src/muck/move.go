@@ -2,70 +2,70 @@ package fbmuck
 
 func moveto(what, where dbref) {
 	var loc dbref
-
-	if loc = db.Fetch(what).location; loc != NOTHING {
-		db.Fetch(loc).contents = remove_first(db.Fetch(loc).contents, what)
+	if loc = db.Fetch(what).Location; loc != NOTHING {
+		db.Fetch(loc).Contents = remove_first(db.Fetch(loc).Contents, what)
 		db.Fetch(loc).flags |= OBJECT_CHANGED
 	}
 
+	o := db.Fetch(what)
 	switch where {
 	case NOTHING:
-		db.Fetch(what).location = NOTHING
-		db.Fetch(what).flags |= OBJECT_CHANGED
+		o.Location = NOTHING
+		o.flags |= OBJECT_CHANGED
 		return					/* NOTHING doesn't have contents */
 	case HOME:
-		switch Typeof(what) {
-		case TYPE_PLAYER:
-			where = db.Fetch(what).sp.(player_specific).home
-		case TYPE_THING:
-			where = db.Fetch(what).sp.(player_specific).home
+		switch o := o.(type) {
+		case Player:
+			where = o.home
+		case Object:
+			where = o.home
 			if parent_loop_check(what, where) {
-				where = db.Fetch(db.Fetch(what).owner).sp.(player_specific).home
+				where = db.FetchPlayer(o.Owner).home
 				if parent_loop_check(what, where) {
 					where = dbref(tp_player_start)
 				}
 			}
-		case TYPE_ROOM:
+		case Room:
 			where = GLOBAL_ENVIRONMENT
-		case TYPE_PROGRAM:
-			where = db.Fetch(what).owner
+		case Program:
+			where = o.Owner
 		}
 	default:
 		if parent_loop_check(what, where) {
-			switch Typeof(what) {
-			case TYPE_PLAYER:
-				where = db.Fetch(what).sp.(player_specific).home
-			case TYPE_THING:
-				where = db.Fetch(what).sp.(player_specific).home
+			switch o := o.(type) {
+			case Player:
+				where = o.home
+			case Object:
+				where = o.home
 				if parent_loop_check(what, where) {
-					where = db.Fetch(db.Fetch(what).owner).sp.(player_specific).home
+					where = db.FetchPlayer(o.Owner).home
 					if parent_loop_check(what, where) {
-						where = (dbref) tp_player_start
+						where = tp_player_start
 					}
 				}
-			case TYPE_ROOM:
+			case Room:
 				where = GLOBAL_ENVIRONMENT
-			case TYPE_PROGRAM:
-				where = db.Fetch(what).owner
+			case Program:
+				where = o.Owner
 			}
 		}
 	}
-	db.Fetch(what).next = db.Fetch(where).contents
-	db.Fetch(what).flags |= OBJECT_CHANGED
-	db.Fetch(where).contents = what
-	db.Fetch(where).flags |= OBJECT_CHANGED
-	db.Fetch(what).location = where
-	db.Fetch(what).flags |= OBJECT_CHANGED
+	dest := db.Fetch(where)
+	o.next = dest.Contents
+	dest.Contents = what
+	dest.flags |= OBJECT_CHANGED
+	o.Location = where
+	o.flags |= OBJECT_CHANGED
 }
 
 func send_contents(int descr, dbref loc, dbref dest) {
-	first := db.Fetch(loc).contents
-	db.Fetch(loc).contents = NOTHING
+	first := db.Fetch(loc).Contents
+	db.Fetch(loc).Contents = NOTHING
 	db.Fetch(loc).flags |= OBJECT_CHANGED
 
 	/* blast locations of everything in list */
 	for rest := first; rest != NOTHING; rest = db.Fetch(rest).next {
-		db.Fetch(rest).location = NOTHING
+		db.Fetch(rest).Location = NOTHING
 		db.Fetch(rest).flags |= OBJECT_CHANGED
 	}
 
@@ -80,9 +80,9 @@ func send_contents(int descr, dbref loc, dbref dest) {
 			}
 			if tp_thing_movement && Typeof(first) == TYPE_THING {
 				if parent_loop_check(first, where) {
-					enter_room(descr, first, loc, db.Fetch(first).location)
+					enter_room(descr, first, loc, db.Fetch(first).Location)
 				} else {
-					enter_room(descr, first, where, db.Fetch(first).location)
+					enter_room(descr, first, where, db.Fetch(first).Location)
 				}
 			} else {
 				if parent_loop_check(first, where) {
@@ -94,14 +94,14 @@ func send_contents(int descr, dbref loc, dbref dest) {
 		}
 		first = rest
 	}
-	db.Fetch(loc).contents = reverse(db.Fetch(loc).contents)
+	db.Fetch(loc).Contents = reverse(db.Fetch(loc).Contents)
 	db.Fetch(loc).flags |= OBJECT_CHANGED
 }
 
 func maybe_dropto(descr int, loc, dropto dbref) {
 	if loc != dropto {
 		/* check for players */
-		for thing := db.Fetch(loc).contents; thing != NOTHING; thing = db.Fetch(thing).next {
+		for thing := db.Fetch(loc).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
 			/* Make zombies act like players for dropto processing */
 			if Typeof(thing) == TYPE_PLAYER || (Typeof(thing) == TYPE_THING && db.Fetch(thing).flags & ZOMBIE != 0) {
 				return
@@ -141,7 +141,7 @@ location_loop_check(dbref source, dbref dest)
   pstack[1] = dest;
 
   while (level < MAX_PARENT_DEPTH) {
-    dest = db.Fetch(dest).location
+    dest = db.Fetch(dest).Location
     if (dest == NOTHING) {
       return 0;
     }
@@ -163,108 +163,90 @@ location_loop_check(dbref source, dbref dest)
   return 1;
 }
 
-int
-parent_loop_check(dbref source, dbref dest)
-{   
-  unsigned int level = 0;
-  unsigned int place = 0;
-  dbref pstack[MAX_PARENT_DEPTH+2];
+func parent_loop_check(source, dest dbref) bool {   
+	if dest == HOME {
+		switch source := db.Fetch(source).(type) {
+		case Player:
+			dest = source.home
+		case Object:
+			dest = source.home
+		case Room:
+			dest = GLOBAL_ENVIRONMENT
+		case Program:
+			dest = source.Owner
+		default:
+			return true
+		}
+	}
 
-  if (dest == HOME) {
-		  switch Typeof(source) {
-		  case TYPE_PLAYER:
-			  dest = db.Fetch(source).sp.(player_specific).home
-		  case TYPE_THING:
-			  dest = db.Fetch(source).sp.(player_specific).home
-		  case TYPE_ROOM:
-			  dest = GLOBAL_ENVIRONMENT;
-		  case TYPE_PROGRAM:
-			  dest = db.Fetch(source).owner
-		  default:
-			  return 1;
-	  }
-  }
-  if (location_loop_check(source, dest)) {
-	  return 1;
-  }
+	switch {
+	case location_loop_check(source, dest):
+		return true
+	case source == dest:
+		return true
+	}
 
-  if (source == dest) {
-    return 1;
-  }
-  pstack[0] = source;
-  pstack[1] = dest;
-
-  while (level < MAX_PARENT_DEPTH) {
-    /* if (Typeof(dest) == TYPE_THING) {
-         dest = db.Fetch(dest).sp.(player_specific).home
-       } */
-    dest = getparent(dest);
-    if (dest == NOTHING) {
-      return 0;
-    }
-    if (dest == HOME) {        /* We should never get this, either. */
-      return 1;
-    }
-    if (dest == (dbref) 0) {   /* Reached the top of the chain. */
-      return 0;
-    }
-    /* Check to see if we've found this item before.. */
-    for (place = 0; place < (level+2); place++) {
-      if (pstack[place] == dest) {
-        return 1;
-      }
-    }
-    pstack[level+2] = dest;
-    level++;
-  }
-  return 1;
+	pstack := []dbref{ source, dest }
+	for len(pstack) < MAX_PARENT_DEPTH {
+		switch dest = getparent(dest); {
+		case dest == NOTHING:
+			return false
+		case dest == HOME:
+			/* We should never get this, either. */
+			return true
+		case dest == 0:
+			/* Reached the top of the chain. */
+			return false
+		default:
+			/* Check to see if we've found this item before.. */
+			for place := 0; place < len(pstack) + 2; place++ {
+				if pstack[place] == dest {
+					return true
+				}
+			}
+			pstack = append(pstack, dest)
+		}
+	}
+	return true
 }
 
 static int donelook = 0;
-func enter_room(int descr, dbref player, dbref loc, dbref exit) {
-	dbref old;
-	dbref dropto;
-	char buf[BUFFER_LEN];
+func enter_room(descr int, player, loc, exit dbref) {
+	var old, dropto dbref
 
+	p := db.Fetch(player)
 	if loc == HOME {
-		loc = db.Fetch(player).sp.(player_specific).home
+		loc = p.home
 	}
 
 	/* get old location */
-	old = db.Fetch(player).location
+	old = p.Location
 
 	if parent_loop_check(player, loc) {
-	  switch (Typeof(player)) {
-	  case TYPE_PLAYER:
-	    loc = db.Fetch(player).sp.(player_specific).home
-	    break;
-	  case TYPE_THING:
-	    loc = db.Fetch(player).sp.(player_specific).home
-	    if parent_loop_check(player, loc) {
-	      loc = db.Fetch(db.Fetch(player).owner).sp.(player_specific).home
-	      if parent_loop_check(player, loc) {
-			  loc = (dbref) tp_player_start;
-		  }
-	    }
-	    break;
-	  case TYPE_ROOM:
-	    loc = GLOBAL_ENVIRONMENT;
-	    break;
-	  case TYPE_PROGRAM:
-	    loc = db.Fetch(player).owner
-	    break;
-	  }
+		switch p := p.(type) {
+		case Player:
+			loc = p.home
+		case Object:
+			loc = p.home
+			if parent_loop_check(player, loc) {
+				loc = db.FetchPlayer(p.Owner).home
+				if parent_loop_check(player, loc) {
+					loc = tp_player_start
+				}
+			}
+		case Room:
+			loc = GLOBAL_ENVIRONMENT
+		case Program:
+			loc = p.Owner
+		}
 	}
 
 	/* check for self-loop */
 	/* self-loops don't do move or other player notification */
 	/* but you still get autolook and penny check */
-	if (loc != old) {
-
-		/* go there */
-		moveto(player, loc);
-
-		if (old != NOTHING) {
+	if loc != old {
+		moveto(player, loc)
+		if old != NOTHING {
 			propqueue(descr, player, old, exit, player, NOTHING, "_depart", "Depart", 1, 1);
 			envpropqueue(descr, player, old, exit, old, NOTHING, "_depart", "Depart", 1, 1);
 
@@ -272,17 +254,16 @@ func enter_room(int descr, dbref player, dbref loc, dbref exit) {
 			envpropqueue(descr, player, old, exit, old, NOTHING, "_odepart", "Odepart", 1, 0);
 
 			/* notify others unless DARK */
-			if !Dark(old) && !Dark(player) && (Typeof(player) != TYPE_THING || ((Typeof(player) == TYPE_THING) && (db.Fetch(player).flags & (ZOMBIE | VEHICLE) != 0))) && (Typeof(exit) != TYPE_EXIT || !Dark(exit)) {
+			if !Dark(old) && !Dark(player) && (!IsThing(player) || (IsThing(player) && p.flags & (ZOMBIE | VEHICLE) != 0)) && (Typeof(exit) != TYPE_EXIT || !Dark(exit)) {
 #if !defined(QUIET_MOVES)
-				buf = fmt.Sprintf("%s has left.", db.Fetch(player).name)
-				notify_except(db.Fetch(old).contents, player, buf, player)
+				notify_except(db.Fetch(old).Contents, player, fmt.Sprintf("%s has left.", p.name), player)
 #endif
 			}
 		}
 
 		/* if old location has STICKY dropto, send stuff through it */
-		if old != NOTHING && Typeof(old) == TYPE_ROOM {
-			if dropto = db.Fetch(old).sp.(dbref)); dropto != NOTHING && db.Fetch(old).flags & STICKY != 0 {
+		if old != NOTHING && IsRoom(old) {
+			if dropto = db.Fetch(old).(dbref)); dropto != NOTHING && db.Fetch(old).flags & STICKY != 0 {
 				maybe_dropto(descr, old, dropto)
 			}
 		}
@@ -290,59 +271,58 @@ func enter_room(int descr, dbref player, dbref loc, dbref exit) {
 		/* tell other folks in new location if not DARK */
 		if !Dark(loc) && !Dark(player) && ((Typeof(player) != TYPE_THING) || (Typeof(player) == TYPE_THING && db.Fetch(player).flags & (ZOMBIE | VEHICLE) != 0)) && (Typeof(exit) != TYPE_EXIT || !Dark(exit)) {
 #if !defined(QUIET_MOVES)
-			buf = fmt.Sprintf("%s has arrived.", db.Fetch(player).name)
-			notify_except(db.Fetch(loc).contents, player, buf, player);
+			notify_except(db.Fetch(loc).Contents, player, fmt.Sprintf("%s has arrived.", p.name), player)
 #endif
 		}
 	}
 	/* autolook */
-	if Typeof(player) != TYPE_THING || (Typeof(player) == TYPE_THING && db.Fetch(player).flags & (ZOMBIE | VEHICLE) != 0) {
+	if !IsThing(player) || (IsThing(player) && p.flags & (ZOMBIE | VEHICLE) != 0) {
 		if donelook < 8 {
-			donelook++;
-			if (can_move(descr, player, tp_autolook_cmd, 1)) {
-				do_move(descr, player, tp_autolook_cmd, 1);
+			donelook++
+			if can_move(descr, player, tp_autolook_cmd, 1) {
+				do_move(descr, player, tp_autolook_cmd, 1)
 			} else {
-				do_look_around(descr, player);
+				do_look_around(descr, player)
 			}
-			donelook--;
+			donelook--
 		} else {
-			notify(player, "Look aborted because of look action loop.");
+			notify(player, "Look aborted because of look action loop.")
 		}
 	}
 
-	if (tp_penny_rate != 0) {
+	if tp_penny_rate != 0 {
 		/* check for pennies */
-		if !controls(player, loc) && get_property_value(db.Fetch(player).owner, MESGPROP_VALUE) <= tp_max_pennies && RANDOM() % tp_penny_rate == 0 {
+		if !controls(player, loc) && get_property_value(p.Owner, MESGPROP_VALUE) <= tp_max_pennies && RANDOM() % tp_penny_rate == 0 {
 			notify_fmt(player, "You found one %s!", tp_penny)
-			add_property(db.Fetch(player).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(player).owner, MESGPROP_VALUE) + 1)
-			db.Fetch(db.Fetch(player).owner).flags |= OBJECT_CHANGED
+			add_property(p.Owner, MESGPROP_VALUE, nil, get_property_value(p.Owner, MESGPROP_VALUE) + 1)
+			db.Fetch(p.Owner).flags |= OBJECT_CHANGED
 		}
 	}
 
-	if (loc != old) {
-		envpropqueue(descr, player, loc, exit, player, NOTHING, "_arrive", "Arrive", 1, 1);
-		envpropqueue(descr, player, loc, exit, player, NOTHING, "_oarrive", "Oarrive", 1, 0);
+	if loc != old {
+		envpropqueue(descr, player, loc, exit, player, NOTHING, "_arrive", "Arrive", 1, 1)
+		envpropqueue(descr, player, loc, exit, player, NOTHING, "_oarrive", "Oarrive", 1, 0)
 	}
 }
 
 func send_home(descr int, thing dbref, puppethome int) {
-	switch Typeof(thing) {
-	case TYPE_PLAYER:
+	switch o := db.Fetch(thing).(type) {
+	case Player:
 		/* send his possessions home first! */
 		/* that way he sees them when he arrives */
 		send_contents(descr, thing, HOME)
-		enter_room(descr, thing, db.Fetch(thing).sp.(player_specific).home, db.Fetch(thing).location)
-	case TYPE_THING:
+		enter_room(descr, thing, o.home, o.Location)
+	case Object:
 		if puppethome {
 			send_contents(descr, thing, HOME)
 		}
-		if tp_thing_movement || db.Fetch(thing).flags & (ZOMBIE | LISTENER) != 0 {
-			enter_room(descr, thing, db.Fetch(thing).sp.(player_specific).home, db.Fetch(thing).location)
+		if tp_thing_movement || o.flags & (ZOMBIE | LISTENER) != 0 {
+			enter_room(descr, thing, o.home, o.Location)
 		} else {
 			moveto(thing, HOME)		/* home */
 		}
-	case TYPE_PROGRAM:
-		moveto(thing, db.Fetch(thing).owner)
+	case Program:
+		moveto(thing, o.Owner)
 	}
 }
 
@@ -351,7 +331,7 @@ func can_move(descr int, player dbref , direction string, lev int) (r bool) {
 		r = true
 	} else {
 		/* otherwise match on exits */
-		md := NewMatch(descr, player, direction, TYPE_EXIT)
+		md := NewMatch(descr, player, direction, IsExit)
 		md.level = lev
 		md.MatchAllExits()
 		r = md.LastMatchResult() != NOTHING
@@ -380,80 +360,86 @@ func trigger(int descr, dbref player, dbref exit, int pflag) {
 	sobjact = 0;
 
 	var succ bool
-	for i, dest := range db.Fetch(exit).sp.exit.dest {
+	e := db.Fetch(exit).(Exit)
+	p := db.FetchPlayer(player)
+	for i, dest := range e.Destinations {
 		if dest == HOME {
-			dest = db.Fetch(player).sp.(player_specific).home
+			dest = p.home
 
 			/* fix #1112946 temporarily -- premchai21 */
-			if Typeof(dest) == TYPE_THING {
-				notify(player, "That would be an undefined operation.");
-				continue;
+			if IsThing(dest) {
+				notify(player, "That would be an undefined operation.")
+				continue
 			}
 		}
-		switch Typeof(dest) {
-		case TYPE_ROOM:
-			if pflag {
-				if (parent_loop_check(player, dest)) {
-					notify(player, "That would cause a paradox.");
-					break;
-				}
-				if !Wizard(db.Fetch(player).owner) && Typeof(player) == TYPE_THING && db.Fetch(dest).flags & ZOMBIE != 0 {
-					notify(player, "You can't go that way.");
-					break;
-				}
-				if db.Fetch(player).flags & VEHICLE != 0 && (db.Fetch(dest).flags | db.Fetch(exit).flags) & VEHICLE != 0 {
-					notify(player, "You can't go that way.");
-					break;
-				}
+		switch dest := db.Fetch(dest).(type) {
+		case Room:
+			switch {
+			case !pflag:
+			case parent_loop_check(player, dest):
+				notify(player, "That would cause a paradox.")
+				break
+			case !Wizard(p.Owner) && IsThing(player) && dest.flags & ZOMBIE != 0:
+				notify(player, "You can't go that way.")
+				break
+			case p.flags & VEHICLE != 0 && (dest.flags | e.flags) & VEHICLE != 0:
+				notify(player, "You can't go that way.")
+				break
+			default:
 				if get_property_class(exit, MESGPROP_DROP) {
 					exec_or_notify_prop(descr, player, exit, MESGPROP_DROP, "(@Drop)")
 				}
 				if get_property_class(exit, MESGPROP_ODROP) && !Dark(player) {
-					parse_oprop(descr, player, dest, exit, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
+					parse_oprop(descr, player, dest, exit, MESGPROP_ODROP, p.name, "(@Odrop)")
 				}
 				enter_room(descr, player, dest, exit)
 				succ = true
 			}
-		case TYPE_THING:
-			if dest == db.Fetch(exit).location && db.Fetch(dest).flags & VEHICLE != 0 {
-				if pflag {
-					if parent_loop_check(player, dest) {
-						notify(player, "That would cause a paradox.")
-						break
-					}
+		case Object:
+			if dest == e.Location && dest.flags & VEHICLE != 0 {
+				switch {
+				case !pflag:
+				case parent_loop_check(player, dest):
+					notify(player, "That would cause a paradox.")
+					break
+				default:
 					if get_property_class(exit, MESGPROP_DROP) {
 						exec_or_notify_prop(descr, player, exit, MESGPROP_DROP, "(@Drop)")
 					}
 					if get_property_class(exit, MESGPROP_ODROP) && !Dark(player) {
-						parse_oprop(descr, player, dest, exit, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
+						parse_oprop(descr, player, dest, exit, MESGPROP_ODROP, p.name, "(@Odrop)")
 					}
 					enter_room(descr, player, dest, exit)
 					succ = true
 				}
 			} else {
-				if TYPEOF(db.Fetch(exit).location) == TYPE_THING {
-					if parent_loop_check(dest, db.Fetch(db.Fetch(exit).location).location) {
+				if IsThing(e.Location) {
+					switch {
+					case parent_loop_check(dest, db.Fetch(e.Location).Location):
 						notify(player, "That would cause a paradox.")
 						break
-					}
-					if tp_thing_movement {
-						enter_room(descr, dest, db.Fetch(db.Fetch(exit).location).location, exit);
-					} else {
-						moveto(dest, db.Fetch(db.Fetch(exit).location).location)
-					}
-					if db.Fetch(exit).flags & STICKY == 0 {
-						/* send home source object */
-						sobjact = 1
+					default:
+						if tp_thing_movement {
+							enter_room(descr, dest, db.Fetch(e.Location).Location, exit);
+						} else {
+							moveto(dest, db.Fetch(e.Location).Location)
+						}
+						if e.flags & STICKY == 0 {
+							/* send home source object */
+							sobjact = 1
+						}
 					}
 				} else {
-					if parent_loop_check(dest, db.Fetch(exit).location) {
+					switch {
+					case parent_loop_check(dest, e.Location):
 						notify(player, "That would cause a paradox.")
 						break
-					}
-					if tp_thing_movement {
-						enter_room(descr, dest, db.Fetch(exit).location, exit)
-					} else {
-						moveto(dest, db.Fetch(exit).location)
+					default:
+						if tp_thing_movement {
+							enter_room(descr, dest, e.Location, exit)
+						} else {
+							moveto(dest, e.Location)
+						}
 					}
 				}
 				if get_property_class(exit, MESGPROP_SUCC) {
@@ -461,42 +447,42 @@ func trigger(int descr, dbref player, dbref exit, int pflag) {
 				}
 			}
 			break
-		case TYPE_EXIT:		/* It's a meta-link(tm)! */
+		case Exit:		/* It's a meta-link(tm)! */
 			ts_useobject(dest)
-			trigger(descr, player, db.Fetch(exit).sp.exit.dest[i], 0)
+			trigger(descr, player, e.Destinations[i], 0)
 			if get_property_class(exit, MESGPROP_SUCC) {
 				succ = true
 			}
 			break
-		case TYPE_PLAYER:
-			if pflag && db.Fetch(dest).location != NOTHING {
+		case Player:
+			if pflag && dest.Location != NOTHING {
 				if parent_loop_check(player, dest) {
 					notify(player, "That would cause a paradox.")
 					break
 				}
 				succ = true
-				if db.Fetch(dest).flags & JUMP_OK != 0 {
+				if dest.flags & JUMP_OK != 0 {
 					if get_property_class(exit, MESGPROP_DROP) {
 						exec_or_notify_prop(descr, player, exit, MESGPROP_DROP, "(@Drop)")
 					}
 					if get_property_class(exit, MESGPROP_ODROP) && !Dark(player) {
-						parse_oprop(descr, player, db.Fetch(dest).location, exit, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
+						parse_oprop(descr, player, dest.Location, exit, MESGPROP_ODROP, p.name, "(@Odrop)")
 					}
-					enter_room(descr, player, db.Fetch(dest).location, exit)
+					enter_room(descr, player, dest.Location, exit)
 				} else {
 					notify(player, "That player does not wish to be disturbed.")
 				}
 			}
 			break
-		case TYPE_PROGRAM:
-			if tmpfr := interp(descr, player, db.Fetch(player).location, dest, exit, FOREGROUND, STD_REGUID, 0); tmpfr != nil {
+		case Program:
+			if tmpfr := interp(descr, player, p.Location, dest, exit, FOREGROUND, STD_REGUID, 0); tmpfr != nil {
 				interp_loop(player, dest, tmpfr, false)
 			}
 			return
 		}
 	}
 	if sobjact {
-		send_home(descr, db.Fetch(exit).location, 0)
+		send_home(descr, e.Location, 0)
 	}
 	if !succ && pflag {
 		notify(player, "Done.")
@@ -507,8 +493,8 @@ func do_move(descr int, player dbref, direction string, lev int) {
 	if tp_allow_home && direction == "home" {
 		/* send him home */
 		/* but steal all his possessions */
-		if loc := db.Fetch(player).location; loc != NOTHING {
-			notify_except(db.Fetch(loc).contents, player, fmt.Sprintf("%s goes home.", db.Fetch(player).name), player)
+		if loc := db.Fetch(player).Location; loc != NOTHING {
+			notify_except(db.Fetch(loc).Contents, player, fmt.Sprintf("%s goes home.", db.Fetch(player).name), player)
 		}
 		/* give the player the messages */
 		notify(player, "There's no place like home...")
@@ -518,7 +504,7 @@ func do_move(descr int, player dbref, direction string, lev int) {
 		send_home(descr, player, 1)
 	} else {
 		/* find the exit */
-		md := NewMatchCheckKeys(descr, player, direction, TYPE_EXIT)
+		md := NewMatchCheckKeys(descr, player, direction, IsExit)
 		md.level = lev
 		md.MatchAllExits()
 		switch exit := md.MatchResult(); exit {
@@ -530,7 +516,7 @@ func do_move(descr int, player dbref, direction string, lev int) {
 			/* we got one */
 			/* check to see if we got through */
 			ts_useobject(exit)
-			loc := db.Fetch(player).location
+			loc := db.Fetch(player).Location
 			if can_doit(descr, player, exit, "You can't go that way.") {
 				trigger(descr, player, exit, 1)
 			}
@@ -539,8 +525,8 @@ func do_move(descr int, player dbref, direction string, lev int) {
 }
 
 func do_leave(descr int, player dbref) {
-	loc := db.Fetch(player).location
-	dest := db.Fetch(loc).location
+	loc := db.Fetch(player).Location
+	dest := db.Fetch(loc).Location
 	switch {
 	case loc == NOTHING, Typeof(loc) == TYPE_ROOM:
 		notify(player, "You can't go that way.")
@@ -560,19 +546,19 @@ func do_get(descr int, player dbref, what, obj string) {
 	dbref thing, cont;
 	int cando;
 
-	md := NewMatchCheckKeys(descr, player, what, TYPE_THING)
+	md := NewMatchCheckKeys(descr, player, what, IsThing)
 	md.MatchNeighbor()
 	md.MatchPossession()
-	if Wizard(db.Fetch(player).owner) {
+	if Wizard(db.Fetch(player).Owner) {
 		md.MatchAbsolute();	/* the wizard has long fingers */
 	}
 
 	if thing = md.NoisyMatchResult(); thing != NOTHING {
 		cont = thing
 		if (obj && *obj) {
-			md := NewMatchCheckKeys(descr, player, obj, TYPE_THING)
+			md := NewMatchCheckKeys(descr, player, obj, IsThing)
 			md.RMatch(cont)
-			if Wizard(db.Fetch(player).owner) {
+			if Wizard(db.Fetch(player).Owner) {
 				md.MatchAbsolute();	/* the wizard has long fingers */
 			}
 			if thing = md.NoisyMatchResult(); thing == NOTHING {
@@ -588,14 +574,14 @@ func do_get(descr int, player dbref, what, obj string) {
 			}
 		}
 		if Typeof(player) != TYPE_PLAYER {
-			if Typeof(db.Fetch(thing).location) != TYPE_ROOM {
-				if db.Fetch(player).owner != db.Fetch(thing).owner {
+			if Typeof(db.Fetch(thing).Location) != TYPE_ROOM {
+				if db.Fetch(player).Owner != db.Fetch(thing).Owner {
 					notify(player, "Zombies aren't allowed to be thieves!");
 					return;
 				}
 			}
 		}
-		if db.Fetch(thing).location == player {
+		if db.Fetch(thing).Location == player {
 			notify(player, "You already have that!")
 			return
 		}
@@ -620,7 +606,7 @@ func do_get(descr int, player dbref, what, obj string) {
 			}
 			if (cando) {
 				if (tp_thing_movement && (Typeof(thing) == TYPE_THING)) {
-					enter_room(descr, thing, player, db.Fetch(thing).location)
+					enter_room(descr, thing, player, db.Fetch(thing).Location)
 				} else {
 					moveto(thing, player);
 				}
@@ -638,7 +624,7 @@ func do_drop(descr int, player dbref, name, obj string) {
 	var cont, thing dbref
 	char buf[BUFFER_LEN];
 
-	if loc := db.Fetch(player).location; loc != NOTHING {
+	if loc := db.Fetch(player).Location; loc != NOTHING {
 		md := NewMatch(descr, player, name, NOTYPE)
 		md.MatchPossession()
 		if thing = md.NoisyMatchResult(); thing == NOTHING || thing == AMBIGUOUS {
@@ -649,7 +635,7 @@ func do_drop(descr int, player dbref, name, obj string) {
 			md := NewMatch(descr, player, obj, NOTYPE)
 			md.MatchPossession()
 			md.MatchNeighbor()
-			if Wizard(db.Fetch(player).owner) {
+			if Wizard(db.Fetch(player).Owner) {
 				md.MatchAbsolute()	/* the wizard has long fingers */
 			}
 			if cont = md.NoisyMatchResult(); cont == NOTHING || thing == AMBIGUOUS {
@@ -661,7 +647,7 @@ func do_drop(descr int, player dbref, name, obj string) {
 			ts_useobject(thing);
 		case TYPE_PROGRAM:
 			switch {
-			case db.Fetch(thing).location != player:
+			case db.Fetch(thing).Location != player:
 				/* Shouldn't ever happen. */
 				notify(player, "You can't drop that.")
 			case Typeof(cont) != TYPE_ROOM && Typeof(cont) != TYPE_PLAYER && Typeof(cont) != TYPE_THING:
@@ -676,9 +662,9 @@ func do_drop(descr int, player dbref, name, obj string) {
 				} else {
 					immediate_dropto := TYPEOF(cont) == TYPE_ROOM && db.Fetch(cont).sp != NOTHING && db.Fetch(cont).flags & STICKY == 0
 					if tp_thing_movement && TYPEOF(thing) == TYPE_THING {
-						enter_room(descr, thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont, player)
+						enter_room(descr, thing, immediate_dropto ? db.Fetch(cont).(dbref) : cont, player)
 					} else {
-						moveto(thing, immediate_dropto ? db.Fetch(cont).sp.(dbref) : cont)
+						moveto(thing, immediate_dropto ? db.Fetch(cont).(dbref) : cont)
 					}
 				}
 				switch {
@@ -700,7 +686,7 @@ func do_drop(descr int, player dbref, name, obj string) {
 						parse_oprop(descr, player, loc, thing, MESGPROP_ODROP, db.Fetch(player).name, "(@Odrop)")
 					} else {
 						buf = fmt.Sprintf("%s drops %s.", db.Fetch(player).name, db.Fetch(thing).name)
-						notify_except(db.Fetch(loc).contents, player, buf, player)
+						notify_except(db.Fetch(loc).Contents, player, buf, player)
 					}
 					if get_property_class(loc, MESGPROP_ODROP) {
 						parse_oprop(descr, player, loc, loc, MESGPROP_ODROP, db.Fetch(thing).name, "(@Odrop)")
@@ -717,7 +703,7 @@ func do_recycle(descr int, player dbref, name string) {
 	var buf [BUFFER_LEN]byte
 
 	NoGuest("@recycle", player, func() {
-		md := NewMatch(descr, player, name, TYPE_THING).
+		md := NewMatch(descr, player, name, IsThing).
 			MatchAllExits().
 			MatchNeighbor().
 			MatchPossession().
@@ -726,7 +712,7 @@ func do_recycle(descr int, player dbref, name string) {
 			MatchAbsolute()
 		if thing := md.NoisyMatchResult(); thing != NOTHING {
 			switch {
-			case player != GOD && db.Fetch(thing).owner == GOD:
+			case player != GOD && db.Fetch(thing).Owner == GOD:
 				notify(player, "Only God may reclaim God's property.")
 			case !controls(player, thing):
 				notify(player, "Permission denied. (You don't control what you want to recycle)")
@@ -734,7 +720,7 @@ func do_recycle(descr int, player dbref, name string) {
 				switch Typeof(thing) {
 				case TYPE_ROOM:
 					switch {
-					case db.Fetch(thing).owner != db.Fetch(player).owner:
+					case db.Fetch(thing).Owner != db.Fetch(player).Owner:
 						notify(player, "Permission denied. (You don't control the room you want to recycle)")
 						return
 					case thing == tp_player_start:
@@ -746,22 +732,22 @@ func do_recycle(descr int, player dbref, name string) {
 					}
 				case TYPE_THING:
 					switch {
-					case db.Fetch(thing).owner != db.Fetch(player).owner:
+					case db.Fetch(thing).Owner != db.Fetch(player).Owner:
 						notify(player, "Permission denied. (You can't recycle a thing you don't control)")
 						return
 					case thing == player:
 						/* player may be a zombie or puppet */
 						buf = fmt.Sprintf("%.512s's owner commands it to kill itself.  It blinks a few times in shock, and says, \"But.. but.. WHY?\"  It suddenly clutches it's heart, grimacing with pain..  Staggers a few steps before falling to it's knees, then plops down on it's face.  *thud*  It kicks its legs a few times, with weakening force, as it suffers a seizure.  It's color slowly starts changing to purple, before it explodes with a fatal *POOF*!", db.Fetch(thing).name)
-						notify_except(db.Fetch(db.Fetch(thing).location).contents, thing, buf, player)
-						notify(db.Fetch(player).owner, buf)
-						notify(db.Fetch(player).owner, "Now don't you feel guilty?")
+						notify_except(db.Fetch(db.Fetch(thing).Location).Contents, thing, buf, player)
+						notify(db.Fetch(player).Owner, buf)
+						notify(db.Fetch(player).Owner, "Now don't you feel guilty?")
 					}
 				case TYPE_EXIT:
 					switch {
-					case db.Fetch(thing).owner != db.Fetch(player).owner:
+					case db.Fetch(thing).Owner != db.Fetch(player).Owner:
 						notify(player, "Permission denied. (You may not recycle an exit you don't own)")
 						return
-					case !unset_source(player, db.Fetch(player).location, thing):
+					case !unset_source(player, db.Fetch(player).Location, thing):
 						notify(player, "You can't do that to an exit in another room.")
 						return
 					}
@@ -769,12 +755,12 @@ func do_recycle(descr int, player dbref, name string) {
 					notify(player, "You can't recycle a player!")
 					return
 				case TYPE_PROGRAM:
-					if db.Fetch(thing).owner != db.Fetch(player).owner {
+					if db.Fetch(thing).Owner != db.Fetch(player).Owner {
 						notify(player, "Permission denied. (You can't recycle a program you don't own)")
 						return
 					}
 					SetMLevel(thing, NON_MUCKER)
-					if db.Fetch(thing).sp.(program_specific) != nil && db.Fetch(thing).sp.(program_specific).instances > 0 {
+					if db.Fetch(thing).(Program) != nil && db.Fetch(thing).(Program).instances > 0 {
 						dequeue_prog(thing, 0)
 					}
 				}
@@ -788,12 +774,11 @@ func do_recycle(descr int, player dbref, name string) {
 var depth int = 0
 
 func recycle(descr int, player, thing dbref) {
-	dbref first
-	dbref rest
 	char buf[2048]
 	int looplimit
 
 	depth++
+	var rest dbref
 	if force_level {
 		if thing == force_prog {
 			log_status("SANITYCHECK: Was about to recycle FORCEing object #%d!", thing)
@@ -801,172 +786,177 @@ func recycle(descr int, player, thing dbref) {
 			return
 		}
 
-		var i int
-		if db.Fetch(thing).sp.(program_specific) != nil {
-			i = db.Fetch(thing).sp.(program_specific).instances
-		}
-		if Typeof(thing) == TYPE_PROGRAM && i != 0 {
-			log_status("SANITYCHECK: Trying to recycle a running program (#%d) from FORCE!", thing)
-			notify(player, "ERROR: Cannot recycle a running program from FORCE.")
-			return
+		switch p := db.Fetch(thing).(type) {
+		case Program:
+			if i := p.instances; i != 0 {
+				log_status("SANITYCHECK: Trying to recycle a running program (#%d) from FORCE!", thing)
+				notify(player, "ERROR: Cannot recycle a running program from FORCE.")
+				return
+			}
 		}
 	}
 	/* dequeue any MUF or MPI events for the given object */
 	dequeue_prog(thing, 0)
-	switch thing.(type) {
-	case TYPE_ROOM:
-		if !Wizard(db.Fetch(thing).owner) {
-			add_property(db.Fetch(thing).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(thing).owner, MESGPROP_VALUE) + tp_room_cost)
+	switch o := db.Fetch(thing).(type) {
+	case Room:
+		if !Wizard(o.Owner) {
+			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_room_cost)
 		}
-		db.Fetch(db.Fetch(thing).owner).flags |= OBJECT_CHANGED
-		for first := db.Fetch(thing).exits; first != NOTHING; first = rest {
-			rest = db.Fetch(first).next
-			if db.Fetch(first).location == NOTHING || db.Fetch(first).location == thing {
+		db.Fetch(o.Owner).flags |= OBJECT_CHANGED
+		for first := o.Exits; first != NOTHING; first = rest {
+			p := db.Fetch(first)
+			rest = p.next
+			switch p.Location {
+			case NOTHING, thing:
 				recycle(descr, player, first)
 			}
 		}
-		notify_except(db.Fetch(thing).contents, NOTHING, "You feel a wrenching sensation...", player)
-	case TYPE_THING:
-		if !Wizard(db.Fetch(thing).owner) {
-			add_property(db.Fetch(thing).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(thing).owner, MESGPROP_VALUE) + get_property_value(thing, MESGPROP_VALUE))
+		notify_except(o.Contents, NOTHING, "You feel a wrenching sensation...", player)
+	case Object:
+		if !Wizard(o.Owner) {
+			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + get_property_value(thing, MESGPROP_VALUE))
 		}
-		db.Fetch(db.Fetch(thing).owner).flags |= OBJECT_CHANGED
-		for first := db.Fetch(thing).exits; first != NOTHING; first = rest {
-			rest = db.Fetch(first).next
-			if db.Fetch(first).location == NOTHING || db.Fetch(first).location == thing {
+		db.Fetch(o.Owner).flags |= OBJECT_CHANGED
+		for first := o.Exits; first != NOTHING; first = rest {
+			p := db.Fetch(first)
+			rest = p.next
+			switch p.Location {
+			case NOTHING, thing:
 				recycle(descr, player, first)
 			}
 		}
-	case TYPE_EXIT:
-		if !Wizard(db.Fetch(thing).owner) {
-			add_property(db.Fetch(thing).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(thing).owner, MESGPROP_VALUE) + tp_exit_cost)
+	case Exit:
+		if !Wizard(o.Owner) {
+			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_exit_cost)
 		}
-		if !Wizard(db.Fetch(thing).owner) && len(db.Fetch(thing).sp.exit.dest) != 0 {
-			add_property(db.Fetch(thing).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(thing).owner, MESGPROP_VALUE) + tp_link_cost)
+		if !Wizard(o.Owner) && len(o.Destinations) != 0 {
+			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_link_cost)
 		}
-		db.Fetch(db.Fetch(thing).owner).flags |= OBJECT_CHANGED
-	case TYPE_PROGRAM:
+		db.Fetch(o.Owner).flags |= OBJECT_CHANGED
+	case Program:
 		unlink(fmt.Sprintf("muf/%v.m", thing))
 	}
 
-	for rest := 0; rest < db_top; rest++ {
-		switch TYPEOF(rest) {
-		case TYPE_ROOM:
-			if db.Fetch(rest).sp == thing {
-				db.Fetch(rest).sp = NOTHING
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+	t := db.Fetch(thing)
+	first := t.Contents
+	EachObject(func(obj dbref, o *Object) {
+		switch rest := db.Fetch(rest).(type) {
+		case Room:
+			if o.sp == thing {
+				o.sp = NOTHING
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).exits == thing {
-				db.Fetch(rest).exits = db.Fetch(thing).next
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Exits == thing {
+				o.Exits = t.next
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).owner == thing {
-				db.Fetch(rest).owner = GOD
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Owner == thing {
+				o.Owner = GOD
+				o.flags |= OBJECT_CHANGED
 			}
-		case TYPE_THING:
-			if db.Fetch(rest).sp.(player_specific).home == thing {
-				if db.Fetch(db.Fetch(rest).owner).sp.(player_specific).home == thing {
-					db.Fetch(db.Fetch(rest).owner).sp.(player_specific).home = tp_player_start
+		case Object:
+			if o.home == thing {
+				if p := db.FetchPlayer(o.Owner); p.home == thing {
+					p.home = tp_player_start
 				}
-				loc := db.Fetch(db.Fetch(rest).owner).sp.(player_specific).home
+				loc := db.FetchPlayer(o.Owner).home
 				if parent_loop_check(rest, loc) {
-					loc = db.Fetch(rest).owner
+					loc = o.Owner
 					if parent_loop_check(rest, loc) {
 						loc = dbref(0)
 					}
 				}
-				db.Fetch(rest).sp.(player_specific).home = loc
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+				o.home = loc
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).exits == thing {
-				db.Fetch(rest).exits = db.Fetch(thing).next
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Exits == thing {
+				o.Exits = t.next
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).owner == thing {
-				db.Fetch(rest).owner = GOD
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Owner == thing {
+				o.Owner = GOD
+				o.flags |= OBJECT_CHANGED
 			}
-		case TYPE_EXIT:
+		case Exit:
 			var i, j int
-			for ; i < len(db.Fetch(rest).sp.exit.dest); i++ {
-				if db.Fetch(rest).sp.exit.dest[i] != thing {
-					db.Fetch(rest).sp.exit.dest[j] = db.Fetch(rest).sp.exit.dest[i]
+			for _, v := range o.Destinations {
+				if v != thing {
+					o.Destinations[j] = v
 					j++
 				}
-				if j < len(db.Fetch(rest).sp.exit.dest) {
-					add_property(db.Fetch(rest).owner, MESGPROP_VALUE, nil, get_property_value(db.Fetch(rest).owner, MESGPROP_VALUE) + tp_link_cost)
-					db.Fetch(db.Fetch(rest).owner).flags |= OBJECT_CHANGED
-					for x, _ := range db.Fetch(rest).sp.exit.dest[j:] {
-						db.Fetch(rest).sp.exit.dest[x] = nil
+				if j < len(o.Destinations) {
+					add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_link_cost)
+					db.Fetch(o.Owner).flags |= OBJECT_CHANGED
+					for x, _ := range o.Destinations[j:] {
+						o.Destinations[x] = nil
 					}
-					db.Fetch(rest).sp.exit.dest = db.Fetch(rest).sp.exit.dest[:j]
-					db.Fetch(rest).flags |= OBJECT_CHANGED
+					o.Destinations = o.Destinations[:j]
+					o.flags |= OBJECT_CHANGED
 				}
 			}
-			if db.Fetch(rest).owner == thing {
-				db.Fetch(rest).owner = GOD
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Owner == thing {
+				o.Owner = GOD
+				o.flags |= OBJECT_CHANGED
 			}
-		case TYPE_PLAYER:
-			if TYPEOF(thing) == TYPE_PROGRAM && db.Fetch(rest).flags & INTERACTIVE != 0 && db.Fetch(rest).sp.(player_specific).curr_prog == thing {
-				if db.Fetch(rest).flags & READMODE != 0 {
+		case Player:
+			if IsProgram(thing) && o.flags & INTERACTIVE != 0 && o.(Player).curr_prog == thing {
+				if o.flags & READMODE != 0 {
 					notify(rest, "The program you were running has been recycled.  Aborting program.")
 				} else {
-					db.Fetch(first).sp.(program_specific).first = nil
-					db.Fetch(rest).sp.(player_specific).insert_mode = false
+					db.Fetch(first).(Program).first = nil
+					o.(Player).insert_mode = false
 					db.Fetch(thing).flags &= ~INTERNAL
-					db.Fetch(rest).flags &= ~INTERACTIVE
-					db.Fetch(rest).sp.(player_specific).curr_prog = NOTHING
+					o.flags &= ~INTERACTIVE
+					o.(Player).curr_prog = NOTHING
 					notify(rest, "The program you were editing has been recycled.  Exiting Editor.")
 				}
 			}
-			if db.Fetch(rest).sp.(player_specific).home == thing {
-				db.Fetch(rest).sp.(player_specific).home = tp_player_start
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.home == thing {
+				o.home = tp_player_start
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).exits == thing {
-				db.Fetch(rest).exits = db.Fetch(thing).next
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+			if o.Exits == thing {
+				o.Exits = t.next
+				o.flags |= OBJECT_CHANGED
 			}
-			if db.Fetch(rest).sp.(player_specific).curr_prog == thing {
-				db.Fetch(rest).sp.(player_specific).curr_prog = 0
+			if o.curr_prog == thing {
+				o.curr_prog = 0
 			}
-		case TYPE_PROGRAM:
-			if db.Fetch(rest).owner == thing {
-				db.Fetch(rest).owner = GOD
-				db.Fetch(rest).flags |= OBJECT_CHANGED
+		case IsProgram(rest):
+			if o.Owner == thing {
+				o.Owner = GOD
+				o.flags |= OBJECT_CHANGED
 			}
 		}
-		if db.Fetch(rest).contents == thing {
-			db.Fetch(rest).contents = db.Fetch(thing).next
-			db.Fetch(rest).flags |= OBJECT_CHANGED
+		if o.Contents == thing {
+			o.Contents = t.next
+			o.flags |= OBJECT_CHANGED
 		}
-		if db.Fetch(rest).next == thing {
-			db.Fetch(rest).next = db.Fetch(thing).next
-			db.Fetch(rest).flags |= OBJECT_CHANGED
+		if o.next == thing {
+			o.next = t.next
+			o.flags |= OBJECT_CHANGED
 		}
-	}
+	})
 
-	first = db.Fetch(thing).contents
-	for looplimit = db_top; (looplimit > 0 && first != NOTHING); looplimit-- {
-		if TYPEOF(first) == TYPE_PLAYER || (TYPEOF(first) == TYPE_THING && (db.Fetch(first).flags & (ZOMBIE | VEHICLE) != 0 || tp_thing_movement)) {
-			enter_room(descr, first, HOME, db.Fetch(thing).location)
+	EachObjectInReverse(func(obj dbref, o *Object) bool {
+		if IsPlayer(first) || (IsThing(first) && (db.Fetch(first).flags & (ZOMBIE | VEHICLE) != 0 || tp_thing_movement)) {
+			enter_room(descr, first, HOME, db.Fetch(thing).Location)
 			/* If the room is set to drag players back, there'll be no reasoning with it.  DRAG the player out. */
-			if db.Fetch(first).location == thing {
+			if db.Fetch(first).Location == thing {
 				notify_fmt(player, "Escaping teleport loop!  Going home.")
 				moveto(first, HOME)
 			}
 		} else {
 			moveto(first, HOME)
 		}
-		first = db.Fetch(thing).contents
-	}
+		first = t.Contents
+		return first == NOTHING
+	})
 
 	moveto(thing, NOTHING)
 	depth--
 
-	db_free_object(thing)
+	db.Store(thing, nil)
 	db_clear_object(thing)
-	db.Fetch(thing).flags |= OBJECT_CHANGED
+	t.flags |= OBJECT_CHANGED
 }

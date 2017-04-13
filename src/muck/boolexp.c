@@ -156,13 +156,13 @@ func (o ObjectKey) Eval(descr int, player, thing dbref) (r bool) {
 			case TYPE_PLAYER, TYPE_THING:
 				real_player = player
 			default:
-				real_player = db.Fetch(player).owner
+				real_player = db.Fetch(player).Owner
 			}
-			if tmpfr := interp(descr, real_player, db.Fetch(player).location, o.dbref, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+			if tmpfr := interp(descr, real_player, db.Fetch(player).Location, o.dbref, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
 				r = interp_loop(real_player, o.dbref, tmpfr, false) != nil
 			}
 		}
-		r ||= o.dbref == player || o.dbref == db.Fetch(player).owner || member(o.dbref, db.Fetch(player).contents) || o.dbref == db.Fetch(player).location
+		r ||= o.dbref == player || o.dbref == db.Fetch(player).Owner || member(o.dbref, db.Fetch(player).Contents) || o.dbref == db.Fetch(player).Location
 	}
 	return
 }
@@ -258,14 +258,14 @@ func ParseLock_F(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 			r = parse_boolprop(buf)
 		} else {
 			if dbloadp {
-				if i := strconv.Atoi(buf[1:]); buf[0] == NUMBER_TOKEN && i > -1 && i < db_top {
+				if i := strconv.Atoi(buf[1:]); buf[0] == NUMBER_TOKEN && !valid_reference(i) {
 					r = ObjectKey{ i }
 				} else {
 					r = UNLOCKED
 				}
 			} else {
 				r = ObjectKey{
-					NewMatch(descr, player, buf, TYPE_THING).
+					NewMatch(descr, player, buf, IsThing).
 					MatchNeighbor().
 					MatchPossession().
 					MatchMe().

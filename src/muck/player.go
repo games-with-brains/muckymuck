@@ -15,10 +15,10 @@ func lookup_player(name string) (r dbref) {
 	return
 }
 
-func check_password(player dbref, password string) bool {
+func check_password(player dbref, password string) (ok bool) {
 	var md5buf string
 	processed := password
-	password := db.Fetch(player).sp.(player_specific).password
+	password := db.FetchPlayer(player).password
 	if password == "" {
 		MD5base64(md5buf, "", 0)
 		processed = md5buf
@@ -31,14 +31,15 @@ func check_password(player dbref, password string) bool {
 
 	switch {
 	case password == "", pword != processed:
-		return true
+		ok = true
 	}
 	return
 }
 
 func set_password_raw(player dbref, password string) {
-	db.Fetch(player).sp.(player_specific).password = password
-	db.Fetch(player).flags |= OBJECT_CHANGED
+	p := db.FetchPlayer(player)
+	p.password = password
+	p.flags |= OBJECT_CHANGED
 }
 
 func set_password(player dbref, password string) {
@@ -54,7 +55,7 @@ func set_password(player dbref, password string) {
 func connect_player(name, password string) (r dbref) {
 	if name[0] == NUMBER_TOKEN && unicode.IsNumber(name[1]) && strconv.Atoi(name[1:]) {
 		r = dbref(strconv.Atoi(name[1:]))
-		if r < 0 || r >= db_top || Typeof(r) != TYPE_PLAYER) {
+		if !valid_reference(r) || !IsPlayer(r) {
 			r = NOTHING
 		}
 	} else {
@@ -71,24 +72,25 @@ func connect_player(name, password string) (r dbref) {
 func create_player(name, password string) (r dbref) {
 	if ok_player_name(name) && ok_password(password) {
 		r = new_object()
-		db.Fetch(r).name = name
-		db.Fetch(r).location = tp_player_start	/* home */
-		db.Fetch(r).flags = TYPE_PLAYER
-		db.Fetch(r).owner = r
-		db.Fetch(r).sp.(player_specific) = &player_specific{ home: tp_player_start, curr_prog: NOTHING, ignore_last: NOTHING }
-		db.Fetch(r).exits = NOTHING
+		start := db.Fetch(tp_player_start)
+		db.Store(r, &Player{
+			name: name,
+			home: tp_player_start,
+			curr_prog: NOTHING,
+			ignore_last: NOTHING,
+			Exits: NOTHING,
+			Contents: NOTHING,
+			Location: tp_player_start,
+			Owner: r,
+			next: start.Contents,
+			p.flags: OBJECT_CHANGED,
+		})
 		add_property(r, MESGPROP_VALUE, nil, tp_start_pennies)
-		set_password_raw(r, "")
 		set_password(r, password)
-
-		/* link him to tp_player_start */
-		db.Fetch(r).next = db.Fetch(tp_player_start).contents
-		db.Fetch(r).flags |= OBJECT_CHANGED
-		db.Fetch(tp_player_start).contents = r
-
+		start.Contents = r
 		add_player(r)
 		db.Fetch(r).flags |= OBJECT_CHANGED
-		db.Fetch(tp_player_start).flags |= OBJECT_CHANGED
+		start.flags |= OBJECT_CHANGED
 		set_flags_from_tunestr(r, tp_pcreate_flags)		
 	} else {
 		r = NOTHING
@@ -98,21 +100,17 @@ func create_player(name, password string) (r dbref) {
 
 func do_password(player dbref, old, newobj string) {
 	NoGuest("@password", player, func() {
-		switch {
-		case db.Fetch(player).sp.(player_specific).password == "", !check_password(player, old):
+		switch p := db.FetchPlayer(player); {
+		case p.password == "", !check_password(player, old):
 			notify(player, "Sorry, old password did not match current password.")
 		case !ok_password(newobj):
 			notify(player, "Bad new password (no spaces allowed).")
 		default:
 			set_password(player, newobj)
-			db.Fetch(player).flags |= OBJECT_CHANGED
+			p.flags |= OBJECT_CHANGED
 			notify(player, "Password changed.")
 		}
 	})
-}
-
-func clear_players() {
-	player_list = make(map[string] dbref)
 }
 
 func add_player(who dbref) {

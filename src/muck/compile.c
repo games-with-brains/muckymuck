@@ -81,15 +81,13 @@ typedef struct COMPILE_STATE_T {
 	struct INTERMEDIATE *curr_word;	/* word being compiled */
 	struct INTERMEDIATE *first_word;	/* first word of the list */
 	struct INTERMEDIATE *curr_proc;	/* first word of curr. proc. */
-	struct publics *currpubs;
+	*PublicAPI
 	int nested_fors;
 	int nested_trys;
 
 	/* Address resolution data.  Used to relink addresses after compile. */
-	struct INTERMEDIATE **addrlist; /* list of addresses to resolve */
-	int *addroffsets;               /* list of offsets from instrs */
-	int addrmax;                    /* size of current addrlist array */
-	int addrcount;                  /* number of allocated addresses */
+	addrlist []*INTERMEDIATE	/* list of addresses to resolve */
+	addroffsets []int			/* list of offsets from instrs */
 
 	/* variable names.  The index into cstat->variables give you what position
 	 * the variable holds.
@@ -148,7 +146,7 @@ do_abort_compile(COMPSTATE * cstat, const char *c)
 		notify_nolisten(cstat->player, _buf, true)
 	} else {
 		log_muf("%s(#%d) [%s(#%d)] %s(#%d) %s",
-			db.Fetch(db.Fetch(cstat.program).owner).name, db.Fetch(cstat.program).owner,
+			db.Fetch(db.Fetch(cstat.program).Owner).name, db.Fetch(cstat.program).Owner,
 			db.Fetch(cstat.program).name, cstat.program,
 			db.Fetch(cstat.player).name, cstat.player,
 			_buf
@@ -169,13 +167,13 @@ do_abort_compile(COMPSTATE * cstat, const char *c)
 		cstat->nextinst = NULL;
 	}
 	cleanup(cstat)
-	cstat.currpubs = nil
+	cstat.PublicAPI = nil
 	free_prog(cstat.program)
-	p := db.Fetch(cstat.program).sp.program
-	p.sp.pubs = nil
-	p.sp.mcp_binding = nil
-	p.sp.proftime.tv_usec = 0
-	p.sp.proftime.tv_sec = 0
+	p := db.Fetch(cstat.program).program
+	p.PublicAPI = nil
+	p.mcp_binding = nil
+	p.proftime.tv_usec = 0
+	p.proftime.tv_sec = 0
 }
 
 /* abort compile macro */
@@ -201,39 +199,16 @@ void compiler_warning(COMPSTATE* cstat, char* text, ...)
 
 #define ADDRLIST_ALLOC_CHUNK_SIZE 256
 
-int
-get_address(COMPSTATE* cstat, struct INTERMEDIATE* dest, int offset)
-{
-	int i;
-
-	if (!cstat->addrlist)
-	{
-		cstat->addrcount = 0;
-		cstat->addrmax = ADDRLIST_ALLOC_CHUNK_SIZE;
-		cstat->addrlist = (struct INTERMEDIATE**)
-			malloc(cstat->addrmax * sizeof(struct INTERMEDIATE*));
-		cstat->addroffsets = (int*)
-			malloc(cstat->addrmax * sizeof(int));
+func get_address(c *COMPSTATE, dest *INTERMEDIATE, offset int) int {
+	for i, v := range c.addrlist {
+		if v == dest && c.addroffsets[i] == offset {
+			return i
+		}
 	}
-
-	for (i = 0; i < cstat->addrcount; i++)
-		if (cstat->addrlist[i] == dest && cstat->addroffsets[i] == offset)
-			return i;
-
-    if (cstat->addrcount >= cstat->addrmax)
-	{
-		cstat->addrmax += ADDRLIST_ALLOC_CHUNK_SIZE;
-		cstat->addrlist = (struct INTERMEDIATE**)
-			realloc(cstat->addrlist, cstat->addrmax * sizeof(struct INTERMEDIATE*));
-		cstat->addroffsets = (int*)
-			realloc(cstat->addroffsets, cstat->addrmax * sizeof(int));
-	}
-
-	cstat->addrlist[cstat->addrcount] = dest;
-	cstat->addroffsets[cstat->addrcount] = offset;
-	return cstat->addrcount++;
+	c.addrlist = append(c.addrlist, dest)
+	c.addroffsets = append(c.addroffsets, offset)
+	return len(c.addrlist) - 1
 }
-
 
 func fix_addresses(cstat *COMPSTATE) {
 	/* renumber the instruction chain */
@@ -242,16 +217,18 @@ func fix_addresses(cstat *COMPSTATE) {
 		ptr.no = count
 	}
 
-	/* repoint publics to targets */
-	for pub := cstat.currpubs; pub != nil; pub = pub.next {
-		pub.addr.no = cstat.addrlist[pub.addr.no].no + cstat.addroffsets[pub.addr.no]
+	/* repoint PublicAPI to targets */
+	for pub := cstat.PublicAPI; pub != nil; pub = pub.next {
+		i := pub.address.(int)
+		pub.address = cstat.addrlist[i].address.(int) + cstat.addroffsets[i]
 	}
 
 	/* repoint addresses to targets */
 	for ptr := cstat.first_word; ptr != nil; ptr = ptr.next {
 		switch ptr.in.data.(type) {
 		case Address, PROG_IF, PROG_TRY, PROG_JMP, PROG_EXEC:
-			ptr.in.data = cstat.addrlist[ptr.in.data.(int)].no + cstat.addroffsets[ptr.in.data.(int)]
+			i := ptr.in.data.(int)
+			ptr.in.data = cstat.addrlist[i].address.(int) + cstat.addroffsets[i]
 		}
 	}
 }
@@ -260,26 +237,18 @@ func fix_addresses(cstat *COMPSTATE) {
 /*****************************************************************/
 
 
-void
-fixpubs(struct publics *mypubs, struct inst *offset)
-{
-	while (mypubs) {
-		mypubs->addr.ptr = offset + mypubs->addr.no;
-		mypubs = mypubs->next;
+func fixpubs(mypubs *PublicAPI, offset *inst) {
+	for ; mypubs != nil; mypubs = mypubs.next {
+		mypubs.address = offset + mypubs>address.(int)
 	}
 }
 
 
-int
-size_pubs(struct publics *mypubs)
-{
-	int bytes = 0;
-
-	while (mypubs) {
-		bytes += sizeof(*mypubs);
-		mypubs = mypubs->next;
+func size_pubs(mypubs *PublicAPI) (r int) {
+	for ; mypubs != nil; mypubs = mypubs.next {
+		r += sizeof(*mypubs)
 	}
-	return bytes;
+	return
 }
 
 func expand_def(cstat *COMPSTATE, defname string) (r string) {
@@ -433,39 +402,39 @@ func init_defs(cstat *COMPSTATE) {
 	include_defs(cstat, (dbref) 0)
 
 	/* Include any defines set in program owner's _defs/ propdir. */
-	include_defs(cstat, db.Fetch(cstat.program).owner)
+	include_defs(cstat, db.Fetch(cstat.program).Owner)
 }
 
 func uncompile_program(i dbref) {
 	dequeue_prog(i, 1)
 	free_prog(i)
-	db.Fetch(i).sp.(program_specific) = nil
+	db.Fetch(i).(Program) = nil
 }
 
 func do_uncompile(dbref player) {
-	if !Wizard(db.Fetch(player).owner) {
+	if !Wizard(db.Fetch(player).Owner) {
 		notify_nolisten(player, "Permission denied. (uncompile)", true);
 		return;
 	}
-	for i := 0; i < db_top; i++ {
-		if Typeof(i) == TYPE_PROGRAM {
-			uncompile_program(i);
+	EachObject(func(obj dbref) {
+		if IsProgram(obj) {
+			uncompile_program(obj)
 		}
-	}
+	})
 	notify_nolisten(player, "All programs decompiled.", true)
 }
 
 func free_unused_programs() {
 	time_t now = time(nil)
-	for i := 0; i < db_top; i++ {
+	EachObject(func(obj dbref, o *Object) {
 		var instances int
-		if p := db.Fetch(obj).sp.program; p.sp != nil {
-			instances = p.sp.instances
+		if p := o.program; p.sp != nil {
+			instances = p.instances
 		}
-		if Typeof(i) == TYPE_PROGRAM && db.Fetch(i).flags & (ABODE | INTERNAL) == 0 && (now - db.Fetch(i).ts.lastused > tp_clean_interval) && instances == 0 {
-			uncompile_program(i)
+		if IsProgram(obj) && o.flags & (ABODE | INTERNAL) == 0 && (now - o.LastUsed > tp_clean_interval) && instances == 0 {
+			uncompile_program(obj)
 		}
-	}
+	})
 }
 
 /* Various flags for the IMMEDIATE instructions */
@@ -524,7 +493,7 @@ func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo
 			case PROG_LVAR_BANG:
 				if lvarflag {
 					if first.in.data == curr.in.data {
-						if curr.no > farthest {
+						if addr := curr.address.(int); addr > farthest {
 							/* Optimize it! */
 							first.in.data = PROG_LVAR_AT_CLEAR(first.in.data)
 						}
@@ -534,7 +503,7 @@ func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo
 			case PROG_SVAR_BANG:
 				if !lvarflag {
 					if first.in.data == curr.in.data {
-						if curr.no > farthest {
+						if addr := curr.address.(int); addr > farthest {
 							/* Optimize it! */
 							first.in.data = PROG_SVAR_AT_CLEAR(first.in.data)
 						}
@@ -551,12 +520,12 @@ func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo
 				for i := cstat.addroffsets[curr.in.data]; ptr.next != nil && i > 0; i-- {
 					ptr = ptr.next
 				}
-				if ptr.no <= first.no {
+				if addr := ptr.address.(int); addr <= first.no {
 					/* Can't optimize as we've exited the code branch the @ is in. */
 					break
 				}
-				if ptr.no > farthest {
-					farthest = ptr.no
+				if addr := ptr.address.(int); addr > farthest {
+					farthest = addr
 				}
 			case MUFProc:
 				/* Don't try to optimize over functions */
@@ -568,8 +537,8 @@ func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo
 
 func RemoveNextIntermediate(cstat *COMPSTATE, curr *INTERMEDIATE) {
 	if curr.next != nil {
-		for i := 0; i < cstat.addrcount; i++ {
-			if cstat.addrlist[i] == curr.next {
+		for i, v := range cstat.addrlist {
+			if v == curr.next {
 				cstat.addrlist[i] = curr
 			}
 		}
@@ -660,7 +629,7 @@ func OptimizeIntermediate(cstat *COMPSTATE, force_err_display bool) (r int) {
 		for curr := cstat.first_word; curr != nil; curr = curr.next {
 			switch a := curr.in.data.(type) {
 			case Address, PROG_IF, PROG_TRY, PROG_JMP, PROG_EXEC:
-				i := cstat.addrlist[a].no + cstat.addroffsets[a]
+				i := cstat.addrlist[a].address.(int) + cstat.addroffsets[a]
 				Flags[i] |= IMMFLAG_REFERENCED
 			}
 		}
@@ -970,11 +939,11 @@ func OptimizeIntermediate(cstat *COMPSTATE, force_err_display bool) (r int) {
 
 //	overall control code.  Does piece-meal tokenization parsing and backward checking.
 func do_compile(descr int, player, program dbref, force_err_display bool) {
-	p := db.Fetch(program).sp.program
+	p := db.Fetch(program).program
 	cstat := &COMPSTATE{
 		force_err_display: force_err_display,
 		descr: descr,
-		curr_line: p.sp.first,
+		curr_line: p.first,
 		lineno: 1,
 		force_comment: tp_muf_comments_strict,
 		player: player,
@@ -999,13 +968,13 @@ func do_compile(descr int, player, program dbref, force_err_display bool) {
 	/* free old stuff */
 	dequeue_prog(cstat.program, 1)
 	free_prog(cstat.program)
-	p.sp.pubs = nil
-	p.sp.mcp_binding = nil
-	p.sp.mcp_binding = nil
-	p.sp.proftime.tv_usec = 0
-	p.sp.proftime.tv_sec = 0
-	p.sp.profstart = time(NULL)
-	p.sp.profuses = 0
+	p.PublicAPI = nil
+	p.mcp_binding = nil
+	p.mcp_binding = nil
+	p.proftime.tv_usec = 0
+	p.proftime.tv_sec = 0
+	p.profstart = time(NULL)
+	p.profuses = 0
 
 	if cstat.curr_line == nil {
 		v_abort_compile(&cstat, "Missing program text.")
@@ -1064,16 +1033,16 @@ func do_compile(descr int, player, program dbref, force_err_display bool) {
 	/* do copying over */
 	fix_addresses(&cstat)
 	copy_program(&cstat)
-	fixpubs(cstat.currpubs, p.sp.code)
-	p.sp.pubs = cstat.currpubs
+	fixpubs(cstat.PublicAPI, p.code)
+	p.PublicAPI = cstat.PublicAPI
 	cstat.nextinst = nil
 	if !cstat.compile_err {
 		set_start(&cstat)
 		cleanup(&cstat)
-		p.sp.instances = 0
+		p.instances = 0
 		/* restart AUTOSTART program. */
-		if db.Fetch(cstat.program).flags & ABODE != 0 && TrueWizard(db.Fetch(cstat.program).owner) {
-			add_muf_queue_event(-1, db.Fetch(cstat.program).owner, NOTHING, NOTHING, cstat.program, "Startup", "Queued Event.", 0)
+		if db.Fetch(cstat.program).flags & ABODE != 0 && TrueWizard(db.Fetch(cstat.program).Owner) {
+			add_muf_queue_event(-1, db.Fetch(cstat.program).Owner, NOTHING, NOTHING, cstat.program, "Startup", "Queued Event.", 0)
 		}
 
 		if force_err_display {
@@ -1343,8 +1312,8 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		name := nextToken
 		cstat.next_char = ""
 		advance_line(cstat)
-		if name == "" || MLevel(db.Fetch(cstat.program).owner) < WIZBIT {
-			include_defs(cstat, db.Fetch(cstat.program).owner)
+		if name == "" || MLevel(db.Fetch(cstat.program).Owner) < WIZBIT {
+			include_defs(cstat, db.Fetch(cstat.program).Owner)
 			include_defs(cstat, dbref(0))
 		}
 	case "enddef":
@@ -1421,7 +1390,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 			v_abort_compile(cstat, "Unexpected end of file while doing $include.")
 		} else {
 			i = do_directive_match(cstat, name)
-			if i == NOTHING || i < 0 || i >= db_top {
+			if !valid_reference(i) {
 				v_abort_compile(cstat, "I don't understand what object you want to $include.")
 			}
 			include_defs(cstat, i)
@@ -1544,7 +1513,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		default:
 			i = do_directive_match(cstat, name)
 		}
-		if i == NOTHING || i < 0 || i >= db_top {
+		if !valid_reference(i) {
 			v_abort_compile(cstat, "I don't understand what program you want to check in ifcancall.")
 		}
 		name := next_token_raw(cstat)
@@ -1553,17 +1522,17 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		}
 		cstat.next_char = ""
 		advance_line(cstat)
-		if program := db.Fetch(i).sp.program; program.sp.code == nil {
-			tmpline := program.sp.first
-			program.sp.first = read_program(i)
-			do_compile(cstat.descr, db.Fetch(i).owner, i, 0)
-			program.sp.first = tmpline
+		if program := db.Fetch(i).program; program.code == nil {
+			tmpline := program.first
+			program.first = read_program(i)
+			do_compile(cstat.descr, db.Fetch(i).Owner, i, 0)
+			program.first = tmpline
 		}
 		j := 0
-		if MLevel(db.Fetch(i).owner) > NON_MUCKER && (MLevel(db.Fetch(cstat.program).owner) >= WIZBIT || db.Fetch(i).owner == db.Fetch(cstat.program).owner || Linkable(i)) {
-			var pbs *publics
-			for pbs = db.Fetch(i).sp.(program_specific).pubs; pbs != nil && name != pbs.subname; pbs = pbs.next {}
-			if pbs != nil && MLevel(db.Fetch(cstat.program).owner) >= pbs.mlev {
+		if MLevel(db.Fetch(i).Owner) > NON_MUCKER && (MLevel(db.Fetch(cstat.program).Owner) >= WIZBIT || db.Fetch(i).Owner == db.Fetch(cstat.program).Owner || Linkable(i)) {
+			pbs := db.Fetch(i).(Program).PublicAPI
+			for ; pbs != nil && name != pbs.subname; pbs = pbs.next {}
+			if pbs != nil && MLevel(db.Fetch(cstat.program).Owner) >= pbs.mlev {
 				j = 1
 			}
 		}
@@ -1602,7 +1571,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 			} else {
 				i = do_directive_match(cstat, name)
 			}
-			if i == NOTHING || i < 0 || i >= db_top {
+			if !valid_reference(i) {
 				v_abort_compile(cstat, "I don't understand what object you want to check with $ifver.")
 			}
 			var property string
@@ -1664,7 +1633,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 			v_abort_compile(cstat, "Unexpected end of file in $iflib/$ifnlib clause.")
 		}
 		i = do_directive_match(cstat, name)
-		if (i == NOTHING || i < 0 || i >= db_top) || Typeof(i) == TYPE_PROGRAM {
+		if !valid_reference(i) || !IsProgram(i) {
 			j = 1
 		} else {
 			j = 0
@@ -2067,23 +2036,22 @@ func process_special(cstat *COMPSTATE, token string) (r *INTERMEDIATE) {
 		if p == nil {
 			abort_compile(cstat, "Subroutine unknown in PUBLIC or WIZCALL declaration.")
 		}
-		if cstat.currpubs == nil {
-			cstat.currpubs = &publics{ subname: tok }
-			cstat.currpubs.addr.no = get_address(cstat, p.code, 0)
+		if cstat.PublicAPI == nil {
+			cstat.PublicAPI = &PublicAPI{ subname: tok, address: get_address(cstat, p.code, 0) }
 			if wizflag {
-				cstat.currpubs.mlev = WIZBIT
+				cstat.PublicAPI.mlev = WIZBIT
 			} else {
-				cstat.currpubs.mlev = APPRENTICE
+				cstat.PublicAPI.mlev = APPRENTICE
 			}
 		} else {
-			for pub := cstat.currpubs; pub != nil; pub = pub.next {
+			for pub := cstat.PublicAPI; pub != nil; pub = pub.next {
 				switch {
 				case tok == pub.subname:
 					abort_compile(cstat, "Function already declared public.")
 				case pub.next == nil {
-					pub.next = &publics{ subname: tok }
+					pub.next = &PublicAPI{ subname: tok }
 					pub = pub.next
-					pub.addr.no = get_address(cstat, p.code, 0)
+					pub.address = get_address(cstat, p.code, 0)
 					if wizflag {
 						pub.mlev = WIZBIT
 					} else {
@@ -2451,23 +2419,21 @@ func append_intermediate_chain(chain, add *INTERMEDIATE) {
 	chain.next = add
 }
 
-func cleanup(cstat *COMPSTATE) {
-	cstat.first_word = nil
-	cstat.control_stack = nil
-	cstat.procs = nil
-	cstat.defhash = make(map[string] string)
-	cstat.addrcount = 0
-	cstat.addrmax = 0
-	cstat.addroffsets = nil
-	cstat.addrlist = nil
-	for i := RES_VAR; i < MAX_VAR && cstat.variables[i] != nil; i++ {
-		cstat.variables[i] = nil
+func cleanup(c *COMPSTATE) {
+	c.first_word = nil
+	c.control_stack = nil
+	c.procs = nil
+	c.defhash = make(map[string] string)
+	c.addroffsets = nil
+	c.addrlist = nil
+	for i := RES_VAR; i < MAX_VAR && c.variables[i] != nil; i++ {
+		c.variables[i] = nil
 	}
-	for i := 0; i < MAX_VAR && cstat.scopedvars[i] != nil; i++ {
-		cstat.scopedvars[i] = nil
+	for i := 0; i < MAX_VAR && c.scopedvars[i] != nil; i++ {
+		c.scopedvars[i] = nil
 	}
-	for i := 0; i < MAX_VAR && cstat.localvars[i] != nil; i++ {
-		cstat.localvars[i] = nil
+	for i := 0; i < MAX_VAR && c.localvars[i] != nil; i++ {
+		c.localvars[i] = nil
 	}
 }
 
@@ -2504,14 +2470,14 @@ func copy_program(cstat *COMPSTATE) {
 		}
 		curr = curr.next
 	}
-	db.Fetch(cstat.program).sp.(program_specific) = code
+	db.Fetch(cstat.program).(Program) = code
 }
 
 func set_start(cstat *COMPSTATE) {
-	db.Fetch(cstat.program).sp.(program_specific).siz = cstat.nowords
+	db.Fetch(cstat.program).(Program).siz = cstat.nowords
 
 	/* address instr no is resolved before this gets called. */
-	db.Fetch(cstat.program).sp.(program_specific).start = db.Fetch(cstat.program).sp.(program_specific).code + cstat.procs.code.no
+	db.Fetch(cstat.program).(Program).start = db.Fetch(cstat.program).(Program).code + cstat.procs.code.no
 }
 
 func prealloc_inst(cstat *COMPSTATE) (r *INTERMEDIATE) {
@@ -2549,11 +2515,11 @@ func alloc_addr(cstat *COMPSTATE, offset int, codestart *inst) *Address {
 }
 
 func free_prog_real(prog dbref, file, line string) {
-	p := db.Fetch(prog).sp.program
-	if p.sp.code != nil {
+	p := db.Fetch(prog).program
+	if p.code != nil {
 		var instances int
 		if p.sp != nil {
-			instances = p.sp.instances
+			instances = p.instances
 		}
 		if instances != nil {
 			log_status("WARNING: freeing program %s with %d instances reported from %s:%d", unparse_object(GOD, prog), instances, file, line)
@@ -2561,16 +2527,16 @@ func free_prog_real(prog dbref, file, line string) {
 		if i := scan_instances(prog); i != 0 {
 			log_status("WARNING: freeing program %s with %d instances found from %s:%d", unparse_object(GOD, prog), i, file, line)
 		}
-		for i, v := range p.sp.code {
+		for i, v := range p.code {
 			if _, ok := v.(Address); ok {
-				p.sp.code[i].data = nil
+				p.code[i].data = nil
 			} else {
-				p.sp.code[i] = nil
+				p.code[i] = nil
 			}
 		}
 	}
-	p.sp.code = nil
-	p.sp.start = 0
+	p.code = nil
+	p.start = 0
 }
 
 func init_primitives() {

@@ -51,20 +51,6 @@ Does:		Writes out the DB and macros, notifying at start and end if set.
 #ifdefs:	FLUSHCHANGED
 Notes:
 
-Function name:	panic
-Arguments:	const char *	(message to appear in panicfile)
-Returns:	void
-Called from:	MALLOC		(interface.c)
-		make_nonblocking(interface.c)
-		add_player	(player.c)
-Calls:		log_status, fprintf, sprintf, fopen,
-		perror, sync, _exit, signal, abort, db_write, fclose,
-		unlink, macrodump
-Does:		Shuts down the interface, dumps the panicfile, and writes
-		out the current macros.
-#ifdefs:	NOCOREDUMP
-Notes:
-
 Function name:	dump_database
 Arguments:	none
 Returns:	void

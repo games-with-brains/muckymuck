@@ -1,20 +1,19 @@
 package fbmuck
 
 func copyobj(player, old, nu dbref) {
-	newp := db.Fetch(nu)
-	newp.name = db.Fetch(old).name
-	if TYPEOF(old) == TYPE_THING {
-		db.Fetch(nu).sp.(player_specific) = new(player_specific)
-		db.Fetch(nu).sp.(player_specific).home = player
+	p := db.Fetch(nu)
+	p.name = db.Fetch(old).name
+	if IsThing(old) {
+		p.home = player
 		add_property(nu, MESGPROP_VALUE, nil, 1)
 	}
-	newp.properties = copy_prop(old)
-	newp.exits = NOTHING
-	newp.contents = NOTHING
-	newp.next = NOTHING
-	newp.location = NOTHING
+	p.properties = copy_prop(old)
+	p.Exits = NOTHING
+	p.Contents = NOTHING
+	p.next = NOTHING
+	p.Location = NOTHING
 	moveto(nu, player)
-	db.Fetch(nu).flags |= OBJECT_CHANGED
+	p.flags |= OBJECT_CHANGED
 }
 
 func prim_addpennies(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
@@ -80,11 +79,11 @@ func prim_moveto(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 			case parent_loop_check(victim, dest):
 				panic("Things can't contain themselves.")
 			case mlev > JOURNEYMAN:
-			case db.Fetch(db.Fetch(victim).location).flags & JUMP_OK == 0 && !permissions(ProgUID, db.Fetch(victim).location):
+			case db.Fetch(db.Fetch(victim).Location).flags & JUMP_OK == 0 && !permissions(ProgUID, db.Fetch(victim).Location):
 				panic("Source not JUMP_OK.")
 			case !is_home(oper1) && db.Fetch(dest).flags & JUMP_OK == 0 && !permissions(ProgUID, dest):
 				panic("Destination not JUMP_OK.")
-			case TYPEOF(dest) == TYPE_THING && db.Fetch(victim).location != db.Fetch(dest).location:
+			case TYPEOF(dest) == TYPE_THING && db.Fetch(victim).Location != db.Fetch(dest).Location:
 				panic("Not in same location as vehicle.")
 			}
 			enter_room(fr.descr, victim, dest, program)
@@ -108,8 +107,8 @@ func prim_moveto(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				if permissions(ProgUID, dest) {
 					matchroom = dest
 				}
-				if permissions(ProgUID, db.Fetch(victim).location) {
-					matchroom = db.Fetch(victim).location
+				if permissions(ProgUID, db.Fetch(victim).Location) {
+					matchroom = db.Fetch(victim).Location
 				}
 				if matchroom != NOTHING && db.Fetch(matchroom).flags & JUMP_OK == 0 && !permissions(ProgUID, victim) {
 					panic("Permission denied.")
@@ -125,7 +124,7 @@ func prim_moveto(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				panic("Permission denied.")
 			case dest == HOME, TYPEOF(dest) != TYPE_ROOM && TYPEOF(dest) != TYPE_THING && TYPEOF(dest) != TYPE_PLAYER:
 				panic("Bad destination object.")
-			case unset_source(ProgUID, db.Fetch(player).location, victim):
+			case unset_source(ProgUID, db.Fetch(player).Location, victim):
 				set_source(ProgUID, victim, dest)
 				SetMLevel(victim, NON_MUKCER)
 			}
@@ -137,7 +136,7 @@ func prim_moveto(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 				panic("Permission denied.")
 			case dest == HOME:
 				/* Allow the owner of the room or the owner of the room's location to reparent the room to #0 */
-				if mlev < MASTER && !permissions(ProgUID, victim) && !permissions(ProgUID, db.Fetch(victim).location) {
+				if mlev < MASTER && !permissions(ProgUID, victim) && !permissions(ProgUID, db.Fetch(victim).Location) {
 					panic("Permission denied.")
 				}
 				dest = GLOBAL_ENVIRONMENT
@@ -184,7 +183,7 @@ func prim_dbref(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 func prim_contents(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		obj := valid_remote_object(player, mlev, op[0])
-		ref := db.Fetch(obj).contents
+		ref := db.Fetch(obj).Contents
 		for mlev < JOURNEYMAN && ref != NOTHING && db.Fetch(ref).flags & DARK != 0 && !controls(ProgUID, ref) {
 			ref = db.Fetch(ref).next
 		}
@@ -200,7 +199,7 @@ func prim_exits(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 		}
 		switch Typeof(ref) {
 		case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-			ref = db.Fetch(ref).exits
+			ref = db.Fetch(ref).Exits
 		default:
 			panic("Invalid object.")
 		}
@@ -222,13 +221,13 @@ func prim_next(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 func prim_nextowned(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(JOURNEYMAN, mlev, 1, top, func(op Array) {
 		obj := valid_remote_object(player, mlev, op[0])
-		owner := db.Fetch(obj).owner
-		if Typeof(obj) == TYPE_PLAYER {
+		owner := db.Fetch(obj).Owner
+		if IsPlayer(obj) {
 			obj = 0
 		} else {
 			obj++
 		}
-		for ; obj < db_top && (db.Fetch(obj).owner != owner || obj == owner); obj++ {}
+		for ; obj < db_top && (db.Fetch(obj).Owner != owner || obj == owner); obj++ {}
 		if obj >= db_top {
 			obj = NOTHING
 		}
@@ -339,7 +338,7 @@ func prim_rmatch(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 		buf := match_args
 		tmppp := match_cmdname
-		md := NewMatch(fr.descr, player, name, TYPE_THING)
+		md := NewMatch(fr.descr, player, name, IsThing)
 		md.RMatch(obj)
 		ref := md.MatchResult()
 		match_args = buf
@@ -446,7 +445,7 @@ func prim_set(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 			panic("Permission denied.")
 		}
 		if result && Typeof(ref) == TYPE_THING && tmp == VEHICLE {
-			for obj := db.Fetch(ref).contents; obj != NOTHING; obj = db.Fetch(obj).next {
+			for obj := db.Fetch(ref).Contents; obj != NOTHING; obj = db.Fetch(obj).next {
 				if TYPEOF(obj) == TYPE_PLAYER {
 					panic("That vehicle still has players in it!")
 				}
@@ -542,70 +541,57 @@ func prim_flagp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 
 func apply_predicate(top *int, f func(dbref) int) {
 	apply_primitive(1, top, func(op Array) {
-		var ok bool
-		if ref := valid_object_or_home(op[0], false); ref != NOTHING {
-			ok = f(ref)
-		}
-		push(arg, top, MUFBool(ok))
+		push(arg, top, MUFBool(f(valid_object_or_home(op[0], func(obj dbref) { return obj }))))
 	})	
 }
 
 func prim_playerp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_predicate(top, func(ref dbref) (ok bool) {
-		_, ok = ref.(TYPE_PLAYER)
-		return
+	apply_predicate(top, func(obj dbref) (ok bool) {
+		return IsPlayer(obj)
 	})
 }
 
 func prim_thingp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_predicate(top, func(ref dbref) (ok bool) {
-		_, ok = ref.(TYPE_THING)
-		return
+	apply_predicate(top, func(obj dbref) (ok bool) {
+		return IsThing(obj)
 	})
 }
 
 func prim_roomp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_predicate(top, func(ref dbref) (ok bool) {
-		_, ok = ref.(TYPE_ROOM)
-		return
+	apply_predicate(top, func(obj dbref) (ok bool) {
+		return IsRoom(obj)
 	})
 }
 
 func prim_programp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_predicate(top, func(ref dbref) (ok bool) {
-		_, ok = ref.(TYPE_PROGRAM)
-		return
+	apply_predicate(top, func(obj dbref) (ok bool) {
+		return IsProgram(obj)
 	})
 }
 
 func prim_exitp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	apply_predicate(top, func(ref dbref) (ok bool) {
-		_, ok = ref.(TYPE_EXIT)
-		return
+	apply_predicate(top, func(obj dbref) (ok bool) {
+		return IsExit(obj)
 	})
 }
 
 func prim_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		var ok bool
-		if ref := valid_object(op[0], false); ref != NOTHING {
-			ok = f(ref)
-		}
-		push(arg, top, MUFBool(ok))
+		push(arg, top, MUFBool(valid_object(op[0], func(obj dbref) { return obj }) != NOTHING))
 	})
 }
 
 func prim_location(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		obj := valid_remote_object(player, mlev, op[0])
-		push(arg, top, db.Fetch(obj).location)
+		push(arg, top, db.Fetch(obj).Location)
 	})
 }
 
 func prim_owner(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		obj := valid_remote_object(player, mlev, op[0])
-		push(arg, top, db.Fetch(obj).owner)
+		push(arg, top, db.Fetch(obj).Owner)
 	})
 }
 
@@ -619,22 +605,22 @@ func prim_controls(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 
 func prim_getlink(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
-		switch Typeof(obj) {
-		case TYPE_PROGRAM:
+		o := valid_remote_object(player, mlev, op[0])
+		switch o := db.Fetch(o).(type) {
+		case Program:
 			panic("Illegal object referenced.")
-		case TYPE_EXIT:
-			if len(db.Fetch(obj).sp.exit.dest) != 0 {
-				ref = db.Fetch(obj).sp.exit.dest[0]
+		case Exit:
+			if len(o.Destinations) != 0 {
+				ref = o.Destinations[0]
 			} else {
 				ref = NOTHING
 			}
-		case TYPE_PLAYER:
-			ref = db.Fetch(obj).sp.(player_specific).home
-		case TYPE_THING:
-			ref = db.Fetch(obj).sp.(player_specific).home
-		case TYPE_ROOM:
-			ref = db.Fetch(obj).sp.(dbref)
+		case Player:
+			ref = o.home
+		case Object:
+			ref = o.home
+		case Room:
+			ref = o.dbref
 		default:
 			ref = NOTHING
 		}
@@ -644,27 +630,26 @@ func prim_getlink(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 
 func prim_getlinks(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		my_obj := valid_remote_object(player, mlev, op[0])
-		if Typeof(my_obj) == TYPE_PROGRAM {
+		o := valid_remote_object(player, mlev, op[0])
+		switch o := db.Fetch(o).(type) {
+		case Program:
 			panic("Illegal object referenced.")
-		}
-		switch Typeof(my_obj) {
-		case TYPE_EXIT:
-			for _, v := range db.Fetch(my_obj).sp.exit.dest {
+		case Exit:
+			for _, v := range o.Destinations {
 				push(arg, top, v)
 			}
-			push(arg, top, len(db.Fetch(my_obj).sp.exit.dest))
-		case TYPE_PLAYER:
-			push(arg, top, db.Fetch(my_obj).sp.(player_specific).home)
+			push(arg, top, len(o.Destinations))
+		case Player:
+			push(arg, top, o.home)
 			push(arg, top, 1)
-		case TYPE_THING:
-			push(arg, top, db.Fetch(my_obj).sp.(player_specific).home)
+		case Object:
+			push(arg, top, o.home)
 			push(arg, top, 1)
-		case TYPE_ROOM:
-			if ref := db.Fetch(my_obj).sp; ref != NOTHING {
+		case Room:
+			if o.dbref == NOTHING {
 				push(arg, top, 0)
 			} else {
-				push(arg, top, ref.(dbref))
+				push(arg, top, o.(dbref))
 				push(arg, top, 1)
 			}
 		default:
@@ -677,7 +662,7 @@ func prog_can_link_to(mlev int, who dbref, what_type object_flag_type, where dbr
 	switch {
 	case where == HOME:
 		r = true
-	case where < 0, where >= db_top:
+	case !valid_reference(where):
 	default:
 		switch what_type {
 		case TYPE_EXIT:
@@ -704,7 +689,7 @@ func prim_setlink(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			}
 			switch Typeof(source) {
 			case TYPE_EXIT:
-				db.Fetch(source).sp.exit.dest = nil
+				db.Fetch(source).(Exit).Destinations = nil
 				db.Fetch(source).flags |= OBJECT_CHANGED
 				if MLevRaw(source) != NON_MUCKER {
 					SetMLevel(source, NON_MUCKER)
@@ -723,28 +708,28 @@ func prim_setlink(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			case !prog_can_link_to(mlev, ProgUID, Typeof(source), dest):
 				panic("Can't link source to destination.")
 			}
-			switch Typeof(source) {
-			case TYPE_EXIT:
+			switch source := db.Fetch(source).(type) {
+			case Exit:
 				switch {
 				case mlev < WIZBIT && !permissions(ProgUID, source):
 					panic("Permission denied.")
-				case len(db.Fetch(source).sp.exit.dest) != 0:
+				case len(source.Destinations) != 0:
 					panic("Exit is already linked.")
 				case exit_loop_check(source, dest):
 					panic("Link would cause a loop.")
 				}
-				db.Fetch(source).sp.exit.dest = []dbref{ dest }
-				db.Fetch(source).flags |= OBJECT_CHANGED
-			case TYPE_PLAYER:
+				source.Destinations = []dbref{ dest }
+				source.flags |= OBJECT_CHANGED
+			case Player:
 				switch {
 				case mlev < WIZBIT && !permissions(ProgUID, source):
 					panic("Permission denied.")
 				case dest == HOME:
 					panic("Cannot link player to HOME.")
 				}
-				db.Fetch(source).sp.(player_specific).home = dest
-				db.Fetch(source).flags |= OBJECT_CHANGED
-			case TYPE_THING:
+				source.home = dest
+				source.flags |= OBJECT_CHANGED
+			case Object:
 				switch {
 				case mlev < WIZBIT && !permissions(ProgUID, source):
 					panic("Permission denied.")
@@ -753,14 +738,14 @@ func prim_setlink(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				case parent_loop_check(source, dest):
 					panic("That would cause a parent paradox.")
 				}
-				db.Fetch(source).sp.(player_specific).home = dest
-				db.Fetch(source).flags |= OBJECT_CHANGED
-			case TYPE_ROOM:
+				source.home = dest
+				source.flags |= OBJECT_CHANGED
+			case Room:
 				if mlev < WIZBIT && !permissions(ProgUID, source) {
 					panic("Permission denied.")
 				}
-				db.Fetch(source).sp = dest
-				db.Fetch(source).flags |= OBJECT_CHANGED
+				source.dbref = dest
+				source.flags |= OBJECT_CHANGED
 			}
 		}
 	})
@@ -778,12 +763,12 @@ func prim_setown(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 			panic("Permission denied. (2)")
 		case db.Fetch(obj).flags & CHOWN_OK == 0, !test_lock(fr.descr, player, obj, "_/chlk"):
 			panic("Permission denied. (1)")
-		case Typeof(obj) == TYPE_ROOM && db.Fetch(player).location != obj:
+		case Typeof(obj) == TYPE_ROOM && db.Fetch(player).Location != obj:
 			panic("Permission denied: not in room. (1)")
-		case Typeof(obj) == TYPE_THING && db.Fetch(obj).location != player:
+		case Typeof(obj) == TYPE_THING && db.Fetch(obj).Location != player:
 			panic("Permission denied: object not carried. (1)")
 		}
-		db.Fetch(obj).owner = db.Fetch(who).owner
+		db.Fetch(obj).Owner = db.Fetch(who).Owner
 		db.Fetch(obj).flags |= OBJECT_CHANGED
 	})
 }
@@ -798,31 +783,32 @@ func prim_newobject(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 			panic("An object was already created this program run.")
 		case !permissions(ProgUID, loc) {
 			panic("Permission denied.")
-		case Typeof(loc) != TYPE_ROOM:
+		case !IsRoom(loc):
 			panic("Invalid argument (1)")
 		case !ok_ascii_other(name), !ok_name(name):
 			panic("Invalid name. (2)")
 		}
 		ref := new_object()
-		db.Fetch(ref).name = name
-		db.Fetch(ref).sp.(player_specific) = new(player_specific)
-		db.Fetch(ref).location = loc
-		db.Fetch(ref).owner = db.Fetch(ProgUID).owner
+		db.Store(ref, &Object{
+			name: name,
+			Location: loc,
+			Owner: db.Fetch(ProgUID).Owner,
+			Exits: NOTHING,
+			flags: TYPE_THING | OBJECT_CHANGED,
+			next: db.Fetch(loc).Contents,
+		})
+//		db.Fetch(ref).(Player) = new(Player)
 		add_property(ref, MESGPROP_VALUE, nil, 1)
-		db.Fetch(ref).exits = NOTHING
-		db.Fetch(ref).flags = TYPE_THING
-		if l := db.Fetch(player).location; l != NOTHING && controls(player, l) {
-			db.Fetch(ref).sp.(player_specific).home = l
+		p := db.FetchPlayer(player)
+		if l := p.Location; l != NOTHING && controls(player, l) {
+			db.Fetch(ref).home = l
 		} else {
-			db.Fetch(ref).sp.(player_specific).home = db.Fetch(player).sp.(player_specific).home
+			db.Fetch(ref).home = p.home
 		}
 		CHECKOFLOW(3)
-		db.Fetch(ref).next = db.Fetch(loc).contents
-		db.Fetch(ref).flags |= OBJECT_CHANGED
-		db.Fetch(loc).contents = ref
-
-		db.Fetch(ref).flags |= OBJECT_CHANGED
-		db.Fetch(loc).flags |= OBJECT_CHANGED
+		l := db.Fetch(loc)
+		l.Contents = ref
+		l.flags |= OBJECT_CHANGED
 		push(arg, top, ref)
 	})
 }
@@ -844,15 +830,15 @@ func prim_newroom(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 		}
 		ref := new_object()
 		db.Fetch(ref).name = name
-		db.Fetch(ref).location = loc
-		db.Fetch(ref).owner = db.Fetch(ProgUID).owner
-		db.Fetch(ref).exits = NOTHING
+		db.Fetch(ref).Location = loc
+		db.Fetch(ref).Owner = db.Fetch(ProgUID).Owner
+		db.Fetch(ref).Exits = NOTHING
 		db.Fetch(ref).sp = NOTHING
 		db.Fetch(ref).flags = TYPE_ROOM | (db.Fetch(player).flags & JUMP_OK)
 		CHECKOFLOW(3)
-		db.Fetch(ref).next = loc.contents
+		db.Fetch(ref).next = loc.Contents
 		db.Fetch(ref).flags |= OBJECT_CHANGED
-		loc.contents = ref
+		loc.Contents = ref
 		db.Fetch(ref).flags |= OBJECT_CHANGED
 		db.Fetch(loc).flags |= OBJECT_CHANGED
 		push(arg, top, ref)
@@ -876,16 +862,16 @@ func prim_newexit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 		}
 		ref := new_object()
 		db.Fetch(ref).name = name
-		db.Fetch(ref).location = loc
-		db.Fetch(ref).owner = db.Fetch(ProgUID).owner
+		db.Fetch(ref).Location = loc
+		db.Fetch(ref).Owner = db.Fetch(ProgUID).Owner
 		db.Fetch(ref).flags = TYPE_EXIT
-		db.Fetch(ref).sp.exit.dest = nil
+		db.Fetch(ref).(Exit).Destinations = nil
 
 		/* link it in */
 		CHECKOFLOW(3)
-		db.Fetch(ref).next = db.Fetch(loc).exits
+		db.Fetch(ref).next = db.Fetch(loc).Exits
 		db.Fetch(ref).flags |= OBJECT_CHANGED
-		db.Fetch(loc).exits = ref
+		db.Fetch(loc).Exits = ref
 
 		db.Fetch(loc).flags |= OBJECT_CHANGED
 		push(arg, top, loc)
@@ -915,7 +901,7 @@ func prim_recycle(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			panic("Cannot recycle a player.")
 		case ref == program:
 			panic("Cannot recycle currently running program.")
-		case Typeof(ref) == TYPE_EXIT && !unset_source(player, db.Fetch(player).location, ref) {
+		case IsExit(ref) && !unset_source(player, db.Fetch(player).Location, ref) {
 			panic("Cannot recycle old style exits.")
 		}
 		for i := 0; i < fr.caller.top; i++ {
@@ -950,7 +936,7 @@ func prim_getlockstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 
 func prim_part_pmatch(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 1, top, func(op Array) {
-		push(arg, top, partial_pmatch(POP().data.(string)))
+		push(arg, top, partial_pmatch(op[0].(string)))
 	})
 }
 
@@ -1000,9 +986,9 @@ func prim_findnext(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 		name := op[2].(string)
 		flags := op[3].(string)
 		switch {
-		case item < NOTHING, item >= db_top:
+		case !valid_reference(item) && item != NOTHING:
 			panic("Bad object. (1)")
-		case owner < NOTHING, owner >= db_top:
+		case !valid_reference(owner) && owner != NOTHING:
 			panic("Bad object. (2)")
 		case mlev < MASTER && owner == NOTHING:
 			panic("Permission denied.  Owner inspecific searches require Mucker Level 3.")
@@ -1013,11 +999,10 @@ func prim_findnext(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 		default:
 			item++
 		}
-		buf := name
 		ref := NOTHING
 		_, check := init_checkflags(player, flags)
 		for i := item; i < db_top && ref == NOTHING; i++ {
-			if (owner == NOTHING || db.Fetch(i).owner == owner) && checkflags(i, check) && db.Fetch(i).name && (name == "" || !smatch(buf, db.Fetch(i).name)) {
+			if o := db.Fetch(i); (owner == NOTHING || o.Owner == owner) && checkflags(i, check) && o.name && (name == "" || !smatch(name, o.name)) {
 				ref = i
 			}
 		}
@@ -1034,21 +1019,22 @@ func prim_nextentrance(player, program dbref, mlev int, pc, arg *inst, top *int,
 		linkref := valid_object_or_home(op[0])
 		ref := valid_object(op[1])
 		if linkref == HOME {
-			linkref = db.Fetch(player).sp.(player_specific).home
+			linkref = db.FetchPlayer(player).home
 		}
 		var foundref bool
 		for ref++; ref < db_top && !foundref ; ref++ {
-			switch Typeof(valid_object(ref)) {
-			case TYPE_PLAYER:
-				foundref = db.Fetch(ref).sp.(player_specific).home == linkref
-			case TYPE_ROOM:
-				foundref = db.Fetch(ref).sp == linkref
-			case TYPE_THING:
-				foundref = db.Fetch(ref).sp.(player_specific).home == linkref
-			case TYPE_EXIT:
-				count := len(db.Fetch(ref).sp.exit.dest)
+			o := db.Fetch(valid_object(ref))
+			switch p := o.(type) {
+			case Player:
+				foundref = p.home == linkref
+			case Room:
+				foundref = p.dbref == linkref
+			case Object:
+				foundref = o.home == linkref
+			case Exit:
+				count := len(o.Destinations)
 				for i := 0; i < count && !foundref; i++ {
-					foundref = db.Fetch(ref).sp.exit.dest[i] == linkref
+					foundref = o.Destinations[i] == linkref
 				}
 			}
 		}
@@ -1088,22 +1074,18 @@ func prim_copyplayer(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		}
 
 		/* else he doesn't already exist, create him */
+		r := db.FetchPlayer(ref)
 		newplayer := create_player(name, password)
-
-		/* initialize everything */
-		db.Fetch(newplayer).flags = db.Fetch(ref).flags
-
-		newp := db.Fetch(newplayer)
-		newp.properties = copy_prop(ref)
-		newp.exits = NOTHING
-		newp.contents = NOTHING
-		newp.next = NOTHING
-		db.Fetch(newplayer).sp.(player_specific).home = db.Fetch(ref).sp.(player_specific).home
+		p := db.FetchPlayer(newplayer)
+		p.flags ||= r.flags
+		p.properties = copy_prop(ref)
+		p.next = NOTHING
+		p.home = r.home
 		add_property(newplayer, MESGPROP_VALUE, nil, get_property_value(newplayer, MESGPROP_VALUE) + get_property_value(ref, MESGPROP_VALUE))
-		moveto(newplayer, db.Fetch(ref).sp.(player_specific).home)
+		moveto(newplayer, r.home)
 
 		/* link him to player_start */
-		log_status("PCREATE[MUF]: %s(%d) by %s(%d)", db.Fetch(newplayer).name, newplayer, db.Fetch(player).name, player)
+		log_status("PCREATE[MUF]: %s(%d) by %s(%d)", p.name, newplayer, db.FetchPlayer(player).name, player)
     	push(arg, top, newplayer)
 	})
 }
@@ -1122,46 +1104,39 @@ func prim_toadplayer(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		case db.Fetch(victim).flags & WIZARD != 0:
 			panic("You can't toad a wizard.")
 		default:
-			send_contents(fr->descr, victim, HOME);
-			for stuff := 0; stuff < db_top; stuff++ {
-			    if db.Fetch(stuff).owner == victim {
-					switch Typeof(stuff) {
-					case TYPE_PROGRAM:
-						dequeue_prog(stuff, 0)  /* dequeue player's progs */
-						db.Fetch(stuff).flags &= ~(ABODE | WIZARD)
-						SetMLevel(stuff, NON_MUCKER)
-						db.Fetch(stuff).owner = recipient
-						db.Fetch(stuff).flags |= OBJECT_CHANGED
-					case TYPE_ROOM, TYPE_THING, TYPE_EXIT:
-						db.Fetch(stuff).owner = recipient
-						db.Fetch(stuff).flags |= OBJECT_CHANGED
+			send_contents(fr.descr, victim, HOME)
+			EachObject(func(obj dbref, o *Object) {
+			    if o.Owner == victim {
+					switch o.(type) {
+					case Program:
+						dequeue_prog(obj, 0)  /* dequeue player's progs */
+						o.flags &= ~(ABODE | WIZARD)
+						SetMLevel(obj, NON_MUCKER)
+						o.Owner = recipient
+						o.flags |= OBJECT_CHANGED
+					case Room, Object, Exit:
+						o.Owner = recipient
+						o.flags |= OBJECT_CHANGED
 					}
 			    }
-			    if Typeof(stuff) == TYPE_THING && db.Fetch(stuff).sp.(player_specific).home == victim {
-					db.Fetch(stuff).sp.(player_specific).home = tp_player_start
+			    if IsThing(obj) && o.home == victim {
+					o.home = tp_player_start
 			    }
-			}
-			db.Fetch(victim).sp.(player_specific).password = ""
-			dequeue_prog(victim, 0);  /* dequeue progs that player's running */
+			})
+			dequeue_prog(victim, 0)			/* dequeue progs that player's running */
 
-			log_status("TOADED[MUF]: %s(%d) by %s(%d)", db.Fetch(victim).name, victim, db.Fetch(player).name, player)
-
+			v := db.FetchPlayer(victim)
+			log_status("TOADED[MUF]: %s(%d) by %s(%d)", v.name, victim, db.FetchPlayer(player).name, player)
 			delete_player(victim)
-			db.Fetch(victim).name = fmt.Sprintf("A slimy toad named %s", db.Fetch(victim).name)
-			db.Fetch(victim).flags |= OBJECT_CHANGED
 			boot_player_off(victim)
-
-			db.Fetch(victim).sp.(player_specific).descrs = nil
-	
 			ignore_remove_from_all_players(victim)
 			ignore_flush_cache(victim)
-
-			db.Fetch(victim).sp.(player_specific) = new(player_specific)
-			db.Fetch(victim).sp.(player_specific).home = db.Fetch(recipient).sp.(player_specific).home
-
-			/* reset name */
-			db.Fetch(victim).flags = (db.Fetch(victim).flags & ~TYPE_MASK) | TYPE_THING
-			db.Fetch(victim).owner = recipient
+			db.Store(victim, &Object{
+				name: fmt.Sprintf("A slimy toad named %s", v.name),
+				flags: OBJECT_CHANGED,
+				home: db.FetchPlayer(recipient).home,
+				Owner: recipient,
+			})
 			add_property(victim, MESGPROP_VALUE, nil, 1)
 		}
 	})
@@ -1173,8 +1148,8 @@ func prim_instances(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 		if Typeof(ref) != TYPE_PROGRAM {
 			panic("Object must be a program.")
 		}
-		if p := db.Fetch(ref).sp.program; p.sp != nil {
-			push(arg, top, p.sp.instances)
+		if p := db.Fetch(ref).program; p.sp != nil {
+			push(arg, top, p.instances)
 		} else {
 			push(arg, top, 0)
 		}
@@ -1187,7 +1162,7 @@ func prim_compiledp(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 		if Typeof(ref) != TYPE_PROGRAM {
 			panic("Object must be a program.")
 		}
-		push(arg, top, len(db.Fetch(ref).sp.(program_specific).code))
+		push(arg, top, len(db.Fetch(ref).(Program).code))
 	})
 }
 
@@ -1210,10 +1185,6 @@ func prim_newprogram(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			panic("Invalid name (2)")
 		}
 		newprog := new_object()
-		db.Fetch(newprog).name = name
-		add_property(newprog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
-		db.Fetch(newprog).location = player
-		db.Fetch(newprog).flags = TYPE_PROGRAM
 		l := MLevel(player)
 		switch {
 		case l < APPRENTICE:
@@ -1221,15 +1192,20 @@ func prim_newprogram(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		case l > MASTER:
 	    	l = MASTER
 		}
+		p := db.FetchPlayer(player)
+		db.Store(newprog, &Program{
+			name: name,
+			Location: player,
+			flags: TYPE_PROGRAM,
+			Owner: p.Owner,
+			next: p.Contents,
+			flags: OBJECT_CHANGED,
+		})
 		SetMLevel(newprog, APPRENTICE)
-		db.Fetch(newprog).owner = db.Fetch(player).owner
-		db.Fetch(newprog).sp.(program_specific) = new(program_specific)
-		db.Fetch(player).sp.(player_specific).curr_prog = newprog
-		db.Fetch(newprog).next = db.Fetch(player).contents
-		db.Fetch(newprog).flags |= OBJECT_CHANGED
-		db.Fetch(player).contents = newprog
-		db.Fetch(newprog).flags |= OBJECT_CHANGED
-		db.Fetch(player).flags |= OBJECT_CHANGED
+		p.curr_prog = newprog
+		p.Contents = newprog
+		p.flags |= OBJECT_CHANGED
+		add_property(newprog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
 		push(arg, top, newprog)
 	})
 }
@@ -1239,9 +1215,9 @@ func prim_compile(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 		obj := valid_object(op[0])
 		display_errors := op[1].(int)
 		var i int
-		p := db.Fetch(obj).sp.program
+		p := db.Fetch(obj).program
 		if p.sp != nil {
-			i = p.sp.instances
+			i = p.instances
 		}
 		switch {
 		case Typeof(obj) != TYPE_PROGRAM:
@@ -1249,11 +1225,11 @@ func prim_compile(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 		case i > 0:
 			panic("That program is currently in use.")
 		}
-		tmpline := p.sp.first
-		p.sp.first = read_program(obj)
+		tmpline := p.first
+		p.first = read_program(obj)
 		do_compile(fr.descr, player, obj, display_errors)
-		p.sp.first = tmpline
-		push(arg, top, len(p.sp.code))
+		p.first = tmpline
+		push(arg, top, len(p.code))
 	})
 }
 
@@ -1261,8 +1237,8 @@ func prim_uncompile(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	apply_restricted_primitive(WIZBIT, mlev, 1, top, func(op Array) {
 		obj := valid_object(op[0])
 		var i int
-		if p := db.Fetch(obj).sp.program; p.sp != nil {
-			i = p.sp.instances
+		if p := db.Fetch(obj).program; p.sp != nil {
+			i = p.instances
 		}
 		switch {
 		case Typeof(obj) != TYPE_PROGRAM:
@@ -1327,11 +1303,11 @@ func prim_contents_array(player, program dbref, mlev int, pc, arg *inst, top *in
 		case TYPE_PROGRAM, TYPE_EXIT:
 		default:
 			var count int
-			for ref = db.Fetch(oper1.data.objref).contents; (ref >= 0) && (ref < db_top); ref = db.Fetch(ref).next {
+			for ref = db.Fetch(oper1.data.objref).Contents; valid_reference(ref); ref = db.Fetch(ref).next {
 				count++
 			}
 			nw = make(stk_array, count)
-			for ref = db.Fetch(oper1.data.objref).contents, count = 0; (ref >= 0) && (ref < db_top); ref = db.Fetch(ref).next {
+			for ref = db.Fetch(oper1.data.objref).Contents, count = 0; valid_reference(ref); ref = db.Fetch(ref).next {
 				nw[count] = ref
 				count++
 			}
@@ -1351,11 +1327,11 @@ func prim_exits_array(player, program dbref, mlev int, pc, arg *inst, top *int, 
 		case TYPE_PROGRAM, TYPE_EXIT:
 		default:
 			var count int
-			for ref = db.Fetch(oper1.data.objref).exits; ref >= 0 && ref < db_top; ref = db.Fetch(ref).next {
+			for ref = db.Fetch(oper1.data.objref).Exits; valid_reference(ref); ref = db.Fetch(ref).next {
 				count++
 			}
 			nw = make(Array, count)
-			for ref = db.Fetch(oper1.data.objref).exits, count = 0; ref >= 0 && ref < db_top; ref = db.Fetch(ref).next {
+			for ref = db.Fetch(oper1.data.objref).Exits, count = 0; valid_reference(ref); ref = db.Fetch(ref).next {
 				nw[count] = ref
 				count++
 			}
@@ -1367,18 +1343,16 @@ func prim_exits_array(player, program dbref, mlev int, pc, arg *inst, top *int, 
 func prim_getlinks_array(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		ref := valid_remote_object(player, mlev, op[0])
-		var nw Array
-		switch Typeof(ref) {
-		case TYPE_ROOM:
-			push(arg, top, Array{ db.Fetch(ref).sp.(dbref) })
-		case TYPE_THING:
-			push(arg, top, Array{ db.Fetch(ref).sp.(player_specific).home })
-		case TYPE_PLAYER:
-			push(arg, top, Array{ db.Fetch(ref).sp.(player_specific).home })
-		case TYPE_EXIT:
-			obj := db.Fetch(ref)
-			nw := make(Array, len(obj.sp.exit.dest))
-			copy(nw, sp.exit.dest)
+		switch p := db.Fetch(ref).(type) {
+		case Room:
+			push(arg, top, Array{ p.dbref })
+		case Object:
+			push(arg, top, Array{ p.home })
+		case Player:
+			push(arg, top, Array{ p.home })
+		case Exit:
+			nw := make(Array, len(p.Destinations))
+			copy(nw, p.Destinations)
 			push(arg, top, nw)
 		}
 	})
@@ -1387,26 +1361,26 @@ func prim_getlinks_array(player, program dbref, mlev int, pc, arg *inst, top *in
 func prim_entrances_array(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		ref := valid_object(op[0])
-    	var nw Array
-		for i := 0; i < db_top; i++ {
-        	switch Typeof(i) {
-           	case TYPE_EXIT:
-				nw = append(nw, db.Fetch(i).sp.exit.dest...)
-            case TYPE_PLAYER:
-                if db.Fetch(i).sp.(player_specific).home == ref {
-					nw = append(nw, i)
+    	var a Array
+		EachObject(func(obj dbref, o *Object) {
+        	switch i.(type) {
+           	case Exit:
+				a = append(a, o.Destinations...)
+            case Player:
+                if o.home == ref {
+					a = append(a, i)
 				}
-            case TYPE_THING:
-                if db.Fetch(i).sp.(player_specific).home == ref {
-					nw = append(nw, i)
+            case Object:
+                if o.home == ref {
+					a = append(a, i)
 				}
-            case TYPE_ROOM:
-                if db.Fetch(i).sp == ref {
-					nw = append(nw, i)
+            case Room:
+                if o.dbref == ref {
+					a = append(a, i)
 				}
 			}
-    	}
-		push(arg, top, nw)
+    	})
+		push(arg, top, a)
 	})
 }
 
@@ -1524,7 +1498,7 @@ func prim_setlinks_array(player, program dbref, mlev int, pc, arg *inst, top *in
 		default:
 			var found_prp bool
 			for _, v := range links {
-				where := valid_object_or_home(v.(dbref))
+				where := valid_object_or_home(v)
 				if !prog_can_link_to(mlev, ProgUID, Typeof(source), where) {
 					pamic("Can't link source to destination. (2)")
 				}
@@ -1566,13 +1540,13 @@ func prim_setlinks_array(player, program dbref, mlev int, pc, arg *inst, top *in
 				if MLevRaw(source) != NON_MUCKER {
 					SetMLevel(source, NON_MUCKER)
 				}
-				db.Fetch(source).sp.exit.dest = nil
+				db.Fetch(source).(Exit).Destinations = nil
 			}
 
 			if dest_count < 1 {
 				switch source := source.(type) {
 				case TYPE_EXIT:
-					db.Fetch(source).sp.exit.dest = nil
+					db.Fetch(source).(Exit).Destinations = nil
 					db.Fetch(source).flags |= OBJECT_CHANGED
 				case TYPE_ROOM:
 					db.Fetch(source).sp = NOTHING
@@ -1587,15 +1561,15 @@ func prim_setlinks_array(player, program dbref, mlev int, pc, arg *inst, top *in
 					for i, v := range links {
 						dests[i] = v.(dbref)
 					}
-					db.Fetch(source).sp.exit.dest = dests
+					db.Fetch(source).(Exit).Destinations = dests
 					db.Fetch(source).flags |= OBJECT_CHANGED
 				case TYPE_ROOM:
 					db.Fetch(source).sp = links[0].(dbref)
 					db.Fetch(source).flags |= OBJECT_CHANGED
 				case TYPE_PLAYER:
-					db.Fetch(source).sp.(player_specific).home = links[0].(dbref)
+					db.FetchPlayer(source).home = links[0].(dbref)
 				case TYPE_THING:
-					db.Fetch(source).sp.(player_specific).home = links[0].(dbref)
+					db.FetchPlayer(source).home = links[0].(dbref)
 				default:
 					panic("Invalid object. (1)")
 				}

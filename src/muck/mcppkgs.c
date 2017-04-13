@@ -78,7 +78,7 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 		switch category {
 		case "prop":
 			switch {
-			case obj < 0 || obj >= db_top:
+			case !valid_reference(obj):
 				show_mcp_error(mfr, "simpleedit-set", "Bad reference object.")
 			case !controls(player, obj):
 				show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
@@ -128,7 +128,7 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 			}
 		case "proplist":
 			switch {
-			case obj < 0 || obj >= db_top:
+			case valid_reference(obj):
 				show_mcp_error(mfr, "simpleedit-set", "Bad reference object.")
 			case !controls(player, obj):
 				show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
@@ -171,7 +171,7 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 				show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
 			} else {
 				switch {
-				case obj < 0 || obj >= db_top:
+				case !valid_reference(obj):
 					show_mcp_error(mfr, "simpleedit-set", "Bad reference object.")
 				case !controls(player, obj):
 					show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
@@ -180,8 +180,8 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 				case db.Fetch(obj).flags & INTERNAL != 0:
 					show_mcp_error(mfr, "simpleedit-set", "Sorry, this program is currently being edited.  Try again later.")
 				default:
-					tmpline := db.Fetch(obj).sp.(program_specific).first
-					db.Fetch(obj).sp.(program_specific).first = nil
+					tmpline := db.Fetch(obj).(Program).first
+					db.Fetch(obj).(Program).first = nil
 
 					var curr *line
 					for line := 0; line < lines; line++ {
@@ -192,19 +192,19 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 							new_line.this_line = content
 						}
 						if line == 0 {
-							db.Fetch(obj).sp.(program_specific).first = new_line
+							db.Fetch(obj).(Program).first = new_line
 						} else {
 							curr.next = new_line
 						}
 						curr = new_line
 					}
 					log_status("PROGRAM SAVED: %s by %s(%d)", unparse_object(player, obj), db.Fetch(player).name, player)
-					write_program(db.Fetch(obj).sp.(program_specific).first, obj)
+					write_program(db.Fetch(obj).(Program).first, obj)
 					if tp_log_programs {
-						log_program_text(db.Fetch(obj).sp.(program_specific).first, player, obj)
+						log_program_text(db.Fetch(obj).(Program).first, player, obj)
 					}
 					do_compile(descr, player, obj, 1)
-					db.Fetch(obj).sp.(program_specific).first = tmpline
+					db.Fetch(obj).(Program).first = tmpline
 					db.Fetch(player).flags |= OBJECT_CHANGED
 					db.Fetch(obj).flags |= OBJECT_CHANGED
 				}

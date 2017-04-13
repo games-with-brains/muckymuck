@@ -178,5 +178,3 @@ old_uncompress(const char *s)
 
 	return buf;
 }
-static const char *oldcompress_c_version = "$RCSfile: oldcompress.c,v $ $Revision: 1.4 $";
-const char *get_oldcompress_c_version(void) { return oldcompress_c_version; }

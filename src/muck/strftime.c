@@ -23,11 +23,7 @@ func format_time(fmt string, tmval *tm) (r string) {
 	return
 }
 
-
-
-long
-get_tz_offset(void)
-{
+if get_tz_offset() int {
 /*
  * SunOS don't seem to have timezone as a "extern long", but as
  * a structure. This makes it very hard (at best) to check for,
@@ -46,5 +42,3 @@ get_tz_offset(void)
 	return timezone;
 #endif
 }
-static const char *strftime_c_version = "$RCSfile: strftime.c,v $ $Revision: 1.10 $";
-const char *get_strftime_c_version(void) { return strftime_c_version; }

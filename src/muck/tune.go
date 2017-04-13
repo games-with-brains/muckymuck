@@ -649,7 +649,7 @@ func tune_setparm(parmname, val string, security int) (r int) {
 			case !unicode.IsNumber(parmval[1]):
 				r = TUNESET_SYNTAX
 			default:
-				if obj := strconv.Atoi(parmval[1:]); obj < 0 || obj >= db_top {
+				if obj := strconv.Atoi(parmval[1:]); !valid_reference(obj) {
 					r = TUNESET_SYNTAX
 				} else {
 					switch tref.(type) {

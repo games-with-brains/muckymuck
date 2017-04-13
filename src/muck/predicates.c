@@ -1,14 +1,10 @@
 package fbmuck
 
-func OkObj(obj dbref) bool {
-	return !(obj < 0 || obj >= db_top)
-}
-
 func can_link_to(dbref who, object_flag_type what_type, dbref where) (r bool) {
 	switch {
 	case where == HOME:
 		r = true
-	case where < 0, where >= db_top:
+	case !valid_reference(where):
 		r = false
 	default:
 		switch what_type {
@@ -39,7 +35,7 @@ func can_link_to(dbref who, object_flag_type what_type, dbref where) (r bool) {
 
 /* This checks to see if what can be linked to something else by who. */
 func can_link(dbref who, dbref what) bool {
-	return controls(who, what) || (TYPEOF(what) == TYPE_EXIT && len(db.Fetch(what).sp.exit.dest) == 0)
+	return controls(who, what) || (TYPEOF(what) == TYPE_EXIT && len(db.Fetch(what).(Exit).Destinations) == 0)
 }
 
 /*
@@ -59,19 +55,19 @@ func could_doit(int descr, dbref player, dbref thing) bool {
 
 	if TYPEOF(thing) == TYPE_EXIT {
 			/* If exit is unlinked, can't do it. */
-		if len(db.Fetch(thing).sp.exit.dest) == 0 {
+		if len(db.Fetch(thing).(Exit).Destinations) == 0 {
 			return false
 		}
 
-		owner = db.Fetch(thing).owner
-		source = db.Fetch(player).location
-		dest = *(db.Fetch(thing).sp.exit.dest)
+		owner = db.Fetch(thing).Owner
+		source = db.Fetch(player).Location
+		dest = *(db.Fetch(thing).(Exit).Destinations)
 
 		if (TYPEOF(dest) == TYPE_PLAYER) {
 			/* Check for additional restrictions related to player dests */
 			dbref destplayer = dest;
 
-			dest = db.Fetch(dest).location
+			dest = db.Fetch(dest).Location
 			/* If the dest player isn't JUMP_OK, or if the dest player's loc
 			 * is set BOUND, can't do it. */
 			if db.Fetch(destplayer).flags & JUMP_OK == 0 || db.Fetch(dest).flags & BUILDER != 0 {
@@ -80,7 +76,7 @@ func could_doit(int descr, dbref player, dbref thing) bool {
 		}
 
 		/* for actions */
-		if db.Fetch(thing).location != NOTHING) && TYPEOF(db.Fetch(thing).location) != TYPE_ROOM {
+		if db.Fetch(thing).Location != NOTHING) && TYPEOF(db.Fetch(thing).Location) != TYPE_ROOM {
 			/* If this is an exit on a Thing or a Player... */
 
 			/* If the destination is a room or player, and the current
@@ -120,9 +116,9 @@ func test_lock_false_default(descr int, player, thing dbref, lockprop string) (o
 }
 
 func can_doit(descr int, player, thing dbref, default_fail_msg string) (r bool) {
-	switch loc := db.Fetch(player).location); {
+	switch loc := db.Fetch(player).Location); {
 	case loc == NOTHING:
-	case !Wizard(db.Fetch(player).owner) && Typeof(player) == TYPE_THING && db.Fetch(thing).flags & ZOMBIE != 0:
+	case !Wizard(db.Fetch(player).Owner) && Typeof(player) == TYPE_THING && db.Fetch(thing).flags & ZOMBIE != 0:
 		notify(player, "Sorry, but zombies can't do that.")
 	case !could_doit(descr, player, thing):
 		/* can't do it */
@@ -167,14 +163,14 @@ func can_see(dbref player, dbref thing, int can_see_loc) (r bool) {
 
 func controls(who, what dbref) bool {
 	/* No one controls invalid objects */
-	if what > -1 || what < db_top {
+	if valid_reference(what) {
 		/* Zombies and puppets use the permissions of their owner */
 		if Typeof(who) != TYPE_PLAYER {
-			who = db.Fetch(who).owner
+			who = db.Fetch(who).Owner
 		}
 		/* Wizard controls everything */
 		if Wizard(who) {
-			if db.Fetch(what).owner == GOD && who != GOD {
+			if db.Fetch(what).Owner == GOD && who != GOD {
 				/* Only God controls God's objects */
 				return false
 			} else {
@@ -188,8 +184,8 @@ func controls(who, what dbref) bool {
 			 * owner of that room controls every Room object contained within
 			 * that room, all the way to the leaves of the tree.
 			 * -winged */
-			for index := what; index != NOTHING; index = db.Fetch(index).location {
-				if db.Fetch(index).owner == who && Typeof(index) == TYPE_ROOM && Wizard(index) {
+			for index := what; index != NOTHING; index = db.Fetch(index).Location {
+				if db.Fetch(index).Owner == who && Typeof(index) == TYPE_ROOM && Wizard(index) {
 					/* Realm Owner doesn't control other Player objects */
 					if Typeof(what) == TYPE_PLAYER {
 						return false
@@ -209,20 +205,20 @@ func controls(who, what dbref) bool {
 		 * security hole. -winged */
 		/*
 		 * if TYPEOF(what) == TYPE_EXIT {
-		 *    dest := db.Fetch(what).sp.exit.dest
+		 *    dest := db.Fetch(what).(Exit).Destinations
 		 *    for i := len(dest) - 1; i > -1; i-- {
-		 *        if who == db.Fetch(dest[i]).owner {
+		 *        if who == db.Fetch(dest[i]).Owner {
 		 *            return true
 		 *        }
 		 *    }
-		 *    if who == db.Fetch(db.Fetch(what).location).owner {
+		 *    if who == db.Fetch(db.Fetch(what).Location).Owner {
 		 *        return true
 		 *    }
 		 * }
 		 */
 
 		/* owners control their own stuff */
-		return who == db.Fetch(what).owner
+		return who == db.Fetch(what).Owner
 	}
 	return false
 }
@@ -231,45 +227,45 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 	switch flag {
 	case ABODE:
 			/* Trying to set a program AUTOSTART requires TrueWizard */
-		return !TrueWizard(db.Fetch(player).owner) && Typeof(thing) == TYPE_PROGRAM
+		return !TrueWizard(db.Fetch(player).Owner) && Typeof(thing) == TYPE_PROGRAM
 		/* NOTREACHED */
 		break;
         case YIELD:
                         /* Mucking with the env-chain matching requires TrueWizard */
-                return !Wizard(db.Fetch(player).owner)
+                return !Wizard(db.Fetch(player).Owner)
         case OVERT:
                         /* Mucking with the env-chain matching requires TrueWizard */
-                return !Wizard(db.Fetch(player).owner)
+                return !Wizard(db.Fetch(player).Owner)
 	case ZOMBIE:
 			/* Restricting a player from using zombies requires a wizard. */
 		if (Typeof(thing) == TYPE_PLAYER)
-			return !Wizard(db.Fetch(player).owner)
+			return !Wizard(db.Fetch(player).Owner)
 			/* If a player's set Zombie, he's restricted from using them...
 			 * unless he's a wizard, in which case he can do whatever. */
-		if Typeof(thing) == TYPE_THING && db.Fetch(db.Fetch(player).owner).flags & ZOMBIE != 0 {
-			return !Wizard(db.Fetch(player).owner)
+		if Typeof(thing) == TYPE_THING && db.Fetch(db.Fetch(player).Owner).flags & ZOMBIE != 0 {
+			return !Wizard(db.Fetch(player).Owner)
 		}
 		return (0);
 	case VEHICLE:
 			/* Restricting a player from using vehicles requires a wizard. */
 		if (Typeof(thing) == TYPE_PLAYER)
-			return !Wizard(db.Fetch(player).owner)
+			return !Wizard(db.Fetch(player).Owner)
 			/* If only wizards can create vehicles... */
 		if (tp_wiz_vehicles) {
 			/* then only a wizard can create a vehicle. :) */
 			if (Typeof(thing) == TYPE_THING)
-				return !Wizard(db.Fetch(player).owner)
+				return !Wizard(db.Fetch(player).Owner)
 		} else {
 			/* But, if vehicles aren't restricted to wizards, then
 			 * players who have not been restricted can do so */
 			if Typeof(thing) == TYPE_THING && db.Fetch(player).flags & VEHICLE != 0 {
-				return !Wizard(db.Fetch(player).owner)
+				return !Wizard(db.Fetch(player).Owner)
 			}
 		}
 		return (0);
 	case DARK:
 		/* Dark can be set on a Program or Room by anyone. */
-		if !Wizard(db.Fetch(player).owner) {
+		if !Wizard(db.Fetch(player).Owner) {
 				/* Setting a player dark requires a wizard. */
 			if (Typeof(thing) == TYPE_PLAYER)
 				return (1);
@@ -286,7 +282,7 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 		break;
 	case QUELL:
 		/* Only God (or God's stuff) can quell or unquell another wizard. */
-		return db.Fetch(player).owner == || (TrueWizard(thing) && (thing != player) && Typeof(thing) == TYPE_PLAYER)
+		return db.Fetch(player).Owner == || (TrueWizard(thing) && (thing != player) && Typeof(thing) == TYPE_PLAYER)
 		/* NOTREACHED */
 		break;
 	case MUCKER, SMUCKER, SMUCKER | MUCKER, BUILDER:
@@ -297,12 +293,12 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 		 * Since this is just a convenience for atomic-functionwriters,
 		 * why is it limited to only a Wizard? -winged */
 		/* Setting a player Builder is limited to a Wizard. */
-		return !Wizard(db.Fetch(player).owner)
+		return !Wizard(db.Fetch(player).Owner)
 		/* NOTREACHED */
 		break;
 	case WIZARD:
 			/* To do anything with a Wizard flag requires a Wizard. */
-		if Wizard(db.Fetch(player).owner) {
+		if Wizard(db.Fetch(player).Owner) {
 			/* ...but only God can make a player a Wizard, or re-mort one. */
 			return Typeof(thing) == TYPE_PLAYER && player != GOD
 		} else
@@ -321,7 +317,7 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 /* Removes 'cost' value from 'who', and returns true if the act has been
  * paid for, else returns false. */
 func payfor(who dbref, cost int) (r bool) {
-	who = db.Fetch(who).owner
+	who = db.Fetch(who).Owner
 	/* Wizards don't have to pay for anything. */
 	if Wizard(who) {
 		r = true
@@ -329,19 +325,6 @@ func payfor(who dbref, cost int) (r bool) {
 		add_property(who, MESGPROP_VALUE, nil, get_property_value(who, MESGPROP_VALUE) - cost)
 		db.Fetch(who).flags |= OBJECT_CHANGED
 		r = true
-	}
-	return
-}
-
-func word_start(str, let string) (r bool) {
-	int chk;
-
-	for chk := true; str != ""; str = str[1:] {
-		if chk && str == let {
-			r = true
-			break
-		}
-		chk = str[0] == ' '
 	}
 	return
 }
@@ -372,42 +355,26 @@ ok_ascii_other(const char *name)
 func ok_name(name string) (r bool) {
 	switch {
 	case name == "":
-	case name[0] == LOOKUP_TOKEN:
-	case name[0] == REGISTERED_TOKEN:
-	case name[0] == NUMBER_TOKEN:
-	case strchr(name, ARG_DELIMITER):
-	case strchr(name, AND_TOKEN):
-	case strchr(name, OR_TOKEN):
-	case strchr(name, '\r'):
-	case strchr(name, ESCAPE_CHAR):
-	case word_start(name, NOT_TOKEN):
-	case name == "me":
-	case name == "home":
-	case name == "here":
+	case name[0] == LOOKUP_TOKEN, name[0] == REGISTERED_TOKEN, name[0] == NUMBER_TOKEN, name[0] == NOT_TOKEN):
+	case strings.ContainsAny(name, ARG_DELIMITER + AND_TOKEN + OR_TOKEN + '\r' + ESCAPE_CHAR):
+	case name == "me", name == "home", name == "here":
 	case tp_reserved_names != nil && tp_reserved_names == name && (!*tp_reserved_names || smatch(tp_reserved_names, name) != 0)):
-}
+	default:
+		r = true
+	}
+	return
 }
 
 func ok_player_name(name string) (r bool) {
-	if ok_name(name) {
-		const char *scan;
-		for scan = name; *scan; scan++ {
-			if (!(isprint(*scan)
-				 && !unicode.IsSpace(*scan))
-				 && *scan != '('
-				 && *scan != ')'
-				 && *scan != '\''
-				 && *scan != ',') {	
-			    /* was isgraph(*scan) */
-				return 0;
-			}
+	if r = true; ok_name(name) {
+		for scan := name; r && scan != ""; scan = scan[1:] {
+			r = !(unicode.IsPrint(scan[0]) && !unicode.IsSpace(scan[0])) && scan[0] != '(' && scan[0] != ')' && scan[0] != '\'' && scan[0] != ',' {	
 		}
-
-		/* Check the name isn't reserved */
-		if !*tp_reserved_player_names || !smatch(tp_reserved_player_names, name) {
+		if r && (tp_reserved_player_names == "" || smatch(tp_reserved_player_names, name) != 0) {
 			r = lookup_player(name) == NOTHING
 		}
 	}
+	return
 }
 
 func ok_password(password string) (r bool) {

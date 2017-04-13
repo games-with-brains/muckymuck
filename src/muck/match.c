@@ -20,7 +20,32 @@ type Match struct {
 char match_cmdname[BUFFER_LEN];	/* triggering command */
 char match_args[BUFFER_LEN];	/* remaining text */
 
-func NewMatch(descr int, player dbref, name string, datatype int) *Match {
+func IsExit(v interface{}) (ok bool) {
+	_, ok = v.(TYPE_EXIT)
+	return
+}
+
+func IsThing(v interface{}) (ok bool) {
+	_, ok = v.(TYPE_THING)
+	return	
+}
+
+func IsPlayer(v interface{}) (ok bool) {
+	_, ok = v.(TYPE_PLAYER)
+	return	
+}
+
+func IsRoom(v interface{}) (ok bool) {
+	_, ok = v.(TYPE_ROOM)
+	return
+}
+
+func IsProgram(v interface{}) (ok bool) {
+	_, ok = v.(TYPE_PROGRAM)
+	return
+}
+
+func NewMatch(descr int, player dbref, name string, type_checker func(interface{}) bool) *Match {
 	return &Match{
 		exact: NOTHING,
 		last: NOTHING,
@@ -28,62 +53,60 @@ func NewMatch(descr int, player dbref, name string, datatype int) *Match {
 		from: player,
 		descr: descr,
 		name: name,
-		preferred_type: type,
-		partial_exits: (TYPE_EXIT == datatype),
+		preferred_type: type_checker,
+		partial_exits: type_checker == IsExit,
 	}
 }
 
-func NewMatchCheckKeys(descr int, player dbref, name string, datatype int) (r *Match) {
+func NewMatchCheckKeys(descr int, player dbref, name string, type_checker func(interface{}) bool) (r *Match) {
 	r = NewMatch(descr, player, name, datatype)
 	r.check_keys = true
 	return
 }
 
-func NewMatchRemote(descr int, player, what dbref, name string, datatype int) (r *Match) {
+func NewMatchRemote(descr int, player, what dbref, name string, type_checker func(interface{}) bool) (r *Match) {
 	r = NewMatch(descr, player, name, datatype)
 	r.from = what
 	return
 }
 
-func (m *Match) ChooseBetween(thing1, thing2 dbref) dbref {
+func (m *Match) EitherOf(thing1, thing2 dbref) (r dbref) {
 	switch {
 	case thing1 == NOTHING:
-		return thing2
+		r = thing2
 	case thing2 == NOTHING:
-		return thing1
-	default:
-		preferred := m.preferred_type
-		if preferred != NOTYPE {
-			switch {
-			case Typeof(thing1) == preferred:
-				if Typeof(thing2) != preferred {
-					return thing1
-				}
-			case Typeof(thing2) == preferred:
-				return thing2
-			}
-		}
-		if m.check_keys {
-			has1 := could_doit(m.descr, m.who, thing1)
-			has2 := could_doit(m.descr, m.who, thing2)
+		r = thing1
+	case preferred != nil && m.preferred_type(thing1) && !m.preferred_type(thing2):
+		r = thing1
+	case preferred != nil && m.preferred_type(thing2):
+		r = thing2
+	case m.check_keys:
+		has1 := could_doit(m.descr, m.who, thing1)
+		has2 := could_doit(m.descr, m.who, thing2)
 
-			switch {
-			case has1 && !has2:
-				return thing1
-			case has2 && !has1:
-				return thing2
-			}
+		switch {
+		case has1 && !has2:
+			r = thing1
+		case has2 && !has1:
+			r = thing2
 		}
 		if RANDOM() % 2 == 0 {
-			return thing1
+			r = thing1
 		} else {
-			return thing2
+			r = thing2
+		}
+	default:
+		if RANDOM() % 2 == 0 {
+			r = thing1
+		} else {
+			r = thing2
 		}
 	}
+	return
 }
 
 func (m *Match) MatchPlayer() *Match {
-	if m.name[0] == LOOKUP_TOKEN && payfor(db.Fetch(m.from).owner, tp_lookup_cost) {
+	if m.name[0] == LOOKUP_TOKEN && payfor(db.Fetch(m.from).Owner, tp_lookup_cost) {
 		var p string
 		if i := strings.IndexFunc(n.name[1:], unicode.IsSpace); i != -1 {
 			p = n.name[i + 1:]
@@ -97,27 +120,25 @@ func (m *Match) MatchPlayer() *Match {
 
 /* returns dbref if registered object found for name, else NOTHING */
 func find_registered_obj(player dbref, name string) (r dbref) {
-	r = NOTHING
-	if name[0] == REGISTERED_TOKEN {
+	if r = NOTHING; name[0] == REGISTERED_TOKEN {
 		if p := strings.TrimSpace(name[1:]); p != "" {
-			buf := fmt.Sprintf("_reg/%s", p)
-			if _, p := envprop(player, buf); p != nil {
+			if _, p := envprop(player, fmt.Sprint("_reg/", p)); p != nil {
 				switch v := p.data.(type) {
 				case string:
 					if v[0] == NUMBER_TOKEN {
 						v = v[1:]
 					}
 					if unicode.IsNumber(v[0]) {
-						if match = dbref(strconv.Atoi(v)); match >= 0 && match < db_top {
+						if match = dbref(strconv.Atoi(v)); valid_reference(match) {
 							return match
 						}
 					}
 				case dbref:
-					if match = v; match >= 0 && match < db_top {
+					if match = v; valid_reference(match) {
 						return match
 					}
 				case int:
-					if match = dbref(v); match > 0 && match < db_top {
+					if match = dbref(v); valid_reference(match) {
 						return match
 					}
 				}
@@ -138,7 +159,7 @@ func (m *Match) MatchRegistered() *Match {
 func (m *Match) AbsoluteName() (r dbref) {
 	if m.name[0] == NUMBER_TOKEN {
 		r = parse_dbref(m.name[1:])
-		if match < 0 || match >= db_top {
+		if !valid_reference(match) {
 			r = NOTHING
 		}
 	} else {
@@ -162,8 +183,8 @@ func (m *Match) MatchMe() *Match {
 }
 
 func (m *Match) MatchHere() *Match {
-	if m.name == "here" && db.Fetch(m.who).location != NOTHING {
-		m.exact = db.Fetch(m.who).location
+	if m.name == "here" && db.Fetch(m.who).Location != NOTHING {
+		m.exact = db.Fetch(m.who).Location
 	}
 	return m
 }
@@ -177,7 +198,7 @@ func (m *Match) MatchHome() *Match {
 
 func (m *Match) MatchList(first dbref) *Match {
 	absolute := m.AbsoluteName()
-	if !controls(db.Fetch(m.from).owner, absolute) {
+	if !controls(db.Fetch(m.from).Owner, absolute) {
 		absolute = NOTHING
 	}
 	for ; first != NOTHING; first = db.Fetch(first).next {
@@ -187,7 +208,7 @@ func (m *Match) MatchList(first dbref) *Match {
 			break
 		case db.Fetch(first).name == m.name:
 			/* if there are multiple exact matches, randomly choose one */
-			m.exact = md.ChooseBetween(m.exact, first)
+			m.exact = md.EitherOf(m.exact, first)
 		case string_match(db.Fetch(first).name, m.name):
 			m.last = first
 			m.count++
@@ -197,13 +218,13 @@ func (m *Match) MatchList(first dbref) *Match {
 }
 
 func (m *Match) MatchPossession() *Match {
-	m.MatchList(db.Fetch(m.from).contents)
+	m.MatchList(db.Fetch(m.from).Contents)
 	return m
 }
 
 func (m *Match) MatchNeighbor() *Match {
-	if loc := db.Fetch(m.from).location); loc != NOTHING {
-		m.MatchList(db.Fetch(loc).contents)
+	if loc := db.Fetch(m.from).Location); loc != NOTHING {
+		m.MatchList(db.Fetch(loc).Contents)
 	}
 	return m
 }
@@ -211,9 +232,9 @@ func (m *Match) MatchNeighbor() *Match {
 //	MatchExits matches a list of exits, starting with 'first'.
 //	It will match exits of players, rooms, or things.
 func (m *Match) MatchExits(first dbref) *Match {
-	if first != NOTHING && db.Fetch(m.from).location != NOTHING {
+	if first != NOTHING && db.Fetch(m.from).Location != NOTHING {
 		absolute := m.AbsoluteName()
-		if !controls(db.Fetch(m.from).owner, absolute) {
+		if !controls(db.Fetch(m.from).Owner, absolute) {
 			absolute = NOTHING
 		}
 		for exitid := first; exitid != NOTHING; {
@@ -225,15 +246,15 @@ func (m *Match) MatchExits(first dbref) *Match {
 				switch {
 				case exit.flags & HAVEN != 0:
 					exitprog = true
-				case exit.sp.exit.dest != nil:
-					for _, v := range exit.sp.exit.dest {
-						if TYPEOF(v) == TYPE_PROGRAM {
+				case exit.(Exit).Destinations != nil:
+					for _, v := range exit.(Exit).Destinations {
+						if IsProgram(v) {
 							exitprog = true
 							break
 						}
 					}
 				}
-				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && db.Fetch(exit.owner).flags & WIZARD != 0
+				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && db.Fetch(exit.Owner).flags & WIZARD != 0
 				for exitname := strings.TrimSpace(exit.name); exitname != ""; exitname = strings.TrimSpace(exitname) {
 					var notnull bool
 					var p string
@@ -250,7 +271,7 @@ func (m *Match) MatchExits(first dbref) *Match {
 							exitname = exitname[:i]
 						}
 						lev := PLevel(exitid)
-						if tp_compatible_priorities && lev == 1 && (exit.location == NOTHING || TYPEOF(exit.location) != TYPE_THING || controls(exit.owner, db.Fetch(m.from).location)) {
+						if tp_compatible_priorities && lev == 1 && (exit.Location == NOTHING || TYPEOF(exit.Location) != TYPE_THING || controls(exit.Owner, db.Fetch(m.from).Location)) {
 							lev = 2
 						}
 						if exitname == "" || exitname[0] == EXIT_DELIMITER {
@@ -285,7 +306,7 @@ func (m *Match) MatchExits(first dbref) *Match {
 									m.level = lev
 									m.block_equals = 0
 								} else {
-									m.exact = md.ChooseBetween(md.exact, exitid)
+									m.exact = md.EitherOf(md.exact, exitid)
 								}
 								if m.exact == exitid {
 									if p[0] == " " || (partial && notnull) {
@@ -321,9 +342,9 @@ next_exit:
 
 //	matches actions attached to objects in inventory
 func (m *Match) MatchInvobjActions() *Match {
-	for thing := db.Fetch(m.from).contents; thing != NOTHING; thing = db.Fetch(thing).next {
-		if TYPEOF(thing) == TYPE_THING && db.Fetch(thing).exits != NOTHING {
-			m.MatchExits(db.Fetch(thing).exits)
+	for thing := db.Fetch(m.from).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
+		if IsThing(thing) && db.Fetch(thing).Exits != NOTHING {
+			m.MatchExits(db.Fetch(thing).Exits)
 		}
 	}
 	return m
@@ -331,10 +352,10 @@ func (m *Match) MatchInvobjActions() *Match {
 
 //	matches actions attached to objects in the room
 func (m *Match) MatchRoomobjActions() *Match {
-	if loc := db.Fetch(m.from).location) != NOTHING {
-		for thing := db.Fetch(loc).contents; thing != NOTHING; thing = db.Fetch(thing).next {
-			if TYPEOF(thing) == TYPE_THING && db.Fetch(thing).exits != NOTHING {
-				m.MatchExits(db.Fetch(thing).exits)
+	if loc := db.Fetch(m.from).Location) != NOTHING {
+		for thing := db.Fetch(loc).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
+			if IsThing(thing) && db.Fetch(thing).Exits != NOTHING {
+				m.MatchExits(db.Fetch(thing).Exits)
 			}
 		}
 	}
@@ -343,9 +364,9 @@ func (m *Match) MatchRoomobjActions() *Match {
 
 //	matches actions attached to player
 func (m *Match) MatchPlayerActions() *Match {
-	switch TYPEOF(m.from) {
+	switch m.from.(type) {
 	case TYPE_PLAYER:, TYPE_ROOM, TYPE_THING:
-		m.MatchExits(db.Fetch(m.from).exits)
+		m.MatchExits(db.Fetch(m.from).Exits)
 	}
 	return m
 }
@@ -353,9 +374,9 @@ func (m *Match) MatchPlayerActions() *Match {
 //	Matches exits and actions attached to player's current room.
 //	Formerly 'match_exit'.
 func (m *Match) MatchRoomExits(loc dbref) *Match {
-	switch TYPEOF(loc) {
+	switch loc.(type) {
 	case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-		m.MatchExits(db.Fetch(loc).exits)
+		m.MatchExits(db.Fetch(loc).Exits)
 	}
 	return m
 }
@@ -371,7 +392,7 @@ func (m *Match) MatchAllExits() *Match {
 	int blocking = 0;
 
 	var match_args, match_cmdname string
-	if loc = db.Fetch(m.from).location; loc != NOTHING) {
+	if loc = db.Fetch(m.from).Location; loc != NOTHING) {
 		md.MatchRoomExits(loc)
 	}
 
@@ -392,19 +413,19 @@ func (m *Match) MatchAllExits() *Match {
 
 	if loc != NOTHING {
 		/* if player is in a vehicle, use environment of vehicle's home */
-		if Typeof(loc) == TYPE_THING {
-			if loc = db.Fetch(loc).sp.(player_specific).home; loc == NOTHING {
+		if loc, ok := loc.(Object); ok {
+			if loc = db.FetchPlayer(loc).home; loc == NOTHING {
 				return
 			}
 			if m.exact != NOTHING {
 				m.block_equals = true
 			}
-			m.dMatchRoomExits(loc)
+			m.MatchRoomExits(loc)
 		}
 
         /* Walk the environment chain to #0, or until depth chain limit
            has been hit, looking for a match. */
-        for loc = db.Fetch(loc).location; loc != NOTHING; loc = db.Fetch(loc).location {
+        for loc = db.Fetch(loc).Location; loc != NOTHING; loc = db.Fetch(loc).Location {
 			/* If we're blocking (because of a yield), only match a room if
 			   and only if it has overt set on it. */
 			if (blocking && db.Fetch(loc).flags & OVERT != 0) || !blocking {
@@ -432,7 +453,7 @@ func (m *Match) MatchEverything() *Match {
 		MatchMe().
 		MatchHere().
 		MatchRegistered()
-	if Wizard(db.Fetch(m.from).owner) || Wizard(m.who) {
+	if Wizard(db.Fetch(m.from).Owner) || Wizard(m.who) {
 		m.MatchAbsolute().MatchPlayer()
 	}
 	return m
@@ -478,12 +499,12 @@ func (m *Match) NoisyMatchResult() (r dbref) {
 	return
 }
 
-func (m *Match) RMatch(arg1 dbref) {
-	if arg1 != NOTHING {
-		switch TYPEOF(arg1) {
+func (m *Match) RMatch(v dbref) {
+	if v != NOTHING {
+		switch v.(type) {
 		case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-			md.MatchList(db.Fetch(arg1).contents)
-			md.MatchExits(db.Fetch(arg1).exits)
+			md.MatchList(db.Fetch(v).Contents)
+			md.MatchExits(db.Fetch(v).Exits)
 		}
 	}
 }

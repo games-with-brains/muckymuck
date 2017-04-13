@@ -10,15 +10,15 @@ func list_proglines(player, program dbref, fr *frame, start, end int) {
 		fr.brkpt.proglines = read_program(program)
 		fr.brkpt.lastproglisted = program
 	}
-	struct line *tmpline = db.Fetch(program).sp.(program_specific).first
-	db.Fetch(program).sp.(program_specific).first = fr.brkpt.proglines
+	struct line *tmpline = db.Fetch(program).(Program).first
+	db.Fetch(program).(Program).first = fr.brkpt.proglines
 	tmpflg := db.Fetch(player).flags & INTERNAL != 0
 	db.Fetch(player).flags |= INTERNAL
 	do_list(player, program, range)
 	if !tmpflg {
 		db.Fetch(player).flags &= ~INTERNAL
 	}
-	db.Fetch(program).sp.(program_specific).first = tmpline
+	db.Fetch(program).(Program).first = tmpline
 	return
 }
 
@@ -27,7 +27,7 @@ func show_line_prims(fr *frame, program dbref, pc *inst, maxprims int, markpc bo
 	var linestart, lineend *inst
 
 	thisline := pc.line
-	code := db.Fetch(program).sp.(program_specific).code
+	code := db.Fetch(program).(Program).code
 	end := code + len(code)
 
 	for linestart, maxback = pc, maxprims; linestart > code && linestart.line == thisline && linestart.(type) != MUFProc && --maxback; --linestart {}
@@ -73,7 +73,7 @@ func show_line_prims(fr *frame, program dbref, pc *inst, maxprims int, markpc bo
 }
 
 func funcname_to_pc(dbref program, const char *name) (r *inst) {
-	for _, r = range db.Fetch(program).sp.(program_specific).code {
+	for _, r = range db.Fetch(program).(Program).code {
 		if v, ok := r.data.(MUFProc); ok {
 			if v.name == name {
 				break
@@ -84,7 +84,7 @@ func funcname_to_pc(dbref program, const char *name) (r *inst) {
 }
 
 func linenum_to_pc(dbref program, int whatline) (r *inst) {
-	for _, r = range db.Fetch(program).sp.(program_specific).code {
+	for _, r = range db.Fetch(program).(Program).code {
 		if r.line == whatline {
 			break
 		}
@@ -94,7 +94,7 @@ func linenum_to_pc(dbref program, int whatline) (r *inst) {
 
 func unparse_sysreturn(program *dbref, pc *inst) string {
 	var ptr *inst
-	for ptr = pc - 1; ptr >= db.Fetch(*program).sp.(program_specific).code; ptr-- {
+	for ptr = pc - 1; ptr >= db.Fetch(*program).(Program).code; ptr-- {
 		if _, ok := ptr.data.(MUFProc); ok {
 			break
 		}
@@ -217,7 +217,7 @@ func muf_backtrace(player, program dbref, count int, fr *frame) {
 
 func list_program_functions(player, program dbref, arg string) {
 	notify_nolisten(player, "*function words*", true)
-	for i, v := range db.Fetch(program).sp.(program_specific).code {
+	for i, v := range db.Fetch(program).(Program).code {
 		if data, ok := v.(MUFProc); ok {
 			if arg == "" || !smatch(arg, data.name) {
 				notify_nolisten(player, data.name, true)
@@ -682,8 +682,8 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 				endline = strconv.Atoi(ptr2)
 			}
 		}
-		p := db.Fetch(program).sp.program
-		if i = (p.sp.code + len(p.sp.code) - 1).line; startline > i {
+		p := db.Fetch(program).program
+		if i = (p.code + len(p.code) - 1).line; startline > i {
 			notify_nolisten(player, "Starting line is beyond end of program.", true)
 		} else {
 			if startline < 1 {

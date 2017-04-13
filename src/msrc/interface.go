@@ -3,103 +3,36 @@ package main
 import "muck"
 import "os"
 
-#include "db.h"
-#include "array.h"
-#include "autoconf.h"
-#include "config.h"
-#include "copyright.h"
-#include "dbsearch.h"
-#include "defaults.h"
-#include "externs.h"
-#include "inst.h"
-#include "interface.h"
-#include "interp.h"
-#include "match.h"
-#include "mcp.h"
-#include "mcpgui.h"
-#include "mcppkg.h"
-#include "mfun.h"
-#include "mfunlist.h"
-#include "mpi.h"
-#include "msgparse.h"
-#include "mufevent.h"
-#include "p_array.h"
-#include "p_connects.h"
-#include "p_db.h"
-#include "p_error.h"
-#include "p_float.h"
-#include "p_math.h"
-#include "p_mcp.h"
-#include "p_misc.h"
-#include "p_props.h"
-#include "p_stack.h"
-#include "p_strings.h"
-#include "p_regex.h"
-#include "params.h"
-#include "patchlevel.h"
-#include "props.h"
-#include "smatch.h"
-#include "fbstrings.h"
-#include "speech.h"
-#include "tune.h"
-#include "version.h"
-
-const fb_h_version = "$RCSfile: fb.h,v $ $Revision: 1.8 $"
-		
-#include "copyright.h"
-#include "config.h"
-#include "match.h"
-#include "mpi.h"
-
-#include <sys/types.h>
-
-#include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/wait.h>
-
-#include <fcntl.h>
-#if defined (HAVE_ERRNO_H)
-# include <errno.h>
-#else
-#if defined (HAVE_SYS_ERRNO_H)
-# include <sys/errno.h>
-#else
-  extern int errno;
-#endif
-#endif
-#include <ctype.h>
-
 # define NEED_SOCKLEN_T
 /* "do not include netinet6/in6.h directly, include netinet/in.h.  see RFC2553" */
 
-typedef enum {
-	TELNET_STATE_NORMAL,
-	TELNET_STATE_IAC,
-	TELNET_STATE_WILL,
-	TELNET_STATE_DO,
-	TELNET_STATE_WONT,
-	TELNET_STATE_DONT,
+type telnet_states_t int
+const (
+	TELNET_STATE_NORMAL = telnet_states_t(iota)
+	TELNET_STATE_IAC
+	TELNET_STATE_WILL
+	TELNET_STATE_DO
+	TELNET_STATE_WONT
+	TELNET_STATE_DONT
 	TELNET_STATE_SB
-} telnet_states_t;
-
-#define TELNET_IAC        255
-#define TELNET_DONT       254
-#define TELNET_DO         253
-#define TELNET_WONT       252
-#define TELNET_WILL       251
-#define TELNET_SB         250
-#define TELNET_GA         249
-#define TELNET_EL         248
-#define TELNET_EC         247
-#define TELNET_AYT        246
-#define TELNET_AO         245
-#define TELNET_IP         244
-#define TELNET_BRK        243
-#define TELNET_DM         242
-#define TELNET_NOP        241
-#define TELNET_SE         240
-
-#define TELOPT_STARTTLS   46
+	TELOPT_STARTTLS = telnet_states_t(46)
+	TELNET_SE = telnet_states_t(240)
+	TELNET_NOP = telnet_states_t(241)
+	TELNET_DM = telnet_states_t(242)
+	TELNET_BRK = telnet_states_t(243)
+	TELNET_IP = telnet_states_t(244)
+	TELNET_AO = telnet_states_t(245)
+	TELNET_AYT = telnet_states_t(246)
+	TELNET_EC = telnet_states_t(247)
+	TELNET_EL = telnet_states_t(248)
+	TELNET_GA = telnet_states_t(249)
+	TELNET_SB = telnet_states_t(250)
+	TELNET_WILL = telnet_states_t(251)
+	TELNET_WONT = telnet_states_t(252)
+	TELNET_DO = telnet_states_t(253)
+	TELNET_DONT = telnet_states_t(254)
+	TELNET_IAC = telnet_states_t(255)
+)
 
 var (
 	shutdown_flag bool
@@ -113,7 +46,7 @@ const (
 	SHUTDOWN_MESSAGE = "\r\nGoing down - Bye\r\n"
 )
 
-int resolver_sock[2];
+var resolver_sock [2]int
 
 struct text_block {
 	buf string
@@ -121,83 +54,64 @@ struct text_block {
 }
 
 struct text_queue {
-	int lines;
-	struct text_block *head;
-	struct text_block **tail;
+	lines int
+	head *text_block
+	tail *(*text_block)
 };
 
-struct descriptor_data {
-	int descriptor;
-	int connected;
-	int con_number;
-	int booted;
-	int block_writes;
-	int is_starttls;
-	dbref player;
-	char *output_prefix;
-	char *output_suffix;
-	int output_size;
-	struct text_queue output;
-	struct text_queue input;
-	char *raw_input;
-	char *raw_input_at;
-	int telnet_enabled;
-	telnet_states_t telnet_state;
-	int telnet_sb_opt;
-	int short_reads;
-	long last_time;
-	long connected_at;
-	long last_pinged_at;
-	const char *hostname;
-	const char *username;
-	int quota;
-	struct descriptor_data *next;
-	struct descriptor_data **prev;
-	McpFrame mcpframe;
-};
+type descriptor_data struct {
+	descriptor int
+	connected bool
+	con_number int
+	booted int
+	block_writes int
+	is_starttls int
+	player dbref
+	output_prefix string
+	output_suffix string
+	output_size int
+	output text_queue
+	input text_queue
+	raw_input string
+	raw_input_at string
+	telnet_enabled bool
+	telnet_state telnet_states_t
+	telnet_sb_opt int
+	short_reads bool
+	last_time int
+	connected_at int
+	last_pinged_at int
+	hostname string
+	username string
+	quota int
+	next *descriptor_data
+	prev *(*descriptor_data)
+	mcpframe McpFrame
+}
 
-struct descriptor_data *descriptor_list = NULL;
+var descriptor_list *descriptor_data
 
 #define MAX_LISTEN_SOCKS 16
 
-/* Yes, both of these should start defaulted to disabled. */
-/* If both are still disabled after arg parsing, we'll enable one or both. */
 var (
 	numports int
 	numsocks int
+	db_conversion_flag bool
+	wizonly_mode bool
+	global_resolver_pid pid_t
+	global_dumper_pid pid_t
+	global_dumpdone bool
+	sel_prof_start_time time.Time
+	sel_prof_idle time.Duration
+	sel_prof_idle_use int
 )
-static int listener_port[MAX_LISTEN_SOCKS];
-static int sock[MAX_LISTEN_SOCKS];
-static int ndescriptors = 0;
 
+var listener_port [MAX_LISTEN_SOCKS]int
+var sock [MAX_LISTEN_SOCKS]int
+var ndescriptors int
 
 #define socket_write(d, buf, count) write(d->descriptor, buf, count)
 #define socket_read(d, buf, count) read(d->descriptor, buf, count)
- 
-
-#define MALLOC(result, type, number) do {   \
-                                       if (!((result) = (type *) malloc ((number) * sizeof (type)))) \
-                                       panic("Out of memory");                             \
-                                     } while (0)
-
-#define FREE(x) (free((void *) x))
-
-extern FILE *input_file;
-extern FILE *delta_infile;
-extern FILE *delta_outfile;
-
-short db_conversion_flag = 0;
-short wizonly_mode = 0;
-pid_t global_resolver_pid=0;
-pid_t global_dumper_pid=0;
-short global_dumpdone=0;
-
-
-time_t sel_prof_start_time;
-long sel_prof_idle_sec;
-long sel_prof_idle_usec;
-unsigned long sel_prof_idle_use;
-
 
 func show_program_usage(prog string) {
 	l := log.New(os.Stderr, "", 0)
@@ -383,8 +297,6 @@ func main() {
 		}
 #endif							/* DETACH */
 	}
-}
-
 
 /*
  * You have to change gid first, since setgid() relies on root permissions
@@ -398,13 +310,12 @@ func main() {
 	}
 
 	/* Initialize MCP and some packages. */
-	mcp_initialize();
-	gui_initialize();
+	mcp_initialize()
+	gui_initialize()
 
     sel_prof_start_time = time(NULL); /* Set useful starting time */
-    sel_prof_idle_sec = 0;
-    sel_prof_idle_usec = 0;
-    sel_prof_idle_use = 0;
+    sel_prof_idle = 0
+    sel_prof_idle_use = 0
 
 	if (init_game(infile_name, outfile_name) < 0) {
 		fprintf(stderr, "Couldn't load %s!\n", infile_name);
@@ -515,10 +426,10 @@ func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
         }
 
 		if tp_zombies {
-			if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & ZOMBIE != 0 && db.Fetch(db.Fetch(player).owner).flags & ZOMBIE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).owner)) {
-				ref = db.Fetch(player).location
-				if Wizard(db.Fetch(player).owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & ZOMBIE == 0 {
-					if isprivate || db.Fetch(player).location != db.Fetch(db.Fetch(player).owner).location {
+			if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & ZOMBIE != 0 && db.Fetch(db.Fetch(player).Owner).flags & ZOMBIE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).Owner)) {
+				ref = db.Fetch(player).Location
+				if Wizard(db.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & ZOMBIE == 0 {
+					if isprivate || db.Fetch(player).Location != db.Fetch(db.Fetch(player).Owner).Location {
 						ch := match_args[0]
 						match_args[0] = ""
 						var prefix string
@@ -534,7 +445,7 @@ func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
 							buf2 = fmt.Sprint(prefix. " ", buf)
 						}
 
-						for _, v := range get_player_descrs(db.Fetch(player).owner) {
+						for _, v := range get_player_descrs(db.Fetch(player).Owner) {
                             queue_msg(lookup_descriptor(v), buf2)
                             if firstpass {
 								r++
@@ -560,16 +471,16 @@ func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
 	ptr := msg
 	if tp_listeners {
 		if tp_listeners_obj || TYPEOF(player) == TYPE_ROOM {
-			listenqueue(-1, from, db.Fetch(from).location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
-			listenqueue(-1, from, db.Fetch(from).location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
-			listenqueue(-1, from, db.Fetch(from).location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
+			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
+			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
+			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
 		}
 	}
 
-	if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & VEHICLE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).owner)) {
-		ref := db.Fetch(player).location
-		if Wizard(db.Fetch(player).owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & VEHICLE == 0 {
-			if !isprivate && db.Fetch(from).location == db.Fetch(player).location {
+	if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & VEHICLE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).Owner)) {
+		ref := db.Fetch(player).Location
+		if Wizard(db.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & VEHICLE == 0 {
+			if !isprivate && db.Fetch(from).Location == db.Fetch(player).Location {
 				ch := match_args[0]
 				match_args[0] = '\0'
 				prefix := do_parse_prop(-1, from, player, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
@@ -579,7 +490,7 @@ func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
 					prefix = "Outside>"
 				}
 				buf := fmt.Sprint(prefix, " ", msg)
-				for ref = db.Fetch(player).contents; ref != NOTHING; ref = db.Fetch(ref).next {
+				for ref = db.Fetch(player).Contents; ref != NOTHING; ref = db.Fetch(ref).next {
 					notify_filtered(from, ref, buf, isprivate);
 				}
 			}
@@ -588,51 +499,16 @@ func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
 	return notify_filtered(from, player, msg, isprivate)
 }
 
-int
-notify_from(dbref from, dbref player, const char *msg)
-{
-	return notify_from_echo(from, player, msg, 1);
+func notify_from(from, player dbref, msg string) int {
+	return notify_from_echo(from, player, msg, 1)
 }
 
-int
-notify(dbref player, const char *msg)
-{
-	return notify_from_echo(player, player, msg, 1);
+func notify(player dbref, msg string) int {
+	return notify_from_echo(player, player, msg, 1)
 }
 
-
-struct timeval
-timeval_sub(struct timeval now, struct timeval then)
-{
-	now.tv_sec -= then.tv_sec;
-	now.tv_usec -= then.tv_usec;
-	if (now.tv_usec < 0) {
-		now.tv_usec += 1000000;
-		now.tv_sec--;
-	}
-	return now;
-}
-
-int
-msec_diff(struct timeval now, struct timeval then)
-{
-	return ((now.tv_sec - then.tv_sec) * 1000 + (now.tv_usec - then.tv_usec) / 1000);
-}
-
-struct timeval
-msec_add(struct timeval t, int x)
-{
-	t.tv_sec += x / 1000;
-	t.tv_usec += (x % 1000) * 1000;
-	if (t.tv_usec >= 1000000) {
-		t.tv_sec += t.tv_usec / 1000000;
-		t.tv_usec = t.tv_usec % 1000000;
-	}
-	return t;
-}
-
-func update_quotas(struct timeval last, struct timeval current) timeval {
-	if nslices := msec_diff(current, last) / tp_command_time_msec; nslices > 0 {
+func update_quotas(last, current time.Duration) time.Duration {
+	if nslices := (current - last) / (tp_command_time_msec * time.Millisecond); nslices > 0 {
 		for d := descriptor_list; d != nil; d = d.next {
 			var cmds_per_time int
 			if d.connected && db.Fetch(d.player).flags & INTERACTIVE != 0 {
@@ -646,7 +522,7 @@ func update_quotas(struct timeval last, struct timeval current) timeval {
 			}
 		}
 	}
-	return msec_add(last, nslices * tp_command_time_msec)
+	return last + (nslices * tp_command_time_msec * time.Millisecond)
 }
 
 /*
@@ -736,33 +612,27 @@ static int con_players_curr = 0;	/* for playermax checks. */
 
 func shovechars() {
 	fd_set input_set, output_set;
-	time_t now;
 	long tmptq;
-	struct timeval last_slice, current_time;
-	struct timeval next_slice;
-	struct timeval timeout, slice_timeout;
 	int maxd = 0, cnt;
 	struct descriptor_data *d, *dnext;
 	struct descriptor_data *newd;
-	struct timeval sel_in, sel_out;
 	int avail_descriptors;
 	int i;
 
-	for (i = 0; i < numports; i++) {
-		sock[i] = make_socket(listener_port[i]);
-		maxd = sock[i] + 1;
-		numsocks++;
+	for i := 0; i < numports; i++ {
+		sock[i] = make_socket(listener_port[i])
+		maxd = sock[i] + 1
+		numsocks++
 	}
-	gettimeofday(&last_slice, (struct timezone *) 0);
+	last_slice := time.Now()
 	avail_descriptors = max_open_files() - 5;
-	(void) time(&now);
+	now := time.Now()
 
 /* And here, we do the actual player-interaction loop */
 
-	while (shutdown_flag == 0) {
-		gettimeofday(&current_time, (struct timezone *) 0);
-		last_slice = update_quotas(last_slice, current_time);
-
+	for !shutdown_flag {
+		current_time := time.Now()
+		last_slice = update_quotas(last_slice, current_time)
 		next_muckevent()
 		process_commands()
 		muf_event_process()
@@ -778,66 +648,54 @@ func shovechars() {
 				shutdownsock(d)
 			}
 		}
-		if (global_dumpdone != 0) {
-			if (tp_dumpdone_warning) {
-				wall_and_flush(tp_dumpdone_mesg);
+		if global_dumpdone {
+			if tp_dumpdone_warning {
+				wall_and_flush(tp_dumpdone_mesg)
 			}
-			global_dumpdone = 0;
+			global_dumpdone = 0
 		}
 
-		if (shutdown_flag)
-			break;
-		timeout.tv_sec = 10;
-		timeout.tv_usec = 0;
-		next_slice = msec_add(last_slice, tp_command_time_msec);
-		slice_timeout = timeval_sub(next_slice, current_time);
+		if shutdown_flag {
+			break
+		}
+		timeout := 10 * time.Second
+		next_slice := last_slice.Add(tp_command_time_msec * time.Microsecond)
+		slice_timeout := next_slice - current_time
 
-		FD_ZERO(&input_set);
-		FD_ZERO(&output_set);
-		if (ndescriptors < avail_descriptors) {
-			for (i = 0; i < numsocks; i++) {
-				FD_SET(sock[i], &input_set);
+		FD_ZERO(&input_set)
+		FD_ZERO(&output_set)
+		if ndescriptors < avail_descriptors {
+			for i := 0; i < numsocks; i++ {
+				FD_SET(sock[i], &input_set)
 			}
 		}
-		for (d = descriptor_list; d; d = d->next) {
-			if d->input.lines > 100 {
+		for d := descriptor_list; d != nil; d = d.next {
+			if d.input.lines > 100 {
 				timeout = slice_timeout
 			} else {
-				FD_SET(d->descriptor, &input_set)
+				FD_SET(d.descriptor, &input_set)
 			}
-			if (d->output.head && !d->block_writes) {
-				FD_SET(d->descriptor, &output_set)
+			if (d.output.head && !d.block_writes) {
+				FD_SET(d.descriptor, &output_set)
 			}
 		}
 
-		tmptq = next_muckevent_time();
-		if ((tmptq >= 0L) && (timeout.tv_sec > tmptq)) {
-			timeout.tv_sec = tmptq + (tp_pause_min / 1000);
-			timeout.tv_usec = (tp_pause_min % 1000) * 1000L;
+		tmptq = next_muckevent_time()
+		if tmptq >= 0 && timeout > tmptq {
+			timeout = tmptq + tp_pause_min
 		}
-		gettimeofday(&sel_in,NULL);
-		if (select(maxd, &input_set, &output_set, (fd_set *) 0, &timeout) < 0) {
-			if (errno != EINTR) {
-				perror("select");
-				return;
+		sel_in := time.Now()
+		if select(maxd, &input_set, &output_set, (fd_set *) 0, &timeout) < 0 {
+			if errno != EINTR {
+				perror("select")
+				return
 			}
 		} else {
-			gettimeofday(&sel_out,NULL);
-			if (sel_out.tv_usec < sel_in.tv_usec) {
-				sel_out.tv_usec += 1000000;
-				sel_out.tv_sec -= 1;
-			}
-			sel_out.tv_usec -= sel_in.tv_usec;
-			sel_out.tv_sec -= sel_in.tv_sec;
-			sel_prof_idle_sec += sel_out.tv_sec;
-			sel_prof_idle_usec += sel_out.tv_usec;
-			if (sel_prof_idle_usec >= 1000000) {
-				sel_prof_idle_usec -= 1000000;
-				sel_prof_idle_sec += 1;
-			}
-			sel_prof_idle_use++;
-			(void) time(&now);
-			for (i = 0; i < numsocks; i++) {
+			sel_out := time.Now()
+			sel_prof_idle += sel_out - sel_in
+			sel_prof_idle_use++
+			now = time.Now()
+			for i := 0; i < numsocks; i++ {
 				if (FD_ISSET(sock[i], &input_set)) {
 					if (!(newd = new_connection(listener_port[i], sock[i]))) {
 						if (errno && errno != EINTR && errno != EMFILE && errno != ENFILE) {
@@ -892,9 +750,9 @@ func shovechars() {
 
 	/* End of the player processing loop */
 
-	(void) time(&now);
-	add_property((dbref) 0, "_sys/lastdumptime", NULL, (int) now);
-	add_property((dbref) 0, "_sys/shutdowntime", NULL, (int) now);
+	now = time.Now()
+	add_property(0, "_sys/lastdumptime", nil, (int) now)
+	add_property(0, "_sys/shutdowntime", nil, (int) now)
 }
 
 
@@ -914,7 +772,7 @@ func wall_and_flush(msg string) {
 
 
 func flush_user_output(dbref player) {
-	for _, v := range get_player_descrs(db.Fetch(player).owner) {
+	for _, v := range get_player_descrs(db.Fetch(player).Owner) {
 		if d := lookup_descriptor(v); d != nil && !process_output(d) {
             d.booted = 1
         }
@@ -1025,7 +883,7 @@ func shutdownsock(d *descriptor_data) {
 		d.hostname = ""
 		d.username = ""
 		mcp_frame_clear(&d.mcpframe)
-		FREE(d)
+		free(d)
 		ndescriptors--
 		log_status("CONCOUNT: There are now %d open connections.", ndescriptors)
 	}
@@ -1208,7 +1066,7 @@ func process_output(d *descriptor_data) bool {
 	return true
 }
 
-# if !defined(O_NONBLOCK) || defined(ULTRIX)	/* POSIX ME HARDER */
+# if !defined(O_NONBLOCK)	/* POSIX ME HARDER */
 #  ifdef FNDELAY					/* SUN OS */
 #   define O_NONBLOCK FNDELAY
 #  else
@@ -1247,141 +1105,137 @@ func freeqs(d *descriptor_data) {
 	d.raw_input_at = ""
 }
 
-func process_input(d *descriptor_data) int {
+func process_input(d *descriptor_data) bool {
 	char buf[MAX_COMMAND_LEN * 2];
 	int maxget = sizeof(buf);
 	int got;
 	char *p, *pend, *q, *qend;
 
-	if (d->short_reads) {
-	    maxget = 1;
+	if d.short_reads {
+	    maxget = 1
 	}
-	got = socket_read(d, buf, maxget);
+	got = socket_read(d, buf, maxget)
 
-	if (got <= 0) {
-		return 0;
+	if got <= 0 {
+		return false
 	}
 
 	if d.raw_input == "" {
-		MALLOC(d->raw_input, char, MAX_COMMAND_LEN);
-		d.raw_input_at = d.raw_input
+		d.raw_input_at = ""
 	}
 	p = d.raw_input_at
-	pend = d.raw_input + MAX_COMMAND_LEN - 1
-	for q, qend := buf, buf + got; q < qend; q++ {
-		if (*q == '\n') {
-			d->last_time = time(NULL);
-			*p = '\0';
-			if p >= d.raw_input {
+	pend = len(d.raw_input)
+	for _, q := range buf {
+		switch {
+		case q[0] == '\n':
+			d.last_time = time(NULL)
+			if d.raw_input != "" {
 				d.input.Add(d.raw_input)
 			}
-			p = d->raw_input;
-		} else if (d->telnet_state == TELNET_STATE_IAC) {
-			switch (*((unsigned char *)q)) {
-				case TELNET_NOP: /* NOP */
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_BRK, TELNET_IP:
-					//	BREAK or INTERRUPT
-					d.input.Add(BREAK_COMMAND)
-					d.telnet_state = TELNET_STATE_NORMAL
-				case TELNET_AO: /* Abort Output */
-					/* could be handy, but for now leave unimplemented */
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_AYT: /* AYT */
-					char sendbuf[] = "[Yes]\r\n";
-					socket_write(d, sendbuf, len(sendbuf));
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_EC: /* Erase character */
-					if (p > d->raw_input)
-						p--;
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_EL: /* Erase line */
-					p = d->raw_input;
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_GA: /* Go Ahead */
-					/* treat as a NOP (?) */
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_WILL: /* WILL (option offer) */
-					d->telnet_state = TELNET_STATE_WILL;
-				case TELNET_WONT: /* WONT (option offer) */
-					d->telnet_state = TELNET_STATE_WONT;
-				case TELNET_DO: /* DO (option request) */
-					d->telnet_state = TELNET_STATE_DO;
-				case TELNET_DONT: /* DONT (option request) */
-					d->telnet_state = TELNET_STATE_DONT;
-				case TELNET_SB: /* SB (option subnegotiation) */
-					d->telnet_state = TELNET_STATE_SB;
-				case TELNET_SE: /* Go Ahead */
-					d->telnet_state = TELNET_STATE_NORMAL;
-				case TELNET_IAC: /* IAC a second time */
-					d->telnet_state = TELNET_STATE_NORMAL;
-				default:
-					/* just ignore */
-					d->telnet_state = TELNET_STATE_NORMAL;
+			d.raw_input = ""
+		case d.telnet_state == TELNET_STATE_IAC:
+			switch q[0] {
+			case TELNET_NOP:
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_BRK, TELNET_IP:
+				//	BREAK or INTERRUPT
+				d.input.Add(BREAK_COMMAND)
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_AO:
+				/* Abort Output */
+				/* could be handy, but for now leave unimplemented */
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_AYT:
+				/* AYT */
+				sendbuf := "[Yes]\r\n"
+				socket_write(d, sendbuf, len(sendbuf))
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_EC:
+				/* Erase character */
+				if d.raw_input != "" {
+					d.raw_input = d.raw_input[:len(d.raw_input) - 1]
+				}
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_EL:
+				/* Erase line */
+				d.raw_input = ""
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_GA:
+				/* Go Ahead */
+				/* treat as a NOP (?) */
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_WILL:
+				d.telnet_state = TELNET_STATE_WILL
+			case TELNET_WONT:
+				d.telnet_state = TELNET_STATE_WONT
+			case TELNET_DO:
+				d.telnet_state = TELNET_STATE_DO;
+			case TELNET_DONT:
+				d.telnet_state = TELNET_STATE_DONT
+			case TELNET_SB:
+				/* SB (option subnegotiation) */
+				d.telnet_state = TELNET_STATE_SB
+			case TELNET_SE:
+				/* Go Ahead */
+				d.telnet_state = TELNET_STATE_NORMAL
+			case TELNET_IAC:
+				/* IAC a second time */
+				d.telnet_state = TELNET_STATE_NORMAL
+			default:
+				/* just ignore */
+				d.telnet_state = TELNET_STATE_NORMAL
 			}
-		} else if (d->telnet_state == TELNET_STATE_WILL) {
+		case d.telnet_state == TELNET_STATE_WILL:
 			/* We don't negotiate: send back DONT option */
-			unsigned char sendbuf[8];
-			/* Otherwise, we don't negotiate: send back DONT option */
-			sendbuf[0] = TELNET_IAC;
-			sendbuf[1] = TELNET_DONT;
-			sendbuf[2] = *q;
-			sendbuf[3] = '\0';
-			socket_write(d, sendbuf, 3);
-			d->telnet_state = TELNET_STATE_NORMAL;
-			d->telnet_enabled = 1;
-		} else if (d->telnet_state == TELNET_STATE_DO) {
+			sendbuf := TELNET_IAC + TELNET_DONT + q[0]
+			socket_write(d, sendbuf, 3)
+			d.telnet_state = TELNET_STATE_NORMAL
+			d.telnet_enabled = true
+		case d.telnet_state == TELNET_STATE_DO:
 			/* We don't negotiate: send back WONT option */
-			unsigned char sendbuf[4];
-			sendbuf[0] = TELNET_IAC;
-			sendbuf[1] = TELNET_WONT;
-			sendbuf[2] = *q;
-			sendbuf[3] = '\0';
+			sendbuf := TELNET_IAC + TELNET_WONT + q[0]
 			socket_write(d, sendbuf, 3);
-			d->telnet_state = TELNET_STATE_NORMAL;
-			d->telnet_enabled = 1;
-		} else if (d->telnet_state == TELNET_STATE_WONT) {
+			d.telnet_state = TELNET_STATE_NORMAL
+			d.telnet_enabled = true
+		case d.telnet_state == TELNET_STATE_WONT:
 			/* Ignore WONT option. */
-			d->telnet_state = TELNET_STATE_NORMAL;
-			d->telnet_enabled = 1;
-		} else if (d->telnet_state == TELNET_STATE_DONT) {
+			d.telnet_state = TELNET_STATE_NORMAL
+			d.telnet_enabled = true
+		case d.telnet_state == TELNET_STATE_DONT:
 			/* We don't negotiate: send back WONT option */
-			unsigned char sendbuf[4];
-			sendbuf[0] = TELNET_IAC;
-			sendbuf[1] = TELNET_WONT;
-			sendbuf[2] = *q;
-			sendbuf[3] = '\0';
-			socket_write(d, sendbuf, 3);
-			d->telnet_state = TELNET_STATE_NORMAL;
-			d->telnet_enabled = 1;
-		} else if (d->telnet_state == TELNET_STATE_SB) {
-			d->telnet_sb_opt = *((unsigned char*)q);
+			sendbuf[0] := TELNET_IAC + TELNET_WONT + q[0]
+			socket_write(d, sendbuf, 3)
+			d.telnet_state = TELNET_STATE_NORMAL
+			d.telnet_enabled = true
+		case d.telnet_state == TELNET_STATE_SB:
+			d.telnet_sb_opt = q[0]
 			/* TODO: Start remembering subnegotiation data. */
-			d->telnet_state = TELNET_STATE_NORMAL;
-		} else if (*((unsigned char *)q) == TELNET_IAC) {
+			d.telnet_state = TELNET_STATE_NORMAL
+		case q[0] == TELNET_IAC:
 			/* Got TELNET IAC, store for next byte */	
-			d->telnet_state = TELNET_STATE_IAC;
-		} else if (p < pend) {
-			/* NOTE: This will need rethinking for unicode */
-			if ( isinput( *q ) ) {
-				*p++ = *q;
-			} else if (*q == '\t') {
-				*p++ = ' ';
-			} else if (*q == 8 || *q == 127) {
+			d.telnet_state = TELNET_STATE_IAC
+		default:
+			switch {
+			case isprint(q & 127):
+				d.raw_input += q[0]
+			case q[0] == '\t':
+				d.raw_input += ' '
+			case q[0] == 8, q[0] == 127 {
 				/* if BS or DEL, delete last character */
-				if (p > d->raw_input)
-					p--;
+				if d.raw_input != "" {
+					d.raw_input = d.raw_input[:len(d.raw_input) - 1]
+				}
 			}
-			d->telnet_state = TELNET_STATE_NORMAL;
+			d.telnet_state = TELNET_STATE_NORMAL
 		}
 	}
-	if p > d.raw_input {
-		d.raw_input_at = p
+	if d.raw_input != "" {
+		d.raw_input_at = d.raw_input
 	} else {
 		d.raw_input = ""
 		d.raw_input_at = ""
 	}
-	return 1;
+	return true
 }
 
 func process_commands() {
@@ -1389,7 +1243,7 @@ func process_commands() {
 		nprocessed := 0
 		for d := descriptor_list; d != nil; {
 			if t := d.input.head; d.quota > 0 && t != nil {
-				if d.connected && db.Fetch(d.player).sp.(player_specific).block != nil && !is_interface_command(t.start)) {
+				if d.connected && db.Fetch(d.player).(Player).block != nil && !is_interface_command(t.start)) {
 					tmp := t.start
 					if strings.HasPrefix(tmp, "#$\"") {
 						/* Un-escape MCP escaped lines */
@@ -1488,7 +1342,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 						d.QueueWrite("\r\n")
 					}
 				}
-				db.Fetch(d.player).sp.(player_specific).block = false
+				db.Fetch(d.player).(Player).block = false
 			}
 		case command == QUIT_COMMAND:
 			r = false
@@ -1507,7 +1361,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 					dump_users(d, command[len(WHO_COMMAND):])
 				}
 			} else {
-				if (!(TrueWizard(db.Fetch(d.player).owner) && (*command == OVERIDE_TOKEN))) && can_move(d.descriptor, d.player, buf, 2) {
+				if (!(TrueWizard(db.Fetch(d.player).Owner) && (*command == OVERIDE_TOKEN))) && can_move(d.descriptor, d.player, buf, 2) {
 					do_move(d.descriptor, d.player, buf, 2)
 				} else {
 					dump_users(d, command + sizeof(WHO_COMMAND) - ((*command == OVERIDE_TOKEN) ? 0 : 1))
@@ -1549,7 +1403,7 @@ func interact_warn(player dbref) {
 	case db.Fetch(player).flags & INTERACTIVE == 0:
 	case db.Fetch(player).flags & READMODE != 0:
 		notify(player, "*** You are currently using a program.  Use \"@Q\" to return to a more reasonable state of control. ***")
-	case db.Fetch(player).sp.(player_specific).insert_mode:
+	case db.Fetch(player).(Player).insert_mode:
 		notify(player, "*** You are currently inserting MUF program text.  Use \".\" to return to the editor, then \"quit\" if you wish to return to your regularly scheduled Muck universe. ***")
 	default:
 		notify(player, "*** You are currently using the MUF program editor. ***")
@@ -1581,7 +1435,7 @@ func check_connect(d *descriptor_data, msg string) {
 				update_desc_count_table()
 				remember_player_descr(player, d.descriptor)
 				/* cks: someone has to initialize this somewhere. */
-				db.Fetch(d.player).sp.(player_specific).block = false
+				db.Fetch(d.player).(Player).block = false
 				spit_file(player, MOTD_FILE)
 				announce_connect(d.descriptor, player)
 				interact_warn(player)
@@ -1615,7 +1469,7 @@ func check_connect(d *descriptor_data, msg string) {
 					update_desc_count_table()
 					remember_player_descr(player, d.descriptor)
 					/* cks: someone has to initialize this somewhere. */
-					db.Fetch(d.player).sp.(player_specific).block = false
+					db.Fetch(d.player).(Player).block = false
 					spit_file(player, MOTD_FILE)
 					announce_connect(d.descriptor, player)
 					con_players_curr++
@@ -1740,7 +1594,7 @@ func dump_users(e *descriptor_data, user string) {
 
 	if wizard {
 		/* S/he is connected and not quelled. Okay; log it. */
-		log_command("WIZ: %s(%d) in %s(%d):  %s", db.Fetch(e.player).name, e.player, db.Fetch(db.Fetch(e.player).location).name, db.Fetch(e.player).location, "WHO")
+		log_command("WIZ: %s(%d) in %s(%d):  %s", db.Fetch(e.player).name, e.player, db.Fetch(db.Fetch(e.player).Location).name, db.Fetch(e.player).Location, "WHO")
 	}
 
 	(void) time(&now);
@@ -1760,7 +1614,7 @@ func dump_users(e *descriptor_data, user string) {
 		if d.connected && (!tp_who_hides_dark || wizard || db.Fetch(d.player).flags & DARK == 0) && players != 0 && (user == nil || strings.Prefix(db.Fetch(d.player).name, user)) {
 			if wizard {
 				/* don't print flags, to save space */
-				pbuf = fmt.Sprintf("%s(#%d) [%6d]", db.Fetch(d.player).name, d.player, db.Fetch(d.player).location)
+				pbuf = fmt.Sprintf("%s(#%d) [%6d]", db.Fetch(d.player).name, d.player, db.Fetch(d.player).Location)
 				if e.player != GOD {
 					if db.Fetch(d.player).flags & INTERACTIVE != 0 {
 						buf = fmt.Sprintf("%s %10s %4s*%c %s\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), secchar, d.hostname)
@@ -1802,52 +1656,44 @@ func dump_users(e *descriptor_data, user string) {
 	}
 }
 
-char *
-time_format_1(long dt)
-{
-	register struct tm *delta;
-	static char buf[64];
-
-	delta = gmtime((time_t *) &dt);
-	if (delta->tm_yday > 0)
-		buf = fmt.Sprintf("%dd %02d:%02d", delta->tm_yday, delta->tm_hour, delta->tm_min);
-	else
-		buf = fmt.Sprintf("%02d:%02d", delta->tm_hour, delta->tm_min);
-	return buf;
+func time_format_1(dt long) (r string) {
+	if delta := gmtime((time_t *) &dt); delta.tm_yday > 0 {
+		r = fmt.Sprintf("%dd %02d:%02d", delta.tm_yday, delta.tm_hour, delta.tm_min)
+	} else {
+		r = fmt.Sprintf("%02d:%02d", delta.tm_hour, delta.tm_min)
+	}
+	return
 }
 
-func time_format_2(dt int) string {
-	register struct tm *delta;
-	static char buf[64];
-
-	delta = gmtime((time_t *) &dt);
-	if (delta->tm_yday > 0)
-		buf = fmt.Sprintf("%dd", delta->tm_yday);
-	else if (delta->tm_hour > 0)
-		buf = fmt.Sprintf("%dh", delta->tm_hour);
-	else if (delta->tm_min > 0)
-		buf = fmt.Sprintf("%dm", delta->tm_min);
-	else
-		buf = fmt.Sprintf("%ds", delta->tm_sec);
-	return buf;
+func time_format_2(dt int) (r string) {
+	switch delta := gmtime((time_t *) &dt); {
+	case delta.tm_yday > 0:
+		r = fmt.Sprintf("%dd", delta.tm_yday)
+	case delta.tm_hour > 0:
+		r = fmt.Sprintf("%dh", delta.tm_hour)
+	case delta.tm_min > 0:
+		r = fmt.Sprintf("%dm", delta.tm_min)
+	default:
+		r = fmt.Sprintf("%ds", delta.tm_sec)
+	}
+	return
 }
 
-func announce_puppets(dbref player, const char *msg, const char *prop) {
-	for what := dbref(0); what < db_top; what++ {
-		if TYPEOF(what) == TYPE_THING && db.Fetch(what).flags & ZOMBIE != 0 {
-			if db.Fetch(what).owner == player {
-				where := db.Fetch(what).location
+func announce_puppets(player dbref, msg, prop string) {
+	EachObject(func(what dbref, o *Object) {
+		if IsThing(what) && o.flags & ZOMBIE != 0 {
+			if o.Owner == player {
+				where := o.Location
 				if !Dark(where) && !Dark(player) && !Dark(what) {
 					msg2 := msg
 					if ptr := get_property_class(what, prop); ptr != "" {
 						msg2 = ptr
 					}
-					buf := fmt.Sprintf("%.512s %.3000s", db.Fetch(what).name, msg2)
-					notify_except(db.Fetch(where).contents, what, buf, what)
+					notify_except(db.Fetch(where).Contents, what, fmt.Sprintf("%.512s %.3000s", o.name, msg2), what)
 				}
 			}
 		}
-	}
+	})
 }
 
 func announce_connect(descr int, player dbref) {
@@ -1855,18 +1701,18 @@ func announce_connect(descr int, player dbref) {
 	char buf[BUFFER_LEN];
 	dbref exit;
 
-	if loc = db.Fetch(player).location; loc == NOTHING {
+	if loc = db.Fetch(player).Location; loc == NOTHING {
 		return
 	}
 
 	if !Dark(player) && !Dark(loc) {
 		buf = fmt.Sprintf("%s has connected.", db.Fetch(player).name)
-		notify_except(db.Fetch(loc).contents, player, buf, player)
+		notify_except(db.Fetch(loc).Contents, player, buf, player)
 	}
 
 	exit = NOTHING;
 	if (online(player) == 1) {
-		md := NewMatch(descr, player, "connect", TYPE_EXIT)	/* match for connect */
+		md := NewMatch(descr, player, "connect", IsExit)	/* match for connect */
 		md.level = 1
 		md.MatchAllExits()
 		exit = md.MatchResult()
@@ -1898,8 +1744,8 @@ func announce_connect(descr int, player dbref) {
 	}
 
 	/* queue up all _connect programs referred to by properties */
-	envpropqueue(descr, player, db.Fetch(player).location, NOTHING, player, NOTHING, "_connect", "Connect", 1, 1);
-	envpropqueue(descr, player, db.Fetch(player).location, NOTHING, player, NOTHING, "_oconnect", "Oconnect", 1, 0);
+	envpropqueue(descr, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_connect", "Connect", 1, 1);
+	envpropqueue(descr, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_oconnect", "Oconnect", 1, 0);
 	ts_useobject(player);
 	return;
 }
@@ -1909,13 +1755,13 @@ func announce_disconnect(d *descriptor_data) {
 	char buf[BUFFER_LEN];
 	int dcount;
 
-	if loc := db.Fetch(player).location; loc != NOTHING {
+	if loc := db.Fetch(player).Location; loc != NOTHING {
 		if len(get_player_descrs(d.player)) < 2 && dequeue_prog(player, 2) {
 			notify(player, "Foreground program aborted.")
 		}
 
 		if !Dark(player) && !Dark(loc) {
-			notify_except(db.Fetch(loc).contents, player, fmt.Sprintf("%s has disconnected.", db.Fetch(player).name), player)
+			notify_except(db.Fetch(loc).Contents, player, fmt.Sprintf("%s has disconnected.", db.Fetch(player).name), player)
 		}
 
 		/* trigger local disconnect action */
@@ -1934,8 +1780,8 @@ func announce_disconnect(d *descriptor_data) {
 	    update_desc_count_table()
 
 		/* queue up all _connect programs referred to by properties */
-		envpropqueue(d.descriptor, player, db.Fetch(player).location, NOTHING, player, NOTHING, "_disconnect", "Disconnect", 1, 1)
-		envpropqueue(d.descriptor, player, db.Fetch(player).location, NOTHING, player, NOTHING, "_odisconnect", "Odisconnect", 1, 0)
+		envpropqueue(d.descriptor, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_disconnect", "Disconnect", 1, 1)
+		envpropqueue(d.descriptor, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_odisconnect", "Odisconnect", 1, 0)
 		ts_lastuseobject(player)
 		db.Fetch(player).flags |= OBJECT_CHANGED
 	}
@@ -2001,21 +1847,21 @@ func index_descr(index int) (r int) {
 
 func get_player_descrs(player dbref) (r []int) {
 	if Typeof(player) == TYPE_PLAYER {
-		r = db.Fetch(player).sp.(player_specific).descrs
+		r = db.Fetch(player).(Player).descrs
 	}
 	return
 }
 
 func remember_player_descr(player dbref, descr int) {
 	if Typeof(player) == TYPE_PLAYER {
-		p := db.Fetch(player).sp.(player_specific)
+		p := db.Fetch(player).(Player)
 		p.descrs = append(p.descrs, descr)
 	}
 }
 
 func forget_player_descr(player dbref, descr int) {
 	if Typeof(player) == TYPE_PLAYER {
-		p := db.Fetch(player).sp.(player_specific)
+		p := db.Fetch(player).(Player)
 		arr := p.descrs
 		if len(arr) > 1 {
 			var dest int
@@ -2041,7 +1887,7 @@ func lookup_descriptor(c int) (r *descriptor_data) {
 }
 
 func online(player dbref) int {
-	return db.Fetch(player).sp.(player_specific).descrs
+	return db.Fetch(player).(Player).descrs
 }
 
 func pidle(c int) (r int) {
@@ -2218,34 +2064,30 @@ func dump_status() {
 
 func ignore_is_ignoring_sub(player, who dbref) bool {
 	switch {
-	case !tp_ignore_support:
-		return false
-	case player < 0, player >= db_top:
-		return false
-	case who < 0, who >= db_top:
+	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
 		return false
 	}
 
-	player = db.Fetch(player).owner
-	who = db.Fetch(who).owner
+	player = db.Fetch(player).Owner
+	who = db.Fetch(who).Owner
 
 	/* You can't ignore yourself, or an unquelled wizard, */
 	/* and unquelled wizards can ignore no one. */
 	switch {
 	case player == who, Wizard(player), Wizard(who):
 		return false
-	case db.Fetch(player).sp.(player_specific).ignore_last == AMBIGUOUS:
+	case db.Fetch(player).(Player).ignore_last == AMBIGUOUS:
 		return false
 	/* Ignore the last player ignored without bothering to look them up */
-	case db.Fetch(player).sp.(player_specific).ignore_last == who:
+	case db.Fetch(player).(Player).ignore_last == who:
 		return true
-	case db.Fetch(player).sp.(player_specific).ignore_cache == nil && !ignore_prime_cache(player):
+	case db.Fetch(player).(Player).ignore_cache == nil && !ignore_prime_cache(player):
 		return false
 	}
 
 	top := 0
-	bottom := len(db.Fetch(player).sp.(player_specific).ignore_cache) - 1
-	list := db.Fetch(player).sp.(player_specific).ignore_cache
+	bottom := len(db.Fetch(player).(Player).ignore_cache) - 1
+	list := db.Fetch(player).(Player).ignore_cache
 
 	for top < bottom {
 		middle := top + (bottom - top) / 2
@@ -2261,7 +2103,7 @@ func ignore_is_ignoring_sub(player, who dbref) bool {
 	if top >= bottom {
 		return false
 	}
-	db.Fetch(player).sp.(player_specific).ignore_last = who
+	db.Fetch(player).(Player).ignore_last = who
 	return true
 }
 
@@ -2277,15 +2119,13 @@ static int ignore_dbref_compare(const void* Lhs, const void* Rhs)
 
 func ignore_prime_cache(player dbref) bool {
 	switch {
-	case !tp_ignore_support:
-		return false
-	case player < 0, player >= db_top, Typeof(player) != TYPE_PLAYER:
+	case !tp_ignore_support, !valid_reference(player), !IsPlayer(player):
 		return false
 	}
 
 	txt := strings.TrimLeftFunc(get_property_class(player, IGNORE_PROP), unicode.IsSpace)
 	if txt == "" {
-		db.Fetch(player).sp.(player_specific).ignore_last = AMBIGUOUS
+		db.Fetch(player).(Player).ignore_last = AMBIGUOUS
 		return false
 	}
 
@@ -2310,70 +2150,55 @@ func ignore_prime_cache(player dbref) bool {
 	}
 
 	qsort(list, len(list), sizeof(dbref), ignore_dbref_compare)
-	db.Fetch(player).sp.(player_specific).ignore_cache = list
+	db.Fetch(player).(Player).ignore_cache = list
 	return true
 }
 
 func ignore_flush_cache(player dbref) {
-	if player > -1 && player < db_top && TYPEOF(player) === TYPE_PLAYER:
-		db.Fetch(player).sp.(player_specific).ignore_cache = nil
-		db.Fetch(player).sp.(player_specific).ignore_last = NOTHING
+	if valid_reference(player) && IsPlayer(player) {
+		db.Fetch(player).(Player).ignore_cache = nil
+		db.Fetch(player).(Player).ignore_last = NOTHING
 	}
 }
 
 func ignore_flush_all_cache() {
 	/* Don't touch the database if it's not been loaded yet... */
-	if db != 0 {
-		for i := 0; i < db_top; i++ {
-			if Typeof(i) == TYPE_PLAYER {
-				db.Fetch(i).sp.(player_specific).ignore_cache = nil
-				db.Fetch(i).sp.(player_specific).ignore_last = NOTHING
+	if db != nil {
+		EachObject(func(obj dbref, o object) {
+			if IsPlayer(obj) {
+				p := o.(Player)
+				p.ignore_cache = nil
+				p.ignore_last = NOTHING
 			}
-		}
+		})
 	}
 }
 
-void ignore_add_player(dbref Player, dbref Who)
-{
-	if (!tp_ignore_support)
-		return;
-
-	if ((Player < 0) || (Player >= db_top))
-		return;
-
-	if ((Who < 0) || (Who >= db_top))
-		return;
-
-	reflist_add(db.Fetch(Player).owner, IGNORE_PROP, db.Fetch(Who).owner);
-
-	ignore_flush_cache(db.Fetch(Player).owner);
+func ignore_add_player(player, who dbref) {
+	switch {
+	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
+	default:
+		reflist_add(db.Fetch(player).Owner, IGNORE_PROP, db.Fetch(who).Owner)
+		ignore_flush_cache(db.Fetch(player).Owner)
+	}
 }
 
-void ignore_remove_player(dbref Player, dbref Who)
-{
-	if (!tp_ignore_support)
-		return;
-
-	if ((Player < 0) || (Player >= db_top))
-		return;
-
-	if ((Who < 0) || (Who >= db_top))
-		return;
-
-	reflist_del(db.Fetch(Player).owner, IGNORE_PROP, db.Fetch(Who).owner);
-	ignore_flush_cache(db.Fetch(Player).owner)
+func ignore_remove_player(player, who dbref) {
+	switch {
+	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
+	default:
+		reflist_del(db.Fetch(player).Owner, IGNORE_PROP, db.Fetch(who).Owner)
+		ignore_flush_cache(db.Fetch(player).Owner)
+	}
 }
 
-void ignore_remove_from_all_players(dbref Player)
-{
-	int i;
-
-	if (!tp_ignore_support)
-		return;
-
-	for(i = 0; i < db_top; i++)
-		if (Typeof(i) == TYPE_PLAYER)
-			reflist_del(i, IGNORE_PROP, Player);
-
-	ignore_flush_all_cache();
+func ignore_remove_from_all_players(player dbref) {
+	if tp_ignore_support {
+		EachObject(func(obj dbref) {
+			if IsPlayer(obj) {
+				reflist_del(obj, IGNORE_PROP, Player)
+			}
+		})
+		ignore_flush_all_cache()
+	}
 }
