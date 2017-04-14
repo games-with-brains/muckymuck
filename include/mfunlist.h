@@ -6,7 +6,7 @@
 
 struct mfun_dat {
 	name string
-	mfn func(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string
+	mfn func(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string
 	preparse, postparse, strip_space bool
 	minargs, maxargs int
 };
@@ -66,7 +66,7 @@ var mfun_list []mfun_dat = {
     {"INDEX",        mfn_index,       1, 0, 1, 1,  2}, 
     {"INDEX!",       mfn_indexbang,   1, 0, 1, 1,  2}, 
     {"INSTR",        mfn_instr,       1, 0, 0, 2,  2}, 
-    {"ISDBREF",      mfn_isdbref,     1, 0, 1, 1,  1}, 
+    {"ISDBREF",      mfn_isObjectID,     1, 0, 1, 1,  1}, 
     {"ISNUM",        mfn_isnum,       1, 0, 1, 1,  1}, 
     {"ISTYPE",       mfn_istype,      1, 0, 1, 2,  2}, 
     {"KILL",         mfn_kill,        1, 0, 1, 1,  1}, 

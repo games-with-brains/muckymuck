@@ -47,7 +47,7 @@
 
 #define MAX_PARENT_DEPTH 256            /* Maximum parenting depth allowed. */
 
-#define GLOBAL_ENVIRONMENT ((dbref) 0)	/* parent of all rooms.  Always #0 */
+#define GLOBAL_ENVIRONMENT ((ObjectID) 0)	/* parent of all rooms.  Always #0 */
 
 /* magic cookies (not chocolate chip) :) */
 

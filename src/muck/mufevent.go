@@ -13,7 +13,7 @@ const (
 )
 
 type event_process struct {
-	player, prog dbref
+	player, prog ObjectID
 	filters []string
 	deleted bool
 	fr *frame
@@ -30,7 +30,7 @@ func muf_event_process_free(ptr *mufevent_process) {
  * This duplicates the eventids list for itself, so the caller is
  * responsible for freeing the original eventids list passed.
  */
-func muf_event_register_specific(player, prog dbref, fr *frame, eventids ...string) {
+func muf_event_register_specific(player, prog ObjectID, fr *frame, eventids ...string) {
 	newproc := &mufevent_process{
 		player: player,
 		prog: prog,
@@ -49,7 +49,7 @@ func muf_event_register_specific(player, prog dbref, fr *frame, eventids ...stri
 /* Called when a MUF program enters EVENT_WAIT, to register that
  * the program is ready to process any type of MUF events.
  */
-func muf_event_register(player, prog dbref, fr *frame) {
+func muf_event_register(player, prog ObjectID, fr *frame) {
 	muf_event_register_specific(player, prog, fr)
 }
 
@@ -58,7 +58,7 @@ func muf_event_register(player, prog dbref, fr *frame) {
  * that is owned by the given player.  Returns 1 if an event was sent,
  * 0 otherwise.
  */
-func muf_event_read_notify(descr int, player dbref, cmd string) (r bool) {
+func muf_event_read_notify(descr int, player ObjectID, cmd string) (r bool) {
 	for ptr := mufevent_processes; ptr != nil; ptr = ptr.Tail {
 		if !ptr.deleted && ptr.player == player && ptr.fr != nil && ptr.fr.multitask != BACKGROUND && (cmd != "" || ptr.fr.wantsblanks) {
 			muf_event_add(ptr.fr, "READ", &inst{ data: descr }, 1)
@@ -76,7 +76,7 @@ func muf_event_dequeue_pid(pid int) (r int) {
 		if proc := proc.(event_process); !proc.deleted {
 			if proc.fr.pid == pid {
 				if !proc.fr.been_background {
-					db.FetchPlayer(proc.player).block = false
+					DB.FetchPlayer(proc.player).block = false
 				}
 				proc.fr.events = nil
 				proc.deleted = true
@@ -88,9 +88,9 @@ func muf_event_dequeue_pid(pid int) (r int) {
 }
 
 /* Checks the MUF event queue for address references on the stack or
- * dbref references on the callstack
+ * ObjectID references on the callstack
  */
-func event_has_refs(program dbref, proc *mufevent_process) (r bool) {
+func event_has_refs(program ObjectID, proc *mufevent_process) (r bool) {
 	if !proc.deleted {
 		if fr := proc.fr; fr != nil {
 			for loop := 1; loop < fr.caller.top; loop++ {
@@ -119,7 +119,7 @@ func event_has_refs(program dbref, proc *mufevent_process) (r bool) {
  *     1: kill all matching MUF processes
  *     2: kill all matching foreground MUF processes
  */
-func muf_event_dequeue(prog dbref, killmode int) (r int) {
+func muf_event_dequeue(prog ObjectID, killmode int) (r int) {
 	if killmode == 0 {
 		killmode = 1
 	}
@@ -133,7 +133,7 @@ func muf_event_dequeue(prog dbref, killmode int) (r int) {
 		default:
 			if proc.fr != nil {
 				if !proc.fr.been_background {
-					db.FetchPlayer(proc.player).block = false
+					DB.FetchPlayer(proc.player).block = false
 				}
 				proc.fr.events = nil
 				prog_clean(proc.fr)
@@ -157,7 +157,7 @@ func muf_event_pid_frame(pid int) (r *frame) {
 
 /* Returns true if the given player controls the given PID.
  */
-func muf_event_controls(player dbref, pid int) (r bool) {
+func muf_event_controls(player ObjectID, pid int) (r bool) {
 	proc := mufevent_processes
 	for ; proc != nil && (proc.deleted || pid != proc.fr.pid); proc = proc.next {}
 	switch {
@@ -172,7 +172,7 @@ func muf_event_controls(player dbref, pid int) (r bool) {
 /* List all processes in the EVENT_WAIT queue that the given player controls.
  * This is used by the @ps command.
  */
-func muf_event_list(player dbref, pat string) (r int) {
+func muf_event_list(player ObjectID, pat string) (r int) {
 	time_t rtime = time((time_t *) NULL);
 	time_t etime;
 
@@ -198,13 +198,13 @@ func muf_event_list(player dbref, pat string) (r int) {
 			var progstr, prognamestr string
 			if proc.fr != nil {
 				progstr = fmt.Sprintf("#%d", proc.fr.caller.st[1])
-				prognamestr = fmt.Sprint(db.Fetch(proc.fr.caller.st[1]).name)
+				prognamestr = fmt.Sprint(DB.Fetch(proc.fr.caller.st[1]).name)
 			} else {
 				progstr = fmt.Sprintf("#%d", proc.prog)
-				prognamestr = fmt.Sprint(db.Fetch(proc.prog).name)
+				prognamestr = fmt.Sprint(DB.Fetch(proc.prog).name)
 			}
-			buf := fmt.Sprintf(pat, pidstr, "--", time_format_2((long) (rtime - proc.fr.started)), inststr, cpustr, progstr, prognamestr, db.Fetch(proc.player).name, "EVENT_WAITFOR" )
-			if Wizard(db.Fetch(player).Owner) || db.Fetch(proc.prog).Owner == db.Fetch(player).Owner || proc.player == player {
+			buf := fmt.Sprintf(pat, pidstr, "--", time_format_2((long) (rtime - proc.fr.started)), inststr, cpustr, progstr, prognamestr, DB.Fetch(proc.player).name, "EVENT_WAITFOR" )
+			if Wizard(DB.Fetch(player).Owner) || DB.Fetch(proc.prog).Owner == DB.Fetch(player).Owner || proc.player == player {
 				notify_nolisten(player, buf, true)
 			}
 			r++
@@ -217,7 +217,7 @@ func muf_event_list(player dbref, pat string) (r int) {
  * matches the trigger, program, or player.  If ref is #-1
  * then all processes waiting for mufevents are added.
  */
-func get_mufevent_pids(stk_array *nw, dbref ref) (nw *stk_array) {
+func get_mufevent_pids(stk_array *nw, ObjectID ref) (nw *stk_array) {
 	nw = make(Array)
 	if ref < 0 {
 		proc := mufevent_processes; proc != nil; proc = proc.next {
@@ -433,7 +433,7 @@ func muf_event_process() {
 					notify_nolisten(proc.player, "Program stack overflow.", true)
 					prog_clean(proc.fr)
 				} else {
-					player := db.FetchPlayer(proc.player)
+					player := DB.FetchPlayer(proc.player)
 					current_program := player.curr_prog
 					block := player.block
 					is_bg := proc.fr.multitask == BACKGROUND

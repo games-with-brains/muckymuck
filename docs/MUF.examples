@@ -15,8 +15,8 @@ an apple
   
 If there is nothing in the room, it will print "nothing."
   
-( refs2namestr         dbreflist -- string                              )
-( takes a list of dbrefs on the stack, wih the count of them on top     )
+( refs2namestr         ObjectIDlist -- string                              )
+( takes a list of ObjectIDs on the stack, wih the count of them on top     )
 ( returns a single string containing the names of all the items given   )
   
 : refs2namestr (list -- s)
@@ -33,17 +33,17 @@ If there is nothing in the room, it will print "nothing."
   
   
 ( contents-list                                                        )
-( takes the dbref of the item to list the contents of.                 )
-( returns a list of dbrefs on the stack with the count of them on top. )
+( takes the ObjectID of the item to list the contents of.                 )
+( returns a list of ObjectIDs on the stack with the count of them on top. )
 
-: contents-list (dbref -- dbreflist)
-  contents                            (get the first item dbref)
+: contents-list (ObjectID -- ObjectIDlist)
+  contents                            (get the first item ObjectID)
   0 begin                             (init counter and begin loop)
     over while                          (if no more items, exit loop)
     over next                           (get next item and push onto stack)
     swap 1 +                            (increment count)
   repeat                              (jump to beginning of loop)
-  swap pop                            (pop off excess #-1 terminator dbref)
+  swap pop                            (pop off excess #-1 terminator ObjectID)
 ;
   
 

@@ -3,11 +3,11 @@ package fbmuck
 /* parse_linkable_dest()
  *
  * A utility for open and link which checks whether a given destination
- * string is valid.  It returns a parsed dbref on success, and NOTHING
+ * string is valid.  It returns a parsed ObjectID on success, and NOTHING
  * on failure.
  */
 
-func parse_linkable_dest(int descr, dbref player, dbref exit, const char *dest_name) (r dbref) {
+func parse_linkable_dest(int descr, ObjectID player, ObjectID exit, const char *dest_name) (r ObjectID) {
 	r = NewMatch(descr, player, dest_name, NOTYPE).
 		MatchAbsolute().
 		MatchEverything().
@@ -36,13 +36,13 @@ func parse_linkable_dest(int descr, dbref player, dbref exit, const char *dest_n
  * if any circular references are present in the destination chain.
  * Returns true if circular reference found, false if not.
  */
-func exit_loop_check(dbref source, dbref dest) (r bool) {
+func exit_loop_check(ObjectID source, ObjectID dest) (r bool) {
 	switch {
 	case Typeof(dest) != TYPE_EXIT:
 	case source == dest:
 		r = true
 	default:
-		for _, v := range db.Fetch(dest).(Exit).Destinations {
+		for _, v := range DB.Fetch(dest).(Exit).Destinations {
 			if v == source || (Typeof(v) == TYPE_EXIT && exit_loop_check(source, v)) {
 				r = true
 				break
@@ -53,7 +53,7 @@ func exit_loop_check(dbref source, dbref dest) (r bool) {
 }
 
 /* use this to create an exit */
-func do_open(descr int, player dbref, direction, linkto string) {
+func do_open(descr int, player ObjectID, direction, linkto string) {
 	NoGuest("@open", player, func() {
 		switch {
 		case !Builder(player):
@@ -72,7 +72,7 @@ func do_open(descr int, player dbref, direction, linkto string) {
 				rname = strings.TrimFunc(terms[1], unicode.IsSpace)
 			}
 
-			if loc := db.Fetch(player).Location; {
+			if loc := DB.Fetch(player).Location; {
 			case loc == NOTHING:
 			case !controls(player, loc):
 				notify(player, "Permission denied. (you don't control the location)")
@@ -81,17 +81,17 @@ func do_open(descr int, player dbref, direction, linkto string) {
 				exit := new_object()
 
 				/* initialize everything */
-				db.Fetch(exit).name = direction
-				db.Fetch(exit).Location = loc
-				db.Fetch(exit).Owner = db.Fetch(player).Owner
-				db.Fetch(exit).flags = TYPE_EXIT
-				db.Fetch(exit).(Exit).Destinations = nil
+				DB.Fetch(exit).name = direction
+				DB.Fetch(exit).Location = loc
+				DB.Fetch(exit).Owner = DB.Fetch(player).Owner
+				DB.Fetch(exit).flags = TYPE_EXIT
+				DB.Fetch(exit).(Exit).Destinations = nil
 
 				/* link it in */
-				db.Fetch(exit).next = db.Fetch(loc).Exits
-				db.Fetch(exit).flags |= OBJECT_CHANGED
-				db.Fetch(loc).Exits = exit
-				db.Fetch(loc§).flags |= OBJECT_CHANGED
+				DB.Fetch(exit).next = DB.Fetch(loc).Exits
+				DB.Fetch(exit).flags |= OBJECT_CHANGED
+				DB.Fetch(loc).Exits = exit
+				DB.Fetch(loc§).flags |= OBJECT_CHANGED
 
 				/* and we're done */
 				notify(player, fmt.Sprintf("Exit opened with number %d.", exit))
@@ -102,10 +102,10 @@ func do_open(descr int, player dbref, direction, linkto string) {
 					if !payfor(player, tp_link_cost) {
 						notify_fmt(player, "You don't have enough %s to link.", tp_pennies)
 					} else {
-						var good_dest []dbref
+						var good_dest []ObjectID
 						ndest := link_exit(descr, player, exit, qname, good_dest)
-						db.Fetch(exit).(Exit).Destinations = good_dest
-						db.Fetch(exit).flags |= OBJECT_CHANGED
+						DB.Fetch(exit).(Exit).Destinations = good_dest
+						DB.Fetch(exit).flags |= OBJECT_CHANGED
 					}
 				}
 
@@ -118,7 +118,7 @@ func do_open(descr int, player dbref, direction, linkto string) {
 	})
 }
 
-func _link_exit(descr int, player, exit dbref, name string, dest_list []dbref, dryrun bool) (r int) {
+func _link_exit(descr int, player, exit ObjectID, name string, dest_list []ObjectID, dryrun bool) (r int) {
 	var prdest, error bool
 	for name != "" {
 		name = strings.TrimSpace(name)
@@ -186,13 +186,13 @@ func _link_exit(descr int, player, exit dbref, name string, dest_list []dbref, d
  * 'exit' is the the exit whose destinations are to be linked.
  * 'dest_name' is a character string containing the list of exits.
  *
- * 'dest_list' is an array of dbref's where the valid destinations are
+ * 'dest_list' is an array of ObjectID's where the valid destinations are
  * stored.
  *
  */
 
 int
-link_exit(int descr, dbref player, dbref exit, char *dest_name, dbref * dest_list)
+link_exit(int descr, ObjectID player, ObjectID exit, char *dest_name, ObjectID * dest_list)
 {
 	return _link_exit(descr, player, exit, dest_name, dest_list, 0);
 }
@@ -203,7 +203,7 @@ link_exit(int descr, dbref player, dbref exit, char *dest_name, dbref * dest_lis
  * like link_exit(), but only checks whether the link would be ok or not.
  * error messages are still output.
  */
-func link_exit_dry(int descr, dbref player, dbref exit, char *dest_name, dbref * dest_list) int {
+func link_exit_dry(int descr, ObjectID player, ObjectID exit, char *dest_name, ObjectID * dest_list) int {
 	return _link_exit(descr, player, exit, dest_name, dest_list, 1);
 }
 
@@ -216,7 +216,7 @@ func link_exit_dry(int descr, dbref player, dbref exit, char *dest_name, dbref *
  *
  * All destinations must either be owned by you, or be LINK_OK.
  */
-func do_link(descr int, player dbref, thing_name, dest_name string) {
+func do_link(descr int, player ObjectID, thing_name, dest_name string) {
 	NoGuest("@link", player, func() {
 		md := NewMatch(descr, player, thing_name, IsExit).
 			MatchAllExits().
@@ -226,7 +226,7 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 			MatchHere().
 			MatchAbsolute().
 			MatchRegistered()
-		if Wizard(db.Fetch(player).Owner) {
+		if Wizard(DB.Fetch(player).Owner) {
 			md.MatchPlayer()
 		}
 		if thing := md.NoisyMatchResult(); thing != NOTHING {
@@ -234,13 +234,13 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 			case TYPE_EXIT:
 				/* we're ok, check the usual stuff */
 				switch {
-				case len(db.Fetch(thing).(Exit).Destinations) != 0:
+				case len(DB.Fetch(thing).(Exit).Destinations) != 0:
 					if controls(player, thing) {
 						notify(player, "That exit is already linked.")
 					} else {
 						notify(player, "Permission denied. (you don't control the exit to relink)")
 					}
-				case db.Fetch(thing).Owner == db.Fetch(player).Owner && !payfor(player, tp_link_cost):
+				case DB.Fetch(thing).Owner == DB.Fetch(player).Owner && !payfor(player, tp_link_cost):
 					if tp_link_cost == 1 {
 						notify_fmt(player, "It costs %d %s to link this exit.", tp_link_cost, tp_penny)
 					} else {
@@ -255,18 +255,18 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 				case !Builder(player):
 					notify(player, "Only authorized builders may seize exits.")
 				default:
-					owner := db.Fetch(thing).Owner
+					owner := DB.Fetch(thing).Owner
 					add_property(owner, MESGPROP_VALUE, nil, get_property_value(owner, MESGPROP_VALUE) + tp_exit_cost)
-					db.Fetch(owner).flags |= OBJECT_CHANGED
-					db.Fetch(thing).Owner = db.Fetch(player).Owner
-					var good_dest []dbref
+					DB.Fetch(owner).flags |= OBJECT_CHANGED
+					DB.Fetch(thing).Owner = DB.Fetch(player).Owner
+					var good_dest []ObjectID
 					if n := link_exit(descr, player, thing, dest_name, good_dest); n == 0 {
 						notify(player, "No destinations linked.")
 						add_property(player, MESGPROP_VALUE, nil, get_property_value(player, MESGPROP_VALUE) + tp_link_cost)
-						db.Fetch(player).flags |= OBJECT_CHANGED
+						DB.Fetch(player).flags |= OBJECT_CHANGED
 					} else {
-						db.Fetch(thing).(Exit).Destinations = good_dest
-						db.Fetch(thing).flags |= OBJECT_CHANGED
+						DB.Fetch(thing).(Exit).Destinations = good_dest
+						DB.Fetch(thing).flags |= OBJECT_CHANGED
 					}
 				}
 			case TYPE_THING, TYPE_PLAYER:
@@ -288,12 +288,12 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 				default:
 					/* do the link */
 					if Typeof(thing) == TYPE_THING {
-						db.Fetch(thing).(Player).home = dest
+						DB.Fetch(thing).(Player).home = dest
 					} else {
-						db.Fetch(thing).(Player).home = dest
+						DB.Fetch(thing).(Player).home = dest
 					}
 					notify(player, "Home set.")
-					db.Fetch(thing).flags |= OBJECT_CHANGED
+					DB.Fetch(thing).flags |= OBJECT_CHANGED
 				}
 			case TYPE_ROOM:			/* room dropto's */
 				dest = NewMatch(descr, player, dest_name, IsRoom).
@@ -308,9 +308,9 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
 				case !controls(player, thing), !can_link_to(player, Typeof(thing), dest), thing == dest:
 					notify(player, "Permission denied. (you don't control the room, or can't link to the dropto)")
 				default:
-					db.Fetch(thing).sp = dest
+					DB.Fetch(thing).sp = dest
 					notify(player, "Dropto set.")
-					db.Fetch(thing).flags |= OBJECT_CHANGED
+					DB.Fetch(thing).flags |= OBJECT_CHANGED
 				}
 			case TYPE_PROGRAM:
 				notify(player, "You can't link programs to things!")
@@ -327,7 +327,7 @@ func do_link(descr int, player dbref, thing_name, dest_name string) {
  *
  * Use this to create a room.
  */
-func do_dig(descr int, player dbref, name, pname string) {
+func do_dig(descr int, player ObjectID, name, pname string) {
 	NoGuest("@dig", player, func() {
 		switch {
 		case !Builder(player):
@@ -344,26 +344,26 @@ func do_dig(descr int, player dbref, name, pname string) {
 			room := new_object()
 
 			/* Initialize everything */
-			newparent := db.Fetch(db.Fetch(player).Location).Location
-			for newparent != NOTHING && db.Fetch(newparent).flags & ABODE == 0 {
-				newparent = db.Fetch(newparent).Location
+			newparent := DB.Fetch(DB.Fetch(player).Location).Location
+			for newparent != NOTHING && DB.Fetch(newparent).flags & ABODE == 0 {
+				newparent = DB.Fetch(newparent).Location
 			}
 			if newparent == NOTHING {
 				newparent = tp_default_room_parent
 			}
 
-			db.Fetch(room).name = name
-			db.Fetch(room).Location = newparent
-			db.Fetch(room).Owner = db.Fetch(player).Owner
-			db.Fetch(room).Exits = NOTHING
-			db.Fetch(room).sp = NOTHING
-			db.Fetch(room).flags = TYPE_ROOM | (db.Fetch(player).flags & JUMP_OK)
-			db.Fetch(room).next = db.Fetch(newparent).Contents
-			db.Fetch(room).flags |= OBJECT_CHANGED
-			db.Fetch(newparent).Contents = room
+			DB.Fetch(room).name = name
+			DB.Fetch(room).Location = newparent
+			DB.Fetch(room).Owner = DB.Fetch(player).Owner
+			DB.Fetch(room).Exits = NOTHING
+			DB.Fetch(room).sp = NOTHING
+			DB.Fetch(room).flags = TYPE_ROOM | (DB.Fetch(player).flags & JUMP_OK)
+			DB.Fetch(room).next = DB.Fetch(newparent).Contents
+			DB.Fetch(room).flags |= OBJECT_CHANGED
+			DB.Fetch(newparent).Contents = room
 
-			db.Fetch(room).flags |= OBJECT_CHANGED
-			db.Fetch(newparent).flags |= OBJECT_CHANGED
+			DB.Fetch(room).flags |= OBJECT_CHANGED
+			DB.Fetch(newparent).flags |= OBJECT_CHANGED
 
 			notify(player, fmt.Sprintf("%s created with room number %d.", name, room))
 
@@ -404,7 +404,7 @@ func do_dig(descr int, player dbref, name, pname string) {
   then we put him into edit mode and do it.
   Otherwise, we create a new object for him, and call it a program.
   */
-func do_prog(descr int, player dbref, name string) {
+func do_prog(descr int, player ObjectID, name string) {
 	NoGuest("@program", player, func() {
 		switch {
 		case Typeof(player) != TYPE_PLAYER:
@@ -423,10 +423,10 @@ func do_prog(descr int, player dbref, name string) {
 			switch {
 			case i == NOTHING:
 				newprog := new_object()
-				db.Fetch(newprog).name = name
+				DB.Fetch(newprog).name = name
 				add_property(newprog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
-				db.Fetch(newprog).Location = player
-				db.Fetch(newprog).flags = TYPE_PROGRAM
+				DB.Fetch(newprog).Location = player
+				DB.Fetch(newprog).flags = TYPE_PROGRAM
 				mlev := MLevel(player)
 				switch {
 				case mlev < APPRENTICE:
@@ -436,41 +436,41 @@ func do_prog(descr int, player dbref, name string) {
 				}
 				SetMLevel(newprog, mlev)
 
-				db.Fetch(newprog).Owner = db.Fetch(player).Owner
-				db.Fetch(newprog).(Program) = new(Program)
-				db.Fetch(player).(Player).curr_prog = newprog
+				DB.Fetch(newprog).Owner = DB.Fetch(player).Owner
+				DB.Fetch(newprog).(Program) = new(Program)
+				DB.Fetch(player).(Player).curr_prog = newprog
 
-				db.Fetch(newprog).next = db.Fetch(player).Contents
-				db.Fetch(newprog).flags |= OBJECT_CHANGED
-				db.Fetch(player).Contents = newprog
-				db.Fetch(newprog).flags |= OBJECT_CHANGED
+				DB.Fetch(newprog).next = DB.Fetch(player).Contents
+				DB.Fetch(newprog).flags |= OBJECT_CHANGED
+				DB.Fetch(player).Contents = newprog
+				DB.Fetch(newprog).flags |= OBJECT_CHANGED
 
-				db.Fetch(player).flags |= INTERACTIVE
-				db.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(player).flags |= OBJECT_CHANGED
 				notify(player, fmt.Sprintf("Program %s created with number %d.", name, newprog))
 				notify(player, fmt.Sprintf("Entering editor."))
 			case i == AMBIGUOUS:
 				notify(player, "I don't know which one you mean!")
 			case Typeof(i) != TYPE_PROGRAM, !controls(player, i):
 				notify(player, "Permission denied!")
-			case db.Fetch(i).flags & INTERNAL != 0:
+			case DB.Fetch(i).flags & INTERNAL != 0:
 				notify(player, "Sorry, this program is currently being edited by someone else.  Try again later.")
 			} else {
-				db.Fetch(i).(Program).first = read_program(i)
-				db.Fetch(i).flags |= INTERNAL
-				db.Fetch(player).(Player).curr_prog = i
+				DB.Fetch(i).(Program).first = read_program(i)
+				DB.Fetch(i).flags |= INTERNAL
+				DB.Fetch(player).(Player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
-				db.Fetch(i).flags |= OBJECT_CHANGED
-				db.Fetch(player).flags |= INTERACTIVE
-				db.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(i).flags |= OBJECT_CHANGED
+				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(player).flags |= OBJECT_CHANGED
 			}
 		}
 	})
 }
 
-func do_edit(descr int, player dbref, name string) {
+func do_edit(descr int, player ObjectID, name string) {
 	NoGuest("@edit", player, func() {
 		switch {
 		case Typeof(player) != TYPE_PLAYER:
@@ -490,24 +490,24 @@ func do_edit(descr int, player dbref, name string) {
 			case i == NOTHING, i == AMBIGUOUS:
 			case Typeof(i) != TYPE_PROGRAM, !controls(player, i):
 				notify(player, "Permission denied!")
-			case db.Fetch(i).flags & INTERNAL != 0:
+			case DB.Fetch(i).flags & INTERNAL != 0:
 				notify(player, "Sorry, this program is currently being edited by someone else.  Try again later.")
 			default:
-				db.Fetch(i).flags |= INTERNAL
-				db.Fetch(i).(Program).first = read_program(i)
-				db.Fetch(player).(Player).curr_prog = i
+				DB.Fetch(i).flags |= INTERNAL
+				DB.Fetch(i).(Program).first = read_program(i)
+				DB.Fetch(player).(Player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
-				db.Fetch(player).flags |= INTERACTIVE
-				db.Fetch(i).flags |= OBJECT_CHANGED
-				db.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(i).flags |= OBJECT_CHANGED
+				DB.Fetch(player).flags |= OBJECT_CHANGED
 			}
 		}
 	})
 }
 
-func do_mcpedit(descr int, player dbref, name string) {
+func do_mcpedit(descr int, player ObjectID, name string) {
 	NoGuest("@mcpedit", player, func() {
 		if mfr := descr_mcpframe(descr); mfr == nil {
 			do_edit(descr, player, name)
@@ -538,7 +538,7 @@ func do_mcpedit(descr int, player dbref, name string) {
 	})
 }
 
-func do_mcpprogram(descr int, player dbref, name string) {
+func do_mcpprogram(descr int, player ObjectID, name string) {
 	NoGuest("@mcpprogram", player, func() {
 		switch {
 		case Typeof(player) != TYPE_PLAYER:
@@ -560,10 +560,10 @@ func do_mcpprogram(descr int, player dbref, name string) {
 				notify(player, "I don't know which one you mean!")
 			case NOTHING:
 				prog = new_object()
-				db.Fetch(prog).name = name
+				DB.Fetch(prog).name = name
 				add_property(prog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
-				db.Fetch(prog).Location = player
-				db.Fetch(prog).flags = TYPE_PROGRAM
+				DB.Fetch(prog).Location = player
+				DB.Fetch(prog).flags = TYPE_PROGRAM
 
 				mlev := MLevel(player)
 				switch {
@@ -574,15 +574,15 @@ func do_mcpprogram(descr int, player dbref, name string) {
 				}
 				SetMLevel(prog, mlev)
 
-				db.Fetch(prog).Owner = db.Fetch(player).Owner
-				db.Fetch(prog).(Program) = new(Program)
-				db.Fetch(player).(Player).curr_prog = prog
+				DB.Fetch(prog).Owner = DB.Fetch(player).Owner
+				DB.Fetch(prog).(Program) = new(Program)
+				DB.Fetch(player).(Player).curr_prog = prog
 
-				db.Fetch(prog).next = db.Fetch(player).Contents
-				db.Fetch(prog).flags |= OBJECT_CHANGED
-				db.Fetch(player).Contents = prog
-				db.Fetch(prog).flags |= OBJECT_CHANGED
-				db.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(prog).next = DB.Fetch(player).Contents
+				DB.Fetch(prog).flags |= OBJECT_CHANGED
+				DB.Fetch(player).Contents = prog
+				DB.Fetch(prog).flags |= OBJECT_CHANGED
+				DB.Fetch(player).flags |= OBJECT_CHANGED
 				notify(player, fmt.Sprintf("Program %s created with number %d.", name, prog))
 				fallthrough
 			default:
@@ -592,7 +592,7 @@ func do_mcpprogram(descr int, player dbref, name string) {
 	})
 }
 
-func mcpedit_program(descr int, player, prog dbref, name string) {
+func mcpedit_program(descr int, player, prog ObjectID, name string) {
 	if mfr := descr_mcpframe(descr); mfr == nil {
 		do_edit(descr, player, name)
 	} else {
@@ -607,22 +607,22 @@ func mcpedit_program(descr int, player, prog dbref, name string) {
 			show_mcp_error(mfr, "@mcpedit", "No program name given.");
 		case Typeof(prog) != TYPE_PROGRAM, !controls(player, prog):
 			show_mcp_error(mfr, "@mcpedit", "Permission denied!")
-		case db.Fetch(prog).flags & INTERNAL != 0:
+		case DB.Fetch(prog).flags & INTERNAL != 0:
 			show_mcp_error(mfr, "@mcpedit", "Sorry, this program is currently being edited by someone else.  Try again later.");
 		default:
-			db.Fetch(prog).(Program).first = read_program(prog)
-			db.Fetch(player).(Player).curr_prog = prog
+			DB.Fetch(prog).(Program).first = read_program(prog)
+			DB.Fetch(player).(Player).curr_prog = prog
 			refstr := fmt.Sprintf("%d.prog.", prog)
-			namestr := fmt.Sprintf("a program named %s(%d)", db.Fetch(prog).name, prog)
+			namestr := fmt.Sprintf("a program named %s(%d)", DB.Fetch(prog).name, prog)
 			msg := &McpMesg{ package: "dns-org-mud-moo-simpleedit", mesgname: "content" }
 			mcp_mesg_arg_append(&msg, "reference", refstr)
 			mcp_mesg_arg_append(&msg, "type", "muf-code")
 			mcp_mesg_arg_append(&msg, "name", namestr)
-			for curr := db.Fetch(prog).(Program).first; curr != nil; curr = curr.next {
+			for curr := DB.Fetch(prog).(Program).first; curr != nil; curr = curr.next {
 				mcp_mesg_arg_append(&msg, "content", curr.this_line)
 			}
 			mcp_frame_output_mesg(mfr, &msg)
-			db.Fetch(prog).(Program).first = nil
+			DB.Fetch(prog).(Program).first = nil
 		}
 	}
 }
@@ -631,7 +631,7 @@ func mcpedit_program(descr int, player, prog dbref, name string) {
  * copy a single property, identified by its name, from one object to
  * another. helper routine for copy_props (below).
  */
-func copy_one_prop(source dbref, propname string) (r interface{}) {
+func copy_one_prop(source ObjectID, propname string) (r interface{}) {
 	if currprop := get_property(source, propname); currprop != nil {
 		switch v := currprop.(type) {
 		case string:
@@ -640,7 +640,7 @@ func copy_one_prop(source dbref, propname string) (r interface{}) {
 			newprop.data = v
 		case float64:
 			newprop.data = v
-		case dbref:
+		case ObjectID:
 			newprop.data = v
 		case Lock:
 			newprop.data = copy_bool(v)
@@ -654,13 +654,13 @@ func copy_one_prop(source dbref, propname string) (r interface{}) {
  * helper routine used by do_clone, based loosely on listprops_wildcard from
  * look.c.
  */
-func copy_props(player, source, destination dbref, dir string) {
+func copy_props(player, source, destination ObjectID, dir string) {
 	/* loop through all properties in the current propdir */
 	var pptr *Plist
 	var propname string
 	for propadr := pptr.first_prop(source, dir, propname); propadr != nil; propadr, propname = propadr.next_prop(pptr) {
 		prop := dir + PROPDIR_DELIMITER + propname
-		if tp_verbose_clone && Wizard(db.Fetch(player).Owner) {
+		if tp_verbose_clone && Wizard(DB.Fetch(player).Owner) {
 			notify(player, fmt.Sprintf("copying property %s", prop))
 		}
 		set_property(destination, buf, copy_one_prop(source, prop))
@@ -673,7 +673,7 @@ func copy_props(player, source, destination dbref, dir string) {
  *
  * Use this to clone an object.
  */
-func do_clone(descr int, player dbref, name string) {
+func do_clone(descr int, player ObjectID, name string) {
 	NoGuest("@clone", player, func() {
 		switch {
 		case !Builder(player):
@@ -695,7 +695,7 @@ func do_clone(descr int, player dbref, name string) {
  				notify(player, "I don't know which one you mean!")
 			case Typeof(thing) != TYPE_THING:
 				notify(player, "That is not a cloneable object.")
-			case !ok_name(db.Fetch(thing).name):
+			case !ok_name(DB.Fetch(thing).name):
 				/* check the name again, just in case reserved name patterns have changed since the original object was created. */
 				notify(player, "You cannot clone something with such a weird name!")
 			case !controls(player, thing):
@@ -713,29 +713,29 @@ func do_clone(descr int, player dbref, name string) {
 					}
 		
 					clonedthing := new_object()
-					db.Fetch(clonedthing).name = db.Fetch(thing).name
-					db.Fetch(clonedthing).(Player) = new(Player)
-					db.Fetch(clonedthing).Location = player
-					db.Fetch(clonedthing).Owner = db.Fetch(player).Owner
+					DB.Fetch(clonedthing).name = DB.Fetch(thing).name
+					DB.Fetch(clonedthing).(Player) = new(Player)
+					DB.Fetch(clonedthing).Location = player
+					DB.Fetch(clonedthing).Owner = DB.Fetch(player).Owner
 					add_property(clonedthing, MESGPROP_VALUE, nil, get_property_value(thing, MESGPROP_VALUE))
 
 					/* FIXME: should we clone attached actions? */
-					db.Fetch(clonedthing).Exits = NOTHING
-					db.Fetch(clonedthing).flags = db.Fetch(thing).flags
+					DB.Fetch(clonedthing).Exits = NOTHING
+					DB.Fetch(clonedthing).flags = DB.Fetch(thing).flags
 
 					copy_props(player, thing, clonedthing, "")
 					if get_property_value(thing, MESGPROP_VALUE) > tp_max_object_endowment {
 						add_property(thing, MESGPROP_VALUE, nil, tp_max_object_endowment)
 					}
-					db.Fetch(clonedthing).(Player).home = db.Fetch(thing).(Player).home
-					db.Fetch(clonedthing).next = db.Fetch(player).Contents
-					db.Fetch(clonedthing).flags |= OBJECT_CHANGED
+					DB.Fetch(clonedthing).(Player).home = DB.Fetch(thing).(Player).home
+					DB.Fetch(clonedthing).next = DB.Fetch(player).Contents
+					DB.Fetch(clonedthing).flags |= OBJECT_CHANGED
 
-					db.Fetch(player).Contents = clonedthing
-					db.Fetch(player).flags |= OBJECT_CHANGED
+					DB.Fetch(player).Contents = clonedthing
+					DB.Fetch(player).flags |= OBJECT_CHANGED
 
-					notify(player, fmt.Sprintf("%s created with number %d.", db.Fetch(thing).name, clonedthing))
-					db.Fetch(clonedthing).flags |= OBJECT_CHANGED
+					notify(player, fmt.Sprintf("%s created with number %d.", DB.Fetch(thing).name, clonedthing))
+					DB.Fetch(clonedthing).flags |= OBJECT_CHANGED
 				}
 			}
 		} 
@@ -747,7 +747,7 @@ func do_clone(descr int, player dbref, name string) {
  *
  * Use this to create an object.
  */
-func do_create(player dbref, name, acost string) {
+func do_create(player ObjectID, name, acost string) {
 	NoGuest("@create", player, func() {
 		var qname, rname string
 		if terms := strings.SplitN(acost, "=", 2); len(terms) == 2 {
@@ -774,28 +774,28 @@ func do_create(player dbref, name, acost string) {
 				notify_fmt(player, "Sorry, you don't have enough %s.", tp_pennies)
 			} else {
 				thing := new_object();
-				db.Fetch(thing).name = name
-				db.Fetch(thing).(Player) = new(Player)
-				db.Fetch(thing).Location = player
-				db.Fetch(thing).Owner = db.Fetch(player).Owner
+				DB.Fetch(thing).name = name
+				DB.Fetch(thing).(Player) = new(Player)
+				DB.Fetch(thing).Location = player
+				DB.Fetch(thing).Owner = DB.Fetch(player).Owner
 				add_property(thing, MESGPROP_VALUE, nil, OBJECT_ENDOWMENT(cost))
-				db.Fetch(thing).Exits = NOTHING
-				db.Fetch(thing).flags = TYPE_THING
+				DB.Fetch(thing).Exits = NOTHING
+				DB.Fetch(thing).flags = TYPE_THING
 
 				if get_property_value(thing, MESGPROP_VALUE) > tp_max_object_endowment {
 					add_property(thing, MESGPROP_VALUE, nil, tp_max_object_endowment)
 				}
-				if loc := db.Fetch(player).Location); loc != NOTHING && controls(player, loc) {
-					db.Fetch(thing).(Player).home = loc
+				if loc := DB.Fetch(player).Location); loc != NOTHING && controls(player, loc) {
+					DB.Fetch(thing).(Player).home = loc
 				} else {
-					db.Fetch(thing).(Player).home = player
+					DB.Fetch(thing).(Player).home = player
 				}
-				db.Fetch(thing).next = db.Fetch(player).Contents
-				db.Fetch(thing).flags |= OBJECT_CHANGED
-				db.Fetch(player).Contents = thing
-				db.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(thing).next = DB.Fetch(player).Contents
+				DB.Fetch(thing).flags |= OBJECT_CHANGED
+				DB.Fetch(player).Contents = thing
+				DB.Fetch(player).flags |= OBJECT_CHANGED
 				notify(player, fmt.Sprintf("%s created with number %d.", name, thing))
-				db.Fetch(thing).flags |= OBJECT_CHANGED
+				DB.Fetch(thing).flags |= OBJECT_CHANGED
 				if rname != "" {
 					notify(player, fmt.Sprintf("Registered as $%s", rname))
 					set_property(player, fmt.Sprintf("_reg/%s", rname), thing)
@@ -809,14 +809,14 @@ func do_create(player dbref, name, acost string) {
  * parse_source()
  *
  * This is a utility used by do_action and do_attach.  It parses
- * the source string into a dbref, and checks to see that it
+ * the source string into a ObjectID, and checks to see that it
  * exists.
  *
- * The return value is the dbref of the source, or NOTHING if an
+ * The return value is the ObjectID of the source, or NOTHING if an
  * error occurs.
  *
  */
-func parse_source(int descr, dbref player, const char *source_name) (r dbref) {
+func parse_source(int descr, ObjectID player, const char *source_name) (r ObjectID) {
 	r = NewMatch(descr, player, source_name, NOTYPE).
 		MatchNeighbor().
 		MatchMe().
@@ -845,34 +845,34 @@ func parse_source(int descr, dbref player, const char *source_name) (r dbref) {
  * It is called by do_action and do_attach.
  *
  */
-func set_source(player, action, source dbref) {
+func set_source(player, action, source ObjectID) {
 	switch Typeof(source) {
 	case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-		db.Fetch(action).next = db.Fetch(source).Exits
-		db.Fetch(action).flags |= OBJECT_CHANGED
-		db.Fetch(source).Exits = action
-		db.Fetch(source).flags |= OBJECT_CHANGED
-		db.Fetch(action).Location = source
-		db.Fetch(action).flags |= OBJECT_CHANGED
+		DB.Fetch(action).next = DB.Fetch(source).Exits
+		DB.Fetch(action).flags |= OBJECT_CHANGED
+		DB.Fetch(source).Exits = action
+		DB.Fetch(source).flags |= OBJECT_CHANGED
+		DB.Fetch(action).Location = source
+		DB.Fetch(action).flags |= OBJECT_CHANGED
 	default:
 		notify(player, "Internal error: weird object type.")
 		log_status("PANIC: tried to source %d to %d: type: %d", action, source, Typeof(source))
 	}
 }
 
-func unset_source(player, loc, action dbref) bool {
-	if oldsrc := db.Fetch(action).Location; oldsrc == NOTHING {
+func unset_source(player, loc, action ObjectID) bool {
+	if oldsrc := DB.Fetch(action).Location; oldsrc == NOTHING {
 		/* old-style, sourceless exit */
-		if !member(action, db.Fetch(loc).Exits) {
+		if !member(action, DB.Fetch(loc).Exits) {
 			return false
 		}
-		db.Fetch(db.Fetch(player).Location).Exits = remove_first(db.Fetch(db.Fetch(player).Location).Exits, action)
-		db.Fetch(db.Fetch(player).Location).flags |= OBJECT_CHANGED
+		DB.Fetch(DB.Fetch(player).Location).Exits = remove_first(DB.Fetch(DB.Fetch(player).Location).Exits, action)
+		DB.Fetch(DB.Fetch(player).Location).flags |= OBJECT_CHANGED
 	} else {
 		switch Typeof(oldsrc) {
 		case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-			db.Fetch(oldsrc).Exits = remove_first(db.Fetch(oldsrc).Exits, action)
-			db.Fetch(oldsrc).flags |= OBJECT_CHANGED
+			DB.Fetch(oldsrc).Exits = remove_first(DB.Fetch(oldsrc).Exits, action)
+			DB.Fetch(oldsrc).flags |= OBJECT_CHANGED
 		default:
 			log_status("PANIC: source of action #%d was type: %d.", action, Typeof(oldsrc));
 			return false
@@ -889,7 +889,7 @@ func unset_source(player, loc, action dbref) bool {
  * The action will not do anything until it is LINKed.
  *
  */
-func do_action(descr int, player dbref, action_name, source_name string) {
+func do_action(descr int, player ObjectID, action_name, source_name string) {
 	NoGuest("@action", player, func() {
 		if !Builder(player) {
 			notify(player, "That command is restricted to authorized builders.")
@@ -914,15 +914,15 @@ func do_action(descr int, player dbref, action_name, source_name string) {
 						notify_fmt(player, "Sorry, you don't have enough %s to make an action.", tp_pennies)
 					} else {
 						action := new_object()
-						db.Fetch(action).name = action_name
-						db.Fetch(action).Location = NOTHING
-						db.Fetch(action).Owner = db.Fetch(player).Owner
-						db.Fetch(action).(Exit).Destinations = nil
-						db.Fetch(action).flags = TYPE_EXIT
+						DB.Fetch(action).name = action_name
+						DB.Fetch(action).Location = NOTHING
+						DB.Fetch(action).Owner = DB.Fetch(player).Owner
+						DB.Fetch(action).(Exit).Destinations = nil
+						DB.Fetch(action).flags = TYPE_EXIT
 
 						set_source(player, action, source)
 						notify(player, fmt.Sprintf("Action created with number %d and attached.", action))
-						db.Fetch(action).flags |= OBJECT_CHANGED
+						DB.Fetch(action).flags |= OBJECT_CHANGED
 
 						if rname != "" {
 							notify(player, fmt.Sprintf("Registered as $%s", rname))
@@ -942,9 +942,9 @@ func do_action(descr int, player dbref, action_name, source_name string) {
  * The action will not do anything unless it is LINKed.
  *
  */
-func do_attach(descr int, player dbref, action_name, source_name string) {
+func do_attach(descr int, player ObjectID, action_name, source_name string) {
 	NoGuest("@attach", player, func() {
-		if loc := db.Fetch(player).Location); loc != NOTHING {
+		if loc := DB.Fetch(player).Location); loc != NOTHING {
 			switch {
 			case !Builder(player):
 				notify(player, "That command is restricted to authorized builders.")

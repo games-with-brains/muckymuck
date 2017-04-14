@@ -5,7 +5,7 @@ package fbmuck
 #define BUFFER_LEN ((MAX_COMMAND_LEN)*4)
 #define FILE_BUFSIZ ((BUFSIZ)*8)
 
-typedef int dbref;				/* offset into db */
+typedef int ObjectID;				/* offset into db */
 
 #define TIME_INFINITE ((sizeof(time_t) == 4)? 0xefffffff : 0xefffffffffffffff)
 
@@ -104,16 +104,16 @@ typedef int dbref;				/* offset into db */
 
 typedef long object_flag_type;
 
-#define GOD ((dbref) 1)
+#define GOD ((ObjectID) 1)
 
 #define PREEMPT 0
 #define FOREGROUND 1
 #define BACKGROUND 2
 
-/* special dbref's */
-#define NOTHING ((dbref) -1)	/* null dbref */
-#define AMBIGUOUS ((dbref) -2)	/* multiple possibilities, for matchers */
-#define HOME ((dbref) -3)		/* virtual room, represents mover's home */
+/* special ObjectID's */
+#define NOTHING ((ObjectID) -1)	/* null ObjectID */
+#define AMBIGUOUS ((ObjectID) -2)	/* multiple possibilities, for matchers */
+#define HOME ((ObjectID) -3)		/* virtual room, represents mover's home */
 
 /* editor data structures */
 
@@ -162,7 +162,7 @@ struct line {
 #define STACK_SIZE       1024	/* maximum size of stack */
 
 struct stack_addr {				/* for the system callstack */
-	dbref progref;				/* program call was made from */
+	ObjectID progref;				/* program call was made from */
 	struct inst *offset;		/* the address of the call */
 };
 
@@ -196,13 +196,13 @@ struct sysstack {
 
 struct callstack {
 	int top;
-	dbref st[STACK_SIZE];
+	ObjectID st[STACK_SIZE];
 };
 
 struct localvars {
 	struct localvars *next;
 	struct localvars **prev;
-	dbref prog;
+	ObjectID prog;
 	vars lvars;
 };
 
@@ -228,7 +228,7 @@ struct debuggerdata {
 	char *lastcmd;				/* last executed debugger command */
 	short breaknum;				/* the breakpoint that was just caught on */
 
-	dbref lastproglisted;		/* What program's text was last loaded to list? */
+	ObjectID lastproglisted;		/* What program's text was last loaded to list? */
 	struct line *proglines;		/* The actual program text last loaded to list. */
 
 	short count;				/* how many breakpoints are currently set */
@@ -240,7 +240,7 @@ struct debuggerdata {
 	int lastline;				/* Last line interped.  For line changes. */
 	int line[MAX_BREAKS];		/* line breakpts.  -1 no check. */
 	int linecount[MAX_BREAKS];	/* how many lines to interp.  -2 for inf. */
-	dbref prog[MAX_BREAKS];		/* program that breakpoint is in. */
+	ObjectID prog[MAX_BREAKS];		/* program that breakpoint is in. */
 };
 
 #define dequeue_prog(x,i) dequeue_prog_real(x,i,__FILE__,__LINE__)
@@ -249,34 +249,6 @@ struct debuggerdata {
 #define STD_SETUID 1
 #define STD_HARDUID 2
 
-/* union of type-specific fields */
-
-union specific {				/* I've been railroaded! */
-	struct {					/* ROOM-specific fields */
-		dbref dropto;
-	} room;
-/*    struct {		*//* THING-specific fields */
-/*	dbref   home;   */
-/*    }       thing;    */
-	struct {					/* EXIT-specific fields */
-		dbref *dest;
-	} exit;
-	struct {					/* PLAYER-specific fields */
-		struct Player *sp;
-	} player;
-	struct {					/* PROGRAM-specific fields */
-		struct Program *sp;
-	} program;
-};
-
-struct macrotable {
-	char *name;
-	char *definition;
-	dbref implementor;
-	struct macrotable *left;
-	struct macrotable *right;
-};
-
 #define PLAYER_HASH_SIZE   (1024)	/* Table for player lookups */
 #define COMP_HASH_SIZE     (256)	/* Table for compiler keywords */
 #define DEFHASHSIZE        (256)	/* Table for compiler $defines */
@@ -284,14 +256,14 @@ struct macrotable {
 /*
   Usage guidelines:
 
-  To obtain an object pointer use db.Fetch(i).  Pointers returned by db.Fetch
+  To obtain an object pointer use DB.Fetch(i).  Pointers returned by DB.Fetch
   may become invalid after a call to new_object().
 
   If you have updated an object set the OBJECT_CHANGED flag before leaving the routine that did the update.
 
   Some fields are now handled in a unique way, since they are always memory
   resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
-  flags and owner.  Refer to these by db.Fetch(i).name, db.Fetch(i).flags and db.Fetch(i).Owner.
+  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).flags and DB.Fetch(i).Owner.
 
   The programmer is responsible for managing storage for string
   components of entries; db_read will produce malloc'd strings.  Note that db_free and db_read will

@@ -215,7 +215,7 @@ CONNECT|DISCONNECT|_CONNECT|_DISCONNECT
 Connect and Disconnect Propqueues:
 
   A room or player may have a "_connect" property set that contains the
-dbref of a program to run when a player connects.  The program must be
+ObjectID of a program to run when a player connects.  The program must be
 either link_ok or must be owned by the player connecting.  When the
 program is run, the string on the stack will be "Connect", the "loc @"
 will be the location of the connecting player, the "me @" will be the
@@ -346,7 +346,7 @@ $UNDEF <defname>
 ~
 $INCLUDE
 $INCLUDE $<libname>
-$INCLUDE <dbref>
+$INCLUDE <ObjectID>
 
   Sets a bunch of $defines from the properties in the /_defs/ propdir of the
 given program.  For example, if object #345 had the following properties:
@@ -403,7 +403,7 @@ For example:
     $libdef myfunc
 ~~endcode
 would put a prop named '_defs/myfunc' on the program object, with the
-value '<this_programs_dbref> "myfunc" call'
+value '<this_programs_ObjectID> "myfunc" call'
 ~~alsosee $PUBDEF,PUBLIC,WIZCALL,CANCALL?,CALL
 ~
 ~
@@ -486,14 +486,14 @@ $IFVER this <float> <truebranch> $endif
 $IFVER this <float> <truebranch> $else <falsebranch> $endif
 $IFVER $<libname> <float> <truebranch> $endif
 $IFVER $<libname> <float> <truebranch> $else <falsebranch> $endif
-$IFVER <dbref> <float> <truebranch> $endif
-$IFVER <dbref> <float> <truebranch> $else <falsebranch> $endif
+$IFVER <ObjectID> <float> <truebranch> $endif
+$IFVER <ObjectID> <float> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the $version of the given program, which is stored in its
 '_version' property.  In the form '$ifver this' then this checks this
 compiling program's $version.  Otherwise, this checks the $version of
-the program referenced by $regname or #dbref.
+the program referenced by $regname or #ObjectID.
   The <truebranch> will be compiled if the given program's $version
 is greater than or equal to the given <float>, using a floating point
 number comparison.  Otherwise, the <falsebranch>, if given, will be
@@ -506,14 +506,14 @@ $IFNVER this <float> <truebranch> $endif
 $IFNVER this <float> <truebranch> $else <falsebranch> $endif
 $IFNVER $<libname> <float> <truebranch> $endif
 $IFNVER $<libname> <float> <truebranch> $else <falsebranch> $endif
-$IFNVER <dbref> <float> <truebranch> $endif
-$IFNVER <dbref> <float> <truebranch> $else <falsebranch> $endif
+$IFNVER <ObjectID> <float> <truebranch> $endif
+$IFNVER <ObjectID> <float> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the $version of the given program, which is stored in its
 '_version' property.  In the form '$ifnver this' then this checks this
 compiling program's $version.  Otherwise, this checks the $version of
-the program referenced by $regname or #dbref.
+the program referenced by $regname or #ObjectID.
   The <truebranch> will be compiled if the given program's $version
 is less than the given <float>, using a floating point number comparison.
 Otherwise, the <falsebranch>, if given, will be compiled.
@@ -525,14 +525,14 @@ $IFLIBVER this <float> <truebranch> $endif
 $IFLIBVER this <float> <truebranch> $else <falsebranch> $endif
 $IFLIBVER $<libname> <float> <truebranch> $endif
 $IFLIBVER $<libname> <float> <truebranch> $else <falsebranch> $endif
-$IFLIBVER <dbref> <float> <truebranch> $endif
-$IFLIBVER <dbref> <float> <truebranch> $else <falsebranch> $endif
+$IFLIBVER <ObjectID> <float> <truebranch> $endif
+$IFLIBVER <ObjectID> <float> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the $lib-version of the given program, which is stored in its
 '_lib-version' property.  In the form '$iflibver this' then this checks this
 compiling program's $lib-version.  Otherwise, this checks the $lib-version
-of the program referenced by $regname or #dbref.
+of the program referenced by $regname or #ObjectID.
   The <truebranch> will be compiled if the given program's $lib-version
 is greater than or equal to the given <float>, using a floating point
 number comparison.  Otherwise, the <falsebranch>, if given, will be
@@ -545,14 +545,14 @@ $IFNLIBVER this <float> <truebranch> $endif
 $IFNLIBVER this <float> <truebranch> $else <falsebranch> $endif
 $IFNLIBVER $<libname> <float> <truebranch> $endif
 $IFNLIBVER $<libname> <float> <truebranch> $else <falsebranch> $endif
-$IFNLIBVER <dbref> <float> <truebranch> $endif
-$IFNLIBVER <dbref> <float> <truebranch> $else <falsebranch> $endif
+$IFNLIBVER <ObjectID> <float> <truebranch> $endif
+$IFNLIBVER <ObjectID> <float> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the $lib-version of the given program, which is stored in its
 '_lib-version' property.  In the form '$ifnlibver this' then this checks this
 compiling program's $lib-version.  Otherwise, this checks the $lib-version
-of the program referenced by $regname or #dbref.
+of the program referenced by $regname or #ObjectID.
   The <truebranch> will be compiled if the given program's $lib-version
 is less than the given <float>, using a floating point number comparison.
 Otherwise, the <falsebranch>, if given, will be compiled.
@@ -562,8 +562,8 @@ Otherwise, the <falsebranch>, if given, will be compiled.
 $IFLIB
 $IFLIB $<libname> <truebranch> $endif
 $IFLIB $<libname> <truebranch> $else <falsebranch> $endif
-$IFLIB <dbref> <truebranch> $endif
-$IFLIB <dbref> <truebranch> $else <falsebranch> $endif
+$IFLIB <ObjectID> <truebranch> $endif
+$IFLIB <ObjectID> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the existence of a given program.
@@ -575,8 +575,8 @@ program.  Otherwise, the <falsebranch>, if given, will be compiled.
 $IFNLIB
 $IFNLIB $<libname> <truebranch> $endif
 $IFNLIB $<libname> <truebranch> $else <falsebranch> $endif
-$IFNLIB <dbref> <truebranch> $endif
-$IFNLIB <dbref> <truebranch> $else <falsebranch> $endif
+$IFNLIB <ObjectID> <truebranch> $endif
+$IFNLIB <ObjectID> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the existence of a given program.
@@ -591,8 +591,8 @@ $IFCANCALL this <publicname> <truebranch> $endif
 $IFCANCALL this <publicname> <truebranch> $else <falsebranch> $endif
 $IFCANCALL $<libname> <publicname> <truebranch> $endif
 $IFCANCALL $<libname> <publicname> <truebranch> $else <falsebranch> $endif
-$IFCANCALL <dbref> <publicname> <truebranch> $endif
-$IFCANCALL <dbref> <publicname> <truebranch> $else <falsebranch> $endif
+$IFCANCALL <ObjectID> <publicname> <truebranch> $endif
+$IFCANCALL <ObjectID> <publicname> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the ability for the compiling program to call a given public
@@ -611,8 +611,8 @@ $IFNCANCALL this <publicname> <truebranch> $endif
 $IFNCANCALL this <publicname> <truebranch> $else <falsebranch> $endif
 $IFNCANCALL $<libname> <publicname> <truebranch> $endif
 $IFNCANCALL $<libname> <publicname> <truebranch> $else <falsebranch> $endif
-$IFNCANCALL <dbref> <publicname> <truebranch> $endif
-$IFNCANCALL <dbref> <publicname> <truebranch> $else <falsebranch> $endif
+$IFNCANCALL <ObjectID> <publicname> <truebranch> $endif
+$IFNCANCALL <ObjectID> <publicname> <truebranch> $else <falsebranch> $endif
 
   This determines whether or not to compile optional sections of code,
 depending on the ability for the compiling program to call a given public
@@ -841,7 +841,7 @@ stack, and the count is pushed onto the stack.
 ME
 ME @
 
-  There is a global variable named ME that contains the dbref of the
+  There is a global variable named ME that contains the ObjectID of the
 player who invoked the program.  The value of this variable is not
 guaranteed to be secure, as another program could change the value of
 ME then call your program.  If you must be certain that the value of
@@ -856,7 +856,7 @@ The ME global variable is the same variable as '0 variable'
 LOC
 LOC @
 
-  There is a global variable named LOC that contains the dbref of the
+  There is a global variable named LOC that contains the ObjectID of the
 location of the player who invoked the program.  The value of this
 variable is not guaranteed to be secure, as another program could change
 the value of LOC then call your program.  If you must be certain that
@@ -871,7 +871,7 @@ The LOC global variable is the same variable as '1 variable'
 TRIGGER
 TRIGGER @
 
-  There is a global variable named TRIGGER that contains the dbref of the
+  There is a global variable named TRIGGER that contains the ObjectID of the
 trigger object that invoked the process.  The value of this variable is
 not guaranteed to be secure, as another program could change the value of
 TRIGGER then call your program.  If you must be certain that the value of
@@ -978,7 +978,7 @@ and
 ~~code
     0 variable @
 ~~endcode
-will do the same thing (returning the user's dbref). User-defined variables
+will do the same thing (returning the user's ObjectID). User-defined variables
 are numbered sequentially starting at 4 by the compiler. Note that these
 variable numbers can be used even if variables have not been formally
 declared.  This command has been deprecated, and is not recommended to use.
@@ -1118,7 +1118,7 @@ FLOAT? ( ? -- i )
 DBREF?
 DBREF? ( x -- i )
 
-  Returns true if x is a dbref.
+  Returns true if x is a ObjectID.
 ~
 ~
 ARRAY?
@@ -1250,7 +1250,7 @@ unless the caller is calling itself.
 INTERP
 INTERP ( d1 d2 s -- ? )
 
-  Takes a program dbref to run d1, the trigger to use d2, and the top stack
+  Takes a program ObjectID to run d1, the trigger to use d2, and the top stack
 item string and calls the program with the given string on the stack.
 Returns when interpretation halts, which could be the result of an exit, an
 error, or a primitive that suspends execution such as sleep or read.
@@ -1469,7 +1469,7 @@ PUBLIC <functionname>
 
   Declares a previously defined function to be public for execution by other
 programs.  This is a compile-time directive, not a run-time primitive.  To
-call a public function, put the dbref of the program on the stack, then put
+call a public function, put the ObjectID of the program on the stack, then put
 a string, containing the function name, on the stack, then use CALL.
 For example:
 ~~code
@@ -1484,7 +1484,7 @@ WIZCALL <functionname>
   Declares a previously defined function to be callable from other programs,
 as long as the calling program has wizbit permissions.  This is a compile-
 time directive, not a run-time primitive.  To call a public function, put
-the dbref of the program on the stack, then put a string, containing the
+the ObjectID of the program on the stack, then put a string, containing the
 function name, on the stack, then use CALL.  For example:
 ~~code
     #888 "functionname" CALL
@@ -1585,7 +1585,7 @@ value 'userlog_mlev' (defaults to MASTER) to write this log entry.
 INT
 INT ( x -- i )
 
-  Converts variable, float, or dbref x to integer i.
+  Converts variable, float, or ObjectID x to integer i.
 ~
 ~
 +
@@ -1593,9 +1593,9 @@ INT ( x -- i )
 
   This adds two numbers, n1 + n2.  If both numbers are integers, an integer
 will be returned.  If one of them is a floating point number, then a float
-will be returned.  You can also use this on a dbref or a variable number,
+will be returned.  You can also use this on a ObjectID or a variable number,
 so long as the second argument is an integer.  In those cases, this will
-return a dbref or variable number, respectively.
+return a ObjectID or variable number, respectively.
 ~
 ~
 -
@@ -1603,9 +1603,9 @@ return a dbref or variable number, respectively.
 
   This subtracts two numbers, n1 - n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 ~
 ~
 *
@@ -1613,9 +1613,9 @@ cases, this will return a dbref or variable number, respectively.
 
   This multiplies two numbers, n1 * n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 ~
 ~
 /
@@ -1623,9 +1623,9 @@ cases, this will return a dbref or variable number, respectively.
 
   This divides two numbers, n1 / n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 ~
 ~
 %
@@ -1640,8 +1640,8 @@ use either the FMOD or MODF primitives.
 ++ ( v -- )
 ++ ( n -- n' )
 
-  If given an integer, float, or dbref, adds 1 to it, and returns the result.
-If given a variable containing an integer, float, or dbref, adds 1 to the
+  If given an integer, float, or ObjectID, adds 1 to it, and returns the result.
+If given a variable containing an integer, float, or ObjectID, adds 1 to the
 value stored in the variable, and returns nothing.
 ~~alsosee --
 ~
@@ -1650,9 +1650,9 @@ value stored in the variable, and returns nothing.
 -- ( v -- )
 -- ( n -- n' )
 
-  If given an integer, float, or dbref, this subtracts 1 from it, and
+  If given an integer, float, or ObjectID, this subtracts 1 from it, and
 returns the result.  If given a variable containing an integer, float,
-or dbref, this subtracts 1 from the value stored in the variable, and
+or ObjectID, this subtracts 1 from the value stored in the variable, and
 returns nothing.
 ~~alsosee ++
 ~
@@ -2241,8 +2241,8 @@ identifiers:
 ~~code
     i - integer argument
     s - string argument
-    d - dbref number, in the form of #123
-    D - dbref name reference; given a dbref, will print the associated
+    d - ObjectID number, in the form of #123
+    D - ObjectID name reference; given a ObjectID, will print the associated
         name for that object - terminates on bad reference
     l - pretty-lock, given a lock, will print the description
     f - float in xxx.yyy form
@@ -2379,7 +2379,7 @@ These are the attributes currently recognized:
 STOD
 STOD ( s -- d )
 
-  Attempts to extract a dbref from s, recognizing both plain numerical
+  Attempts to extract a ObjectID from s, recognizing both plain numerical
 strings, and those prepended with a '#' sign.
 ~
 ~
@@ -2393,7 +2393,7 @@ returns 0.
 INTOSTR
 INTOSTR ( x -- s )
 
-  x must be an integer or a dbref. Converts x into string s.
+  x must be an integer or a ObjectID. Converts x into string s.
 ~
 ~
 ITOC
@@ -2628,8 +2628,8 @@ returns the values:
 LOCKED?
 LOCKED? (d d -- i)
 
-  Takes, in order, the dbref of the player to test the lock against, and
-the dbref of object the lock is on.  It tests the lock, running programs
+  Takes, in order, the ObjectID of the player to test the lock against, and
+the ObjectID of object the lock is on.  It tests the lock, running programs
 as necessary, and returns a integer of 0 if it is not locked against
 them, or 1 if it is.
 ~
@@ -2659,7 +2659,7 @@ PRETTYLOCK (l -- s)
 TESTLOCK
 TESTLOCK (d l -- i)
 
-  Tests the player dbref against the given lock.  If the test was successful,
+  Tests the player ObjectID against the given lock.  If the test was successful,
 then this returns a 1.  If the test failed, then this returns a 0.
 ~~alsosee LOCK?,PARSELOCK,UNPARSELOCK,PRETTYLOCK,GETLOCKSTR,SETLOCKSTR,LOCKED?
 ~
@@ -2718,7 +2718,7 @@ there are an even number of stack items between the { and the }dict.
 ARRAY_NOTIFY
 ARRAY_NOTIFY ( a1 a2 -- )
 
-  Notifies all strings in array a1 to all dbrefs in array a2.  Arrays
+  Notifies all strings in array a1 to all ObjectIDs in array a2.  Arrays
 must be homogenous of their respective types.
 ~
 ~
@@ -2750,7 +2750,7 @@ ARRAY_INTERPRET
 ARRAY_INTERPRET ([s] -- s)
 
   Takes a list array and and returns a single string that is the concatenation
-of all the items in the list array, with dbrefs translated to the name of
+of all the items in the list array, with ObjectIDs translated to the name of
 their respective objects.  For example:
 ~~code
     { #1 " " 2 " three " 3.14159 }list array_join
@@ -3013,7 +3013,7 @@ ARRAY_SORT|SORTTYPE_CASEINSENS|SORTTYPE_DESCENDING|SORTTYPE_SHUFFLE|SORTTYPE_CAS
 ARRAY_SORT (arrData intSortType -- arrSorted)
 
   This sorts all the items in the list array given, based on the given
-sort type.  This can sort strings, integers, floats, dbrefs, or mixes
+sort type.  This can sort strings, integers, floats, ObjectIDs, or mixes
 of types.  Integers are sorted in with floats, but strings sort after
 all numbers.  Dbrefs sort after the other number types, but before
 string types.  Other stack item types will sort separately, but in
@@ -3186,7 +3186,7 @@ GETPROP
 GETPROP (d s -- ?)
 
   Gets the value of a given property, and puts it on the stack.
-This can return a lock, a string, a dbref, or an integer, depending
+This can return a lock, a string, a ObjectID, or an integer, depending
 on the type of the property.  Permissions are the same as those for
 GETPROPSTR.  This primitive returns 0 if no such property exists, of
 if it is a valueless propdir.
@@ -3216,10 +3216,10 @@ GETPROPFVAL ( d s -- f )
 ENVPROP
 ENVPROP ( d s -- d ? )
 
-  Takes a starting object dbref and a property name and searches down the
+  Takes a starting object ObjectID and a property name and searches down the
 environment tree from that object for a property with the given name.  If
 the property isn't found, it returns #-1 and 0.  If the property is found,
-it will return the dbref of the object it was found on, and the value it
+it will return the ObjectID of the object it was found on, and the value it
 contained.
 ~~alsosee ENVPROPSTR
 ~
@@ -3227,10 +3227,10 @@ contained.
 ENVPROPSTR
 ENVPROPSTR (d s -- d s )
 
-  Takes a starting object dbref and a property name and searches down the
+  Takes a starting object ObjectID and a property name and searches down the
 environment tree from that object for a property with the given name.  If
 the property isn't found, it returns #-1 and a null string.  If the
-property is found, it will return the dbref of the object it was found on,
+property is found, it will return the ObjectID of the object it was found on,
 and the string value it contained.
 ~~alsosee ENVPROP
 ~
@@ -3250,7 +3250,7 @@ read without permission.
 SETPROP
 SETPROP (d s ? -- )
 
-  Stores a lock, dbref, integer, or string into the named property on the
+  Stores a lock, ObjectID, integer, or string into the named property on the
 given object.  Permissions are the same as for ADDPROP.
 ~~alsosee ADDPROP,REMOVE_PROP,GETPROPSTR,GETPROPVAL
 ~
@@ -3266,7 +3266,7 @@ permission on that object, the call fails.
 PROPDIR?
 PROPDIR? (d s -- i)
 
-  Takes a dbref and a property name, and returns a boolean integer that
+  Takes a ObjectID and a property name, and returns a boolean integer that
 tells if that property is a propdir that contains other props.
 (Requires Mucker Level 2)
 ~
@@ -3274,7 +3274,7 @@ tells if that property is a propdir that contains other props.
 NEXTPROP
 NEXTPROP (d s -- s)
 
-  This takes a dbref and a string that is the full propdir pathname of a
+  This takes a ObjectID and a string that is the full propdir pathname of a
 property and returns the full pathname of the next property in the given
 object's given propdir, or returns a null string if that was the last
 property in the propdir.  To *start* the search, give it a propdir name
@@ -3291,49 +3291,49 @@ effective user id. (Requires Mucker Level 3)
 ARRAY_GET_REFLIST
 ARRAY_GET_REFLIST ( d s -- a )
 
-  Reads in list of space delimited dbrefs from a string property, and
-returns them as a list array of dbrefs.  See ARRAY_PUT_REFLIST for
+  Reads in list of space delimited ObjectIDs from a string property, and
+returns them as a list array of ObjectIDs.  See ARRAY_PUT_REFLIST for
 property syntax.
 ~
 ~
 ARRAY_PUT_REFLIST
 ARRAY_PUT_REFLIST ( d s a -- )
 
-  Takes a list array of dbrefs, and stores them in a property as a space
-delimited string of dbrefs.  ie:  "#1234 #6646 #1026 #7104"
+  Takes a list array of ObjectIDs, and stores them in a property as a space
+delimited string of ObjectIDs.  ie:  "#1234 #6646 #1026 #7104"
 ~
 ~
 REFLIST_FIND
 REFLIST_FIND ( d1 s1 d2 -- i )
 
-  Finds dbref d2 in the reflist in property s1 on object d1.  If d2 is
+  Finds ObjectID d2 in the reflist in property s1 on object d1.  If d2 is
 not in the list, then 0 is returned.  Otherwise the position of the
-dbref in the list is returned, with the first dbref being in position 1,
-the second dbref in 2, etc.
+ObjectID in the list is returned, with the first ObjectID being in position 1,
+the second ObjectID in 2, etc.
 ~
 ~
 REFLIST_ADD
 REFLIST_ADD ( d1 s1 d2 -- )
 
-  Adds dbref d2 to the reflist in property s1 on object d1.  If d2 is already
+  Adds ObjectID d2 to the reflist in property s1 on object d1.  If d2 is already
 in the list, it is moved to the end of the reflist.
 ~
 ~
 REFLIST_DEL
 REFLIST_DEL ( d1 s1 d2 -- )
 
-  Removes dbref d2 from the reflist in property s1 on object d1.  If d2 is
+  Removes ObjectID d2 from the reflist in property s1 on object d1.  If d2 is
 not in the list, nothing happens.
 ~
 ~
 UNBLESSPROP
-UNBLESSPROP (dbrefObject strPropname -- )
+UNBLESSPROP (ObjectIDObject strPropname -- )
 
   Unblesses the given property for MPI.  Requires Wizbit perms.
 ~
 ~
 BLESSPROP
-BLESSPROP (dbrefObject strPropname -- )
+BLESSPROP (ObjectIDObject strPropname -- )
 
   Blesses the given property for MPI.  Requires Wizbit perms.
 ~
@@ -3341,7 +3341,7 @@ BLESSPROP (dbrefObject strPropname -- )
 BLESSED?
 BLESSED? (d s -- i)
 
-  Takes a dbref and a property name, and returns a boolean integer that
+  Takes a ObjectID and a property name, and returns a boolean integer that
 tells if that property has been blessed.
 (Requires Mucker Level 2)
 ~
@@ -3349,16 +3349,16 @@ tells if that property has been blessed.
 ARRAY_FILTER_PROP
 ARRAY_FILTER_PROP ([d] s1 s2 -- [d'])
 
-  Takes a homogenous list array of dbrefs, and returns a list array with only
-those dbrefs who have a property specified by s1, set to a value that smatch
+  Takes a homogenous list array of ObjectIDs, and returns a list array with only
+those ObjectIDs who have a property specified by s1, set to a value that smatch
 matches s2.
 ~
 ~
 ARRAY_FILTER_FLAGS
-ARRAY_FILTER_FLAGS ( list:dbrefs str:flags -- list:matchingdbrefs )
+ARRAY_FILTER_FLAGS ( list:ObjectIDs str:flags -- list:matchingObjectIDs )
 
-  Takes a homogenous list array of dbrefs and a flags test string, and
-returns a list array with only those dbrefs whose flags matched the flag
+  Takes a homogenous list array of ObjectIDs and a flags test string, and
+returns a list array with only those ObjectIDs whose flags matched the flag
 test string.  A flags test string is a list of flag letters or object type
 letters to require, and a list of flags to specifically reject preceeded
 by exclamation marks (!).  ie: "TD!C!V" would match Things set Dark, which
@@ -3450,26 +3450,26 @@ DBREF ( i -- d )
 PROG
 PROG ( -- d)
 
-  Returns the dbref of the currently running program.
+  Returns the ObjectID of the currently running program.
 ~
 ~
 TRIG
 TRIG ( -- d)
 
-  Returns the dbref of the original trigger.
+  Returns the ObjectID of the original trigger.
 ~
 ~
 CALLER
 CALLER ( -- d)
 
-  Returns the dbref of the program that called this one, or the dbref of the
+  Returns the ObjectID of the program that called this one, or the ObjectID of the
 trigger, if this wasn't called by a program.
 ~
 ~
 DBTOP
 DBTOP ( -- d)
 
-  Returns the dbref of the first object beyond the top object of the database.
+  Returns the ObjectID of the first object beyond the top object of the database.
 'dbtop ok?' would return a false value.
 ~
 ~
@@ -3478,14 +3478,14 @@ DBCMP ( d1 d2 -- i )
 
   Performs comparison of database objects d1 and d2. If they are the
 same object, then i is 1, otherwise i is 0.
-Use of this primitive is deprecated, as dbrefs may be compared with
+Use of this primitive is deprecated, as ObjectIDs may be compared with
 the standard comparison functions (< <= > >= =).
 ~
 ~
 UNPARSEOBJ
 UNPARSEOBJ (d -- s)
 
-  Returns the name-and-flag string for an object.  It always has the dbref and
+  Returns the name-and-flag string for an object.  It always has the ObjectID and
 flag string after the name, even if the player doesn't control the object.
 For example: "One(#1PW)"
 ~
@@ -3501,7 +3501,7 @@ SETOWN
 SETOWN (d d -- )
 
   Sets the ownership of the first object to the player given in the second
-dbref. (wizbit only)
+ObjectID. (wizbit only)
 ~
 ~
 LOCATION
@@ -3531,7 +3531,7 @@ the @desc and @succ/@fail of a room when moving a player.
 CONTENTS
 CONTENTS ( d -- d' )
 
-  Pushes the dbref of the first thing contained by d.  This dbref can
+  Pushes the ObjectID of the first thing contained by d.  This ObjectID can
 then be referenced by `next' to cycle through all of the contents of
 d.  d may be a room or a player.
 ~
@@ -3539,7 +3539,7 @@ d.  d may be a room or a player.
 CONTENTS_ARRAY
 CONTENTS_ARRAY ( d -- a )
 
-  Returns a list array that contains the dbref of every object contained
+  Returns a list array that contains the ObjectID of every object contained
 within the given object.  If a #-1 is returned as the last list item,
 then there were too many objects to return all of them.
 ~
@@ -3554,7 +3554,7 @@ This list can be transversed with `next'.
 EXITS_ARRAY
 EXITS_ARRAY ( d -- a )
 
-  Returns a list array that contains the dbref of every exit attached to the
+  Returns a list array that contains the ObjectID of every exit attached to the
 given object.  If a #-1 is returned as the last list item, then there were
 too many exits to return all of them.
 ~
@@ -3569,8 +3569,8 @@ list of d's location.
 NEXTOWNED
 NEXTOWNED ( d -- d' )
 
-  When called with a player dbref, returns the dbref of the first object they
-own.  Subsequent calls to those object dbrefs returns the next object owned
+  When called with a player ObjectID, returns the ObjectID of the first object they
+own.  Subsequent calls to those object ObjectIDs returns the next object owned
 by that same player.  When no more objects are left owned by that player,
 #-1 is returned.  The order of the objects is not guarenteed, but when used
 correctly, each object owned by that player will be returned exactly once.
@@ -3622,14 +3622,14 @@ NEXTENTRANCE ( d1 d2 -- d3 )
   Searches the database for the next object after d2 that is linked to d1.
 You can begin a search by passing #-1 as d2.  The search currently scans
 upwards through the database, but this ordering is not guaranteed.  If an
-object is found that links to d1, then the dbref of that object is returned.
+object is found that links to d1, then the ObjectID of that object is returned.
 If no more such objects are found in the db, then #-1 is returned.
 ~
 ~
 CONTROLS
 CONTROLS ( d1 d2 -- i )
 
-  Takes a player dbref d1 and an object dbref d2, and returns true if the
+  Takes a player ObjectID d1 and an object ObjectID d2, and returns true if the
 player has control over the given object.
 ~
 ~
@@ -3655,7 +3655,7 @@ a thing object, etc.  If nothing is found, d' = #-1.  if ambiguous, d'
 PMATCH
 PMATCH (s -- d)
 
-  Takes a name and returns the dbref of the player.  If the name does not
+  Takes a name and returns the ObjectID of the player.  If the name does not
 match that of a player, #-1 is returned.
 ~
 ~
@@ -3665,7 +3665,7 @@ PART_PMATCH (s -- d)
   Takes a player name, or the first part of the name, and matches it
 against the names of the players who are currently online.  If the
 given string is a prefix of the name of a player who is online, then
-their dbref is returned.  If two players could be matched by the
+their ObjectID is returned.  If two players could be matched by the
 given string, it returns a #-2.  If None of the players online match,
 then it returns a #-1.
 ~
@@ -3696,7 +3696,7 @@ for enabling economies.
 CHECKPASSWORD
 CHECKPASSWORD ( d s -- i )
 
-  Checks if password string s is valid for player dbref d.  returns 1 on
+  Checks if password string s is valid for player ObjectID d.  returns 1 on
 success, otherwise returns 0.
 Wizbit only.
 ~
@@ -3742,7 +3742,7 @@ MLEVEL (d -- i)
 OK?
 OK? ( x -- i )
 
-  Takes x and returns 1 if x is a type dbref, as well as 0 or above,
+  Takes x and returns 1 if x is a type ObjectID, as well as 0 or above,
 below the top of the database, and is not an object of type garbage.
 ~~alsosee EXIT?,PLAYER?,PROGRAM?,THING?
 ~
@@ -3751,15 +3751,15 @@ PLAYER?
 PLAYER? ( d -- i )
 
   Returns 1 if object d is a player object, otherwise returns 0.
-If the dbref is that of an invalid object, it will return 0.
+If the ObjectID is that of an invalid object, it will return 0.
 ~~alsosee PROGRAM?,ROOM?,THING?,EXIT?,OK?
 ~
 ~
 ROOM?
 ROOM? ( d -- i )
 
-  Returns 1 if object d is a room, otherwise returns 0.  If the dbref is that
-of an invalid object, it will return 0.  A dbref of #-3 (HOME) returns 1.
+  Returns 1 if object d is a room, otherwise returns 0.  If the ObjectID is that
+of an invalid object, it will return 0.  A ObjectID of #-3 (HOME) returns 1.
 ~~alsosee PLAYER?,PROGRAM?,THING?,EXIT?,OK?
 ~
 ~
@@ -3781,7 +3781,7 @@ PROGRAM?
 PROGRAM? ( d -- i )
 
   Returns 1 if object d is a program, otherwise returns 0.
-If the dbref is that of an invalid object, it will return 0.
+If the ObjectID is that of an invalid object, it will return 0.
 ~~alsosee PLAYER?,ROOM?,THING?,EXIT?,OK?
 ~
 ~
@@ -3790,7 +3790,7 @@ SYSPARM ( s -- s )
 
   Takes a tuneable system parameter and returns its value as a string.  For
 an integer it returns it as a string, a time is returned as a string
-containing the number of seconds, a dbref is returned in standard dbref
+containing the number of seconds, a ObjectID is returned in standard ObjectID
 format, and boolean is returned as 'yes' or 'no'
 Checking an invalid parameter or a parameter requiring higher permissions
 than the program has will return an empty string.
@@ -3894,12 +3894,12 @@ permission to read the data.
 Each dictionary contains the following data, keyed with these strings:
     "name"     The name of the @tune setting.
     "group"    The logical group that this parameter belongs to.
-    "type"     One of "string", "integer", "timespan", "dbref", or "boolean".
+    "type"     One of "string", "integer", "timespan", "ObjectID", or "boolean".
     "mlev"     The mucker level required to read the value of this sysparm.
-    "value"    The value of the sysparm.  May be an int, string, or dbref.
+    "value"    The value of the sysparm.  May be an int, string, or ObjectID.
 
-If a given entry is of the "dbref" type, it will also have the extra field:
-    "objtype"  The type of object the dbref is restricted to.  Can be one of
+If a given entry is of the "ObjectID" type, it will also have the extra field:
+    "objtype"  The type of object the ObjectID is restricted to.  Can be one of
                 the strings "player", "thing", "room", "exit", "program",
                 "garbage", or "any".
 
@@ -4097,21 +4097,21 @@ or a room with no dropto, getlinks returns 0.  A count of
 GETLINKS_ARRAY
 GETLINKS_ARRAY ( d -- a )
 
-  Returns a list array that contains the dbref of every object that the
+  Returns a list array that contains the ObjectID of every object that the
 given object is linked to.
 ~
 ~
 ENTRANCES_ARRAY
 ENTRANCES_ARRAY ( d -- a )
 
-  Returns a list array that contains the dbref of every object linked to the
+  Returns a list array that contains the ObjectID of every object linked to the
 given object.
 ~
 ~
 SETLINK
 SETLINK     ( d1 d2 -- )
 
-  Takes an exit dbref d1, and sets its destination to d2.  You must have
+  Takes an exit ObjectID d1, and sets its destination to d2.  You must have
 control of the exit, and if the exit is already linked, it must be unlinked
 first by doing setlink with #-1 as the destination.
 ~
@@ -4160,7 +4160,7 @@ COPYPLAYER ( d1 s1 s2 -- d2 )
 
   Creates a new player object with the name s1, and the password s2, and the
 properties, flags, links, etc. of the template object d1.  This returns
-the dbref of the newly created player object.
+the ObjectID of the newly created player object.
 ~
 ~
 TOADPLAYER
@@ -4174,21 +4174,21 @@ NEWPLAYER
 NEWPLAYER ( s1 s2 -- d )
 
   Creates a new player object, with the name s1, and the password s2.
-This returns the dbref of the new player object.
+This returns the ObjectID of the new player object.
 ~
 ~
 NEWROOM
 NEWROOM (d s -- d)
 
-  Takes the dbref of the parent and the name of the room. It returns the
-dbref of the created room. Owner is the person running the program.
+  Takes the ObjectID of the parent and the name of the room. It returns the
+ObjectID of the created room. Owner is the person running the program.
 (program must have a wizbit)
 ~
 ~
 NEWOBJECT
 NEWOBJECT (d s -- d)
 
-  Takes location and name and returns new thing's dbref.
+  Takes location and name and returns new thing's ObjectID.
 Owner is the person running the program.
 (program must have a wizbit)
 ~
@@ -4196,7 +4196,7 @@ Owner is the person running the program.
 NEWEXIT
 NEWEXIT (d s -- d)
 
-  Takes location and name and returns new exit's dbref.
+  Takes location and name and returns new exit's ObjectID.
 Owner is the person running the program.
 (program must have a wizbit)
 ~
@@ -4204,7 +4204,7 @@ Owner is the person running the program.
 NEWPROGRAM
 NEWPROGRAM ( s -- d )
 
-  Creates a new program object with the given name, and returns its dbref.
+  Creates a new program object with the given name, and returns its ObjectID.
 ~
 ~
 RECYCLE
@@ -4442,7 +4442,7 @@ This primitive is actually an inserver $define to 'bg_mode setmode'.
 QUEUE
 QUEUE (i d s -- i)
 
-  Takes a time in seconds, a program's dbref, and a parameter string.  It
+  Takes a time in seconds, a program's ObjectID, and a parameter string.  It
 will execute the given program with the given string as the only string on
 the stack, after a delay of the given number of second.  Returns  the pid
 of the queued process, or 0 if the timequeue was full.
@@ -4490,10 +4490,10 @@ This primitive requires at least mucker level 3.
 GETPIDS
 GETPIDS ( ref:obj -- list:pids )
 
-  If obj is a program dbref, this will return a list of the process IDs
+  If obj is a program ObjectID, this will return a list of the process IDs
 of every active process that has the given program in their call stack.
-If obj is a player dbref, this will return a list of all the PIDs assigned to
-that player.  If obj is a trigger dbref, it will return all the active PIDs
+If obj is a player ObjectID, this will return a list of all the PIDs assigned to
+that player.  If obj is a trigger ObjectID, it will return all the active PIDs
 associated with that trigger.   And finally, if obj is #-1, then all active
 PIDs will be included in the array that gets returned.
 ~~alsosee GETPIDINFO,ISPID?,PID
@@ -4505,13 +4505,13 @@ GETPIDINFO ( int:pid -- dict:info )
   Given a valid active PID, returns a dictionary with information about
 that process. The information returned is:
     CALLED_DATA - The string the program was queued with, if any
-    CALLED_PROG - The program dbref# of the process' current call level.
+    CALLED_PROG - The program ObjectID# of the process' current call level.
     CPU         - The amount of CPU time used up by the process.
     DESCR       - The descriptor that called the program.
     INSTCNT     - The number of instructions run so far.
     NEXTRUN     - When the process is due to run again.
     PID         - That process ID.
-    PLAYER      - The player dbref that PID belongs to.
+    PLAYER      - The player ObjectID that PID belongs to.
     STARTED     - Systime in seconds when the process started.
     SUBTYPE     - Additional information about the process.
     TRIG        - The trigger that called that process.
@@ -4583,21 +4583,21 @@ returned may be -1 in the case of listener or autostart programs.
 AWAKE?
 AWAKE? ( d -- i )
 
-  Passed a players dbref, returns the number of connections they have to
+  Passed a players ObjectID, returns the number of connections they have to
 the game. This will be 0 if they are not connected.
 ~
 ~
 ONLINE
 ONLINE ( -- d ... i )
 
-  Returns a dbref for every connection to the server, and lastly the number
+  Returns a ObjectID for every connection to the server, and lastly the number
 of connections.
 ~
 ~
 ONLINE_ARRAY
 ONLINE_ARRAY ( -- a )
 
-  Returns a single stack item, which is a list array, containing a dbref for
+  Returns a single stack item, which is a list array, containing a ObjectID for
 every connection to the server.
 ~
 ~
@@ -4611,7 +4611,7 @@ CONCOUNT ( -- i)
 CONDBREF
 CONDBREF (i -- d)
 
-  Returns the dbref of the player connected to this connection.
+  Returns the ObjectID of the player connected to this connection.
 (Requires Mucker Level 3)
 ~
 ~
@@ -4674,7 +4674,7 @@ or 0 if no match was found.
 DESCRDBREF
 DESCRDBREF (i -- d)
 
-  Returns the dbref of the player connected to this descriptor number.
+  Returns the ObjectID of the player connected to this descriptor number.
 This may return #-1 if there is no player connected to the given descriptor.
 (Requires Mucker Level 3)
 ~
@@ -4697,14 +4697,14 @@ DESCRLEASTIDLE
 DESCRLEASTIDLE (d -- i)
 
   Returns the descriptor number for the least idle connection of the given
-player dbref.  (Requires Mucker Level 3)
+player ObjectID.  (Requires Mucker Level 3)
 ~
 ~
 DESCRMOSTIDLE
 DESCRMOSTIDLE (d -- i)
 
   Returns the descriptor number for the most idle connection of the given
-player dbref.  (Requires Mucker Level 3)
+player ObjectID.  (Requires Mucker Level 3)
 ~
 ~
 DESCRSECURE?
@@ -4779,8 +4779,8 @@ output on all descriptors.
 DESCRIPTORS
 DESCRIPTORS (d -- ix...i1 i)
 
-  Takes a player dbref, or #-1, and returns the range of descriptor numbers
-associated with that dbref (or all for #-1) with their count on top.
+  Takes a player ObjectID, or #-1, and returns the range of descriptor numbers
+associated with that ObjectID (or all for #-1) with their count on top.
 Descriptors are numbers that always stay the same for a connection, while
 a connection# is the relative position in the WHO list of a connection.
 ~~alsosee DESCRCON,CONDESCR
@@ -4789,9 +4789,9 @@ a connection# is the relative position in the WHO list of a connection.
 DESCR_ARRAY
 DESCR_ARRAY (d -- a)
 
-  Takes a player dbref, or #-1, and returns a list array that contains the
-current descriptor numbers associated with that dbref.  (Or all connected
-descriptors, if the dbref is #-1)  This can return an empty list if there
+  Takes a player ObjectID, or #-1, and returns a list array that contains the
+current descriptor numbers associated with that ObjectID.  (Or all connected
+descriptors, if the ObjectID is #-1)  This can return an empty list if there
 are no connections for that player.  This is effectively the same as the
 sequence 'descriptors array_make', but doesn't overflow the stack if too
 many descriptors are available.  Descriptors are numbers that always stay
@@ -4803,8 +4803,8 @@ in the WHO list of a connection.
 DESCR_SETUSER
 DESCR_SETUSER ( i d s -- i )
 
-  Reconnects descriptor i to the player with dbref d and password s.  It first
-disconnects from the old dbref, then connects the new one, as if QUIT was
+  Reconnects descriptor i to the player with ObjectID d and password s.  It first
+disconnects from the old ObjectID, then connects the new one, as if QUIT was
 typed then the new character was logged in.  If the password doesn't match
 the player's password, then it gives a permission denied error.  This
 returns a 1 if successful or a 0 if the given descriptor wasn't found.
@@ -4879,12 +4879,12 @@ User events have eventID strings that are created by prepending "USER." to
 the eventID given to the EVENT_SEND muf primitive.  The context for User
 events is a dictionary containing the following keys:
 caller_pid   Holds the integer Process ID of the sending program.
-caller_prog  Holds the dbref of the sending program.
+caller_prog  Holds the ObjectID of the sending program.
 data         Holds the stack item sent by the EVENT_SEND primitive.
 descr        Holds the descr that initiated the calling program.
-trigger      Holds the trigger dbref that initiated the calling program.
-player       Holds the player dbref that ran the calling program.
-prog_uid     Holds the dbref of the player whose permissions the caller
+trigger      Holds the trigger ObjectID that initiated the calling program.
+player       Holds the player ObjectID that ran the calling program.
+prog_uid     Holds the ObjectID of the player whose permissions the caller
                program is running as.
 
 MCP events have eventID strings formatted like "MCP.packagename-mesgname"
@@ -4919,7 +4919,7 @@ The event type will be "USER." with the given event id string appended
 to it.  The given event id string will be truncated at 32 characters.
 The receiving process will be passed a dictionary with items "data" for
 the given arbitrary stack element, "caller_pid" with the pid of the
-process calling EVENT_SEND, and "caller_prog" with the dbref of the
+process calling EVENT_SEND, and "caller_prog" with the ObjectID of the
 program calling EVENT_SEND.
 ie: '23 "foobar" 3.1416 event_send' will send an event to process 23, with
 an eventid of "USER.foobar", and a floating point data value of 3.1416.
@@ -5028,7 +5028,7 @@ MCP_SEND ( intDescr strPkgName strMsgName dictArgs -- )
   Sends an MCP message for the given package to the given connection
 descriptor.  dictArgs contains key-value pairs, where each key is
 an argument name, and the value is the argument value.  Values can
-be strings, floats, dbrefs, integers, or array lists of strings.
+be strings, floats, ObjectIDs, integers, or array lists of strings.
 They all get translated into an appropriate string format before
 getting sent.
 ~
@@ -5595,7 +5595,7 @@ are currently supported:
     "error"    The error message string, like what CATCH returns.
     "instr"    The name string of the instruction which threw the error.
     "line"     The integer program line number where the error was thrown.
-    "program"  The dbref of the program in which the error was thrown.
+    "program"  The ObjectID of the program in which the error was thrown.
 
   The ABORT primitive may be used to throw an arbitrary error anywhere.
 If you need to re-propagate an error, you can use ABORT.
@@ -5631,22 +5631,22 @@ expression is formed from single character argument tests that refer
 to different argument types.  The tests are:
 
   a - function address.
-  d - dbref.  (#-1, #-2, #-3 are okay)
-  D - valid, non-garbage dbref.  (#-1, #-2 NOT allowed.  #-3 is okay)
-  e - exit dbref.  (#-1, #-2 allowed)
-  E - exit dbref.  (#-1, #-2 NOT allowed)
-  f - program dbref.  (#-1, #-2 allowed)
-  F - program dbref.  (#-1, #-2 NOT allowed)
+  d - ObjectID.  (#-1, #-2, #-3 are okay)
+  D - valid, non-garbage ObjectID.  (#-1, #-2 NOT allowed.  #-3 is okay)
+  e - exit ObjectID.  (#-1, #-2 allowed)
+  E - exit ObjectID.  (#-1, #-2 NOT allowed)
+  f - program ObjectID.  (#-1, #-2 allowed)
+  F - program ObjectID.  (#-1, #-2 NOT allowed)
   i - integer.
   l - lock boolean expression.
-  p - player dbref.  (#-1, #-2 allowed)
-  P - player dbref.  (#-1, #-2 NOT allowed)
-  r - room dbref.  (#-1, #-2 allowed)  (#-3 is a room)
-  R - room dbref.  (#-1, #-2 NOT allowed)  (#-3 is a room)
+  p - player ObjectID.  (#-1, #-2 allowed)
+  P - player ObjectID.  (#-1, #-2 NOT allowed)
+  r - room ObjectID.  (#-1, #-2 allowed)  (#-3 is a room)
+  R - room ObjectID.  (#-1, #-2 NOT allowed)  (#-3 is a room)
   s - string.
   S - non-null string.
-  t - thing dbref.  (#-1, #-2 allowed)
-  T - thing dbref.  (#-1, #-2 NOT allowed)
+  t - thing ObjectID.  (#-1, #-2 allowed)
+  T - thing ObjectID.  (#-1, #-2 NOT allowed)
   v - local or global variable.
   ? - any stack item type.
 
@@ -5658,7 +5658,7 @@ Tests are done from the top of the stack down, in order, so the last test
 that fails in a string expression will be the one that the Program Error
 will be given for.  ie: '"sdSi" checkargs' will test that the top stack
 item is an integer, then it tests that the next item down is a non-null
-string, then it tests the third item from the top to see if it is a dbref,
+string, then it tests the third item from the top to see if it is a ObjectID,
 and lastly it tests to make sure that the 4th item from the top is a string.
 
 Spaces are ignored, so "s d i" is the same as "sdi".  However, multipliers
@@ -5667,7 +5667,7 @@ This is because you are basically telling it to repeat the space 4 times,
 and since spaces are ignored, it has no effect.
 
 If you have a function that takes a stack item of any type, you can use
-the "?" test.  "?" will match a string, integer, dbref, or any other type.
+the "?" test.  "?" will match a string, integer, ObjectID, or any other type.
 
 Since sometimes arguments are passed in ranges, such as the way that the
 explode primitive returns multiple strings with an integer count on top,
@@ -5682,7 +5682,7 @@ range refers to the number of pairs.  To test for the range given above,
 you would use '"{si}" checkargs' to tell it that you want to check for
 a range of paired strings and integers.  You can group as many argument
 tests together in a range as you would like.  ie: you could use "{sida}"
-as an expression to test for a range of related strings, integers, dbrefs,
+as an expression to test for a range of related strings, integers, ObjectIDs,
 and function addresses.
 
 Since the argument multipliers refer to the previous test OR range, you
@@ -5696,7 +5696,7 @@ you can test for it by nesting the braces.  ie: '"{{s}}" checkargs'
 
 Now, as one last example, the primitive notify_exclude, if we were to test
 the arguments passed to it manually, would use the test '"R{p}s" checkargs'
-to test for a valid room dbref, a range of player dbrefs or #-1s, and a
+to test for a valid room ObjectID, a range of player ObjectIDs or #-1s, and a
 string.
 ~
 ~
@@ -5776,7 +5776,7 @@ Debugger commands:
   words PATTERN   lists all function word names that match PATTERN.
   exec FUNCNAME   calls given function with the current stack data.
   prim PRIMITIVE  executes given primitive with current stack data.
-  push DATA       pushes an int, dbref, var, or string onto the stack.
+  push DATA       pushes an int, ObjectID, var, or string onto the stack.
   pop             pops top data item off the stack.
   help            displays this help screen.
   quit            stop execution here.
@@ -5804,7 +5804,7 @@ Instruction notation as given by DEBUG dumps and the MUF debugger:
 
     PRIMITIVE:      A call to that primitive. (As in POP or ROTATE)
     NUM:            An integer. (As in 5 or -154)
-    #dbref:         An object dbref. (As in #1 or #63516)
+    #ObjectID:         An object ObjectID. (As in #1 or #63516)
     "Text":         A string.  (As in "Wizard" or "Hello world!") If it is
                     followed by _, there is more in the string than shown.
     [Lock]:         A lock in it's native structure. (As in [#0|!#0])
@@ -5813,7 +5813,7 @@ Instruction notation as given by DEBUG dumps and the MUF debugger:
     SVNUM:          Scoped function variable number NUM. (As in SV2 or SV5)
     (word):         The start of a word. (As in (do-something))
     'word:          The address of word. (As in 'do-something)
-    '#dbref'word:   The address of word in another program.
+    '#ObjectID'word:   The address of word in another program.
                     (As in '#2345'do-something)
     EXEC->word:     A subroutine call to word. (As in EXEC->do-something)
     JMP->word:      A jump to word. (As in JMP->do-something)
@@ -5824,7 +5824,7 @@ Instruction notation as given by DEBUG dumps and the MUF debugger:
     ???:            An unknown instruction type. (As in ???)
     ???<file:line>: An instruction that has been freed.  If you see this please
                     report it to the current server code maintainer.
-                    (As in ???<p_db.c:1042>)
+                    (As in ???<p_DB.c:1042>)
 Some tokens are just used as placeholders, and disappear as soon as the MUF
 is compiled.  These are BEGIN, and THEN.  In addition, FOR loops will
 produce at least two extra instruction, and an IF->lineNUM.  FORITER, the

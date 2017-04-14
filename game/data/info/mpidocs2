@@ -66,7 +66,7 @@ return.  sep and s2 can be multiple characters long.
 each evaluation, the temporary variable var will contain the value of the
 item under scrutiny.  This function returns a list containing the output
 of expr for each item within the list.  This lets you do direct translat-
-ion of a list of dbrefs, for example, into a list of names.  var will
+ion of a list of ObjectIDs, for example, into a list of names.  var will
 only be defined for the duration of expr, and will be undefined after the
 {filter} construct finishes.  If sep is given, then it uses that string
 as the item seperator in the input list, instead of the usual carriage
@@ -92,7 +92,7 @@ items delimited by that string, otherwise it assumes a carriage return.
 
 
 {ref:obj}
-    Returns the dbref of the given object in the form #xxxx.  The object
+    Returns the ObjectID of the given object in the form #xxxx.  The object
 must be in the vicinity, or controlled by the owner of the trigger object.
 
 
@@ -472,8 +472,8 @@ Harry."
     Returns true if the string passed to it is a valid number.
 
 
-{isdbref:dbref}
-    Returns true if the string passed to it is a valid dbref.
+{isObjectID:ObjectID}
+    Returns true if the string passed to it is a valid ObjectID.
 
 
 {version}

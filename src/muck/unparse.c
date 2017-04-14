@@ -1,13 +1,13 @@
 package fbmuck
 
-func unparse_flag(thing dbref, flag int, f string) (r string) {
-	if db.Fetch(thing).flags & flag != 0 {
+func unparse_flag(thing ObjectID, flag int, f string) (r string) {
+	if DB.Fetch(thing).flags & flag != 0 {
 		r = f
 	}
 	return
 }
 
-func unparse_flags(thing dbref) (r string) {
+func unparse_flags(thing ObjectID) (r string) {
 	switch thing.(type) {
 	case TYPE_ROOM:
 		r = "R"
@@ -19,7 +19,7 @@ func unparse_flags(thing dbref) (r string) {
 		r = "F"
 	}
 
-	if db.Fetch(thing).flags & ~TYPE_MASK != 0 {
+	if DB.Fetch(thing).flags & ~TYPE_MASK != 0 {
 		r += unparse_flag(thing, WIZARD, "W")
 		r += unparse_flag(thing, LINK_OK, "L")
 		r += unparse_flag(thing, KILL_OK, "K")
@@ -45,10 +45,10 @@ func unparse_flags(thing dbref) (r string) {
 	return
 }
 
-func unparse_object(player, loc dbref) (r string) {
+func unparse_object(player, loc ObjectID) (r string) {
 	if player != NOTHING {
 		if _, ok := player.(TYPE_PLAYER); !ok {
-			player = db.Fetch(player).Owner
+			player = DB.Fetch(player).Owner
 		}
 	}
 	switch loc {
@@ -58,13 +58,13 @@ func unparse_object(player, loc dbref) (r string) {
 		r = "*AMBIGUOUS*"
 	case HOME:
 		r = "*HOME*"
-	case !valid_reference(loc):
+	case !loc.IsValid():
 		r = "*INVALID*"
 	default:
-		if player == NOTHING || (db.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (Typeof(loc) != TYPE_PLAYER && (controls_link(player, loc) || db.Fetch(loc).flags & CHOWN_OK != 0)))) {
-			r = fmt.Sprintf("%s(#%d%s)", db.Fetch(loc).name, loc, unparse_flags(loc))
+		if player == NOTHING || (DB.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (Typeof(loc) != TYPE_PLAYER && (controls_link(player, loc) || DB.Fetch(loc).flags & CHOWN_OK != 0)))) {
+			r = fmt.Sprintf("%s(#%d%s)", DB.Fetch(loc).name, loc, unparse_flags(loc))
 		} else {
-			r = db.Fetch(loc).name
+			r = DB.Fetch(loc).name
 		}
 	}
 	return

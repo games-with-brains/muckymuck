@@ -3,7 +3,7 @@ package main
 
 import "fmt"
 
-type dbref int
+type ObjectID int
 
 char* strcpyn(char* buf, size_t bufsize, const char* src) {
 	int pos = 0;
@@ -29,7 +29,7 @@ char* strcatn(char* buf, size_t bufsize, const char* src) {
 	return buf;
 }
 
-func spit_file_segment(player dbref, filename, seg string) {
+func spit_file_segment(player ObjectID, filename, seg string) {
 	FILE *f;
 	char buf[BUFFER_LEN];
 	char segbuf[BUFFER_LEN];
@@ -76,11 +76,11 @@ func spit_file_segment(player dbref, filename, seg string) {
 	}
 }
 
-void spit_file(dbref player, const char *filename) {
+void spit_file(ObjectID player, const char *filename) {
 	spit_file_segment(player, filename, "");
 }
 
-void index_file(dbref player, const char *onwhat, const char *file) {
+void index_file(ObjectID player, const char *onwhat, const char *file) {
 	FILE *f;
 	char buf[BUFFER_LEN];
 	char topic[BUFFER_LEN];
@@ -151,7 +151,7 @@ void index_file(dbref player, const char *onwhat, const char *file) {
 	}
 }
 
-func show_subfile(player dbref, dir, topic, seg string, partial bool) (r bool) {
+func show_subfile(player ObjectID, dir, topic, seg string, partial bool) (r bool) {
 	char buf[256];
 	struct stat st;
 

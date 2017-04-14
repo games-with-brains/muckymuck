@@ -22,7 +22,7 @@ tune_*_list.
 
 "group" is a string related to the type of parameter it's tuning.  "name" is
 the name of the parameter, as displayed to the wizard typing @tune.  The next
-parameter is dependent on the type: str, tim, val, [typ/dbref], bool.  It's the
+parameter is dependent on the type: str, tim, val, [typ/ObjectID], bool.  It's the
 address of the variable to store this parameter in.  "security" is the minimum
 mlev for a program to see it -- only wizards can change it, in any case.
 "label" is the descriptive text for the parameter.

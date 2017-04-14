@@ -6,33 +6,33 @@ New primitives:
     of the local variables will not be changed in the calling program, even if
     the called program changes them.
   
-  SETLINK   (d d -- )   Takes an exit dbref and a destination dbref and sets
+  SETLINK   (d d -- )   Takes an exit ObjectID and a destination ObjectID and sets
                          the exit link to that destination.  Note that if the
                          exit is already linked, it must be unlinked by doing
                          a setlink with #-1 as a destination.
   
   SETOWN    (d d -- )   Sets the ownership of the first object to the player
-                         given in the second dbref. (wizbit only)
+                         given in the second ObjectID. (wizbit only)
   
-  NEWROOM   (d s -- d)  Takes dbref of the location, and the name in a string.
-                          Returns the dbref of the room created.  Owner is
+  NEWROOM   (d s -- d)  Takes ObjectID of the location, and the name in a string.
+                          Returns the ObjectID of the room created.  Owner is
                           runner of the program. (wizbit only)
   
-  NEWOBJECT (d s -- d)  Takes location and name and returns new thing's dbref.
+  NEWOBJECT (d s -- d)  Takes location and name and returns new thing's ObjectID.
                           (wizbit only)
   
-  NEWEXIT   (d s -- d)  Takes location and name and returns new exit's dbref.
+  NEWEXIT   (d s -- d)  Takes location and name and returns new exit's ObjectID.
                           (wizbit only)
   
-  AWAKE?    (d -- i)    Returns whether the given player (dbref) is connected.
+  AWAKE?    (d -- i)    Returns whether the given player (ObjectID) is connected.
                          It returns how many times they are connected.
   
-  ONLINE    ( -- d d ... d i) Returns the dbrefs of all the players logged in,
+  ONLINE    ( -- d d ... d i) Returns the ObjectIDs of all the players logged in,
                          with the count of them on the top of the stack.
   
   CONCOUNT  ( -- i)     Returns how many connections to the server there are.
   
-  CONDBREF  (i -- d)    Returns the dbref of the player connected to this
+  CONDBREF  (i -- d)    Returns the ObjectID of the player connected to this
                          connection.
   
   CONTIME   (i -- i)    Returns how many seconds the given connection has been
@@ -46,17 +46,17 @@ New primitives:
   
   STRING?   (? -- i)    Tells whether the top stack item is a string.
   
-  DBREF?    (? -- i)    Tells whether the top stack item is a dbref.
+  DBREF?    (? -- i)    Tells whether the top stack item is a ObjectID.
   
-  NEXTPROP  (d s -- s)  This takes a dbref and a string that is the name of a
+  NEXTPROP  (d s -- s)  This takes a ObjectID and a string that is the name of a
                          property and returns the next property name on that
-                         dbref, or returns a null string if that was the last.
+                         ObjectID, or returns a null string if that was the last.
                          To *start* the search, give it a propdir, or a blank
                          string. For example, '#10 "/" NEXTPROP'  or 
                          '#28 "/letters/" NEXTPROP'   A blank string is the
                          same as "/". (wizbit only)
   
-  PROPDIR?  (d s -- i)  Takes a dbref and a property name, and returns whether
+  PROPDIR?  (d s -- i)  Takes a ObjectID and a property name, and returns whether
                          that property is a propdir that contains other props.
   
   SYSTIME   ( -- i)     Returns the number of seconds since 1/1/79 00:00 GMT
@@ -91,7 +91,7 @@ New primitives:
                          dayofweek, and dayofyear.  1 == sunday for dayofweek.
                          Dayofyear is a number from 1 to 366.
   
-  DBTOP     ( -- d)     Returns the dbref of the first object beyond the top
+  DBTOP     ( -- d)     Returns the ObjectID of the first object beyond the top
                           object of the database.
   
   DEPTH     ( -- i)     Returns how many items are on the stack.
@@ -106,7 +106,7 @@ New primitives:
                           number of bit positions.  Same as the C << operator.
                           If the second integer is negative, its like >>.
   
-  QUEUE     (i d s -- ) Takes a time in seconds, a program's dbref, and a
+  QUEUE     (i d s -- ) Takes a time in seconds, a program's ObjectID, and a
                           parameter string.  It will execute the given program
                           with the given string as the only string on the
                           stack, after a delay of the given number of second.
@@ -116,12 +116,12 @@ New primitives:
                           "Muck 2.2fb" and "Muck 2.2fb2" are the current
                           possible values.
   
-  PROG      ( -- d)     Returns the dbref of the currently running program.
+  PROG      ( -- d)     Returns the ObjectID of the currently running program.
   
-  TRIG      ( -- d)     Returns the dbref of the original trigger.
+  TRIG      ( -- d)     Returns the ObjectID of the original trigger.
   
-  CALLER    ( -- d)     Returns the dbref of the program that called this one,
-                          or the dbref of the trigger, if this wasn't called
+  CALLER    ( -- d)     Returns the ObjectID of the program that called this one,
+                          or the ObjectID of the trigger, if this wasn't called
                           by a program.
   
   LOCALVAR  (i -- l)    Takes an integer and returns the respective local
@@ -137,7 +137,7 @@ A wizard set QUELL is effectively a normal player with no wizardly powers.
   Programs that test to see if a player is wizard will get a false response
   from '"wizard" flag?' when the player is QUELLed.  Wiz-bitted programs
   will still act wizbitted whether or not the owner is QUELLED.
-A player can set themselves "SILENT" and not see all the dbrefs and dark
+A player can set themselves "SILENT" and not see all the ObjectIDs and dark
   objects that they own.  They won't see objects in a dark room either.
   They still control the objects though.
 A player can set themselves "TERSE" and not get the description and contents

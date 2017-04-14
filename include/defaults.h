@@ -149,7 +149,7 @@
  */
 #define PAUSE_MIN 0
 
-#define PLAYER_START ((dbref) 0)	/* room number of player start location */
+#define PLAYER_START ((ObjectID) 0)	/* room number of player start location */
 
 
 

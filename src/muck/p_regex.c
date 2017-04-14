@@ -60,7 +60,7 @@ func muf_re_error(err int) (r string) {
 	return
 }
 
-func prim_regexp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_regexp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		var flags int
 		reflags := op[2].(int)
@@ -100,7 +100,7 @@ func prim_regexp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_regsub(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_regsub(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(4, top, func(op Array) {
 		var re *muf_re
 		var errstr string

@@ -9,7 +9,7 @@
 
 #include <sys/wait.h>
 
-#include "db.h"
+#include "DB.h"
 #include "props.h"
 #include "params.h"
 #include "tune.h"
@@ -29,7 +29,7 @@ FILE *delta_outfile;
 char *in_filename = NULL;
 
 void
-do_dump(dbref player, const char *newfile)
+do_dump(ObjectID player, const char *newfile)
 {
 	char buf[BUFFER_LEN];
 
@@ -55,7 +55,7 @@ do_dump(dbref player, const char *newfile)
 }
 
 void
-do_delta(dbref player)
+do_delta(ObjectID player)
 {
 	if (Wizard(player)) {
 		notify(player, "Dumping deltas...");
@@ -66,7 +66,7 @@ do_delta(dbref player)
 }
 
 void
-do_shutdown(dbref player)
+do_shutdown(ObjectID player)
 {
 	if (Wizard(player)) {
 		log_status("SHUTDOWN: by %s", unparse_object(player, player));
@@ -79,7 +79,7 @@ do_shutdown(dbref player)
 }
 
 void
-do_restart(dbref player)
+do_restart(ObjectID player)
 {
 	if (Wizard(player)) {
 		log_status("SHUTDOWN & RESTART: by %s", unparse_object(player, player));
@@ -130,7 +130,7 @@ dump_database_internal(void)
 	tmpfile = fmt.Sprintf("%s.#%d#", MACRO_FILE, epoch);
 
 	if ((f = fopen(tmpfile, "wb")) != NULL) {
-		macrodump(macrotop, f);
+		Macros.Dump(f)
 		fclose(f);
 		if (rename(tmpfile, MACRO_FILE) < 0)
 			perror(tmpfile);
@@ -171,7 +171,7 @@ func panic(message string) {
 	/* Write out the macros */
 	panicfile = fmt.Sprintf("%s.PANIC", MACRO_FILE);
 	if ((f = fopen(panicfile, "wb")) != NULL) {
-		macrodump(macrotop, f);
+		Macros.Dump(f)
 		fclose(f);
 	} else {
 		perror("CANNOT OPEN MACRO PANIC FILE, YOU LOSE");
@@ -287,7 +287,7 @@ func init_game(infile, outfile string) int {
 	if f = fopen(MACRO_FILE, "rb"); f == nil {
 		log_status("INIT: Macro storage file %s is tweaked.", MACRO_FILE)
 	} else {
-		macroload(f)
+		Macros = LoadMacros(f)
 		fclose(f)
 	}
 
@@ -318,10 +318,10 @@ func init_game(infile, outfile string) int {
 	dumpfile = outfile
 	if !db_conversion_flag {
 		/* initialize the _sys/startuptime property */
-		add_property((dbref) 0, "_sys/startuptime", nil, (int) time((time_t *) NULL))
-		add_property((dbref) 0, "_sys/maxpennies", nil, tp_max_pennies)
-		add_property((dbref) 0, "_sys/dumpinterval", nil, tp_dump_interval)
-		add_property((dbref) 0, "_sys/max_connects", nil, 0)
+		add_property((ObjectID) 0, "_sys/startuptime", nil, (int) time((time_t *) NULL))
+		add_property((ObjectID) 0, "_sys/maxpennies", nil, tp_max_pennies)
+		add_property((ObjectID) 0, "_sys/dumpinterval", nil, tp_dump_interval)
+		add_property((ObjectID) 0, "_sys/max_connects", nil, 0)
 	}
 
 	return 0;
@@ -333,7 +333,7 @@ func cleanup_game() {
 }
 
 var wizonly_mode bool
-func do_restrict(player dbref, arg string) {
+func do_restrict(player ObjectID, arg string) {
 	switch {
 	case !Wizard(player):
 		notify(player, "Permission Denied.")
@@ -351,9 +351,9 @@ func do_restrict(player dbref, arg string) {
 }
 
 var force_level int = 0
-var force_prog dbref = NOTHING		/* Set when a program is the source of FORCE */
+var force_prog ObjectID = NOTHING		/* Set when a program is the source of FORCE */
 
-func process_command(descr int, player dbref, command string) {
+func process_command(descr int, player ObjectID, command string) {
 	char *arg1;
 	char *arg2;
 	char *full_command;
@@ -368,12 +368,12 @@ func process_command(descr int, player dbref, command string) {
 	}
 
 	/* robustify player */
-	if !valid_reference(player) || (!IsPlayer(player) && !IsThing(player)) {
+	if !player.IsValid() || (!IsPlayer(player) && !IsThing(player)) {
 		log_status("process_command: bad player %d", player);
 		return;
 	}
 
-	p := db.Fetch(player)
+	p := DB.Fetch(player)
 	if tp_log_commands || Wizard(p.Owner) {
 		switch {
 		case p.flags & (INTERACTIVE | READMODE) == 0:
@@ -382,51 +382,51 @@ func process_command(descr int, player dbref, command string) {
 			}
 			if Typeof(player) == TYPE_PLAYER {
 				if Wizard(p.Owner) {
-					log_command("WIZ: %s(%d) in %s(%d): %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					log_command("WIZ: %s(%d) in %s(%d): %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 				} else {
-					log_command("%s(%d) in %s(%d): %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					log_command("%s(%d) in %s(%d): %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 				}
 			} else {
 				if Wizard(p.Owner) {
-					log_command("WIZ: %s owned by %s(%d) in %s(%d): %s", p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					log_command("WIZ: %s owned by %s(%d) in %s(%d): %s", p.name, DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 				} else {
-					log_command("%s owned by %s(%d) in %s(%d): %s", p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+					log_command("%s owned by %s(%d) in %s(%d): %s", p.name, DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 				}
 			}
 		case tp_log_interactive:
 			if Typeof(player) == TYPE_PLAYER {
 				if Wizard(p.Owner) {
 					if p.flags & READMODE != 0 {
-						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
-						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				} else {
 					if p.flags & READMODE != 0 {
-						log_command("%s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("%s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
-						log_command("%s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("%s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				}
 			} else {
 				if Wizard(p.Owner) {
 					if p.flags & READMODE != 0 {
-						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
-						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				} else {
 					if p.flags & READMODE != 0 {
-						log_command("%s(%d) in %s(%d): [READ] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("%s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
-						log_command("%s(%d) in %s(%d): [INTERP] %s", db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+						log_command("%s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				}
 			}
 		}
 	}
 
-	if db.Fetch(player).flags & INTERACTIVE {
+	if DB.Fetch(player).flags & INTERACTIVE {
 		interactive(descr, player, command)
 		return
 	}
@@ -456,7 +456,7 @@ func process_command(descr int, player dbref, command string) {
 
 	/* if player is a wizard, and uses overide token to start line... */
 	/* ... then do NOT run actions, but run the command they specify. */
-	if !TrueWizard(db.Fetch(player).Owner) && command[0] == OVERIDE_TOKEN {
+	if !TrueWizard(DB.Fetch(player).Owner) && command[0] == OVERIDE_TOKEN {
 		if can_move(descr, player, command, 0) {
 			do_move(descr, player, command, 0);	/* command is exact match for exit */
 			match_args = ""
@@ -489,7 +489,7 @@ func process_command(descr int, player dbref, command string) {
 		}
 	} else {
 	  bad_pre_command:
-		if TrueWizard(db.Fetch(player).Owner && (ommand == OVERIDE_TOKEN) {
+		if TrueWizard(DB.Fetch(player).Owner && (ommand == OVERIDE_TOKEN) {
 			command++
 		}
 		full_command = strcpyn(xbuf, sizeof(xbuf), command);
@@ -1187,8 +1187,8 @@ func process_command(descr int, player dbref, command string) {
 				}
 			}	
 			notify(player, tp_huh_mesg);
-			if tp_log_failed_commands && !controls(player, db.Fetch(player).Location) {
-				log_status("HUH from %s(%d) in %s(%d)[%s]: %s %s", db.Fetch(player).name, player, db.Fetch(db.Fetch(player).Location).name, db.Fetch(player).Location, db.Fetch(db.Fetch(db.Fetch(player).Location).Owner).name, command, full_command);
+			if tp_log_failed_commands && !controls(player, DB.Fetch(player).Location) {
+				log_status("HUH from %s(%d) in %s(%d)[%s]: %s %s", DB.Fetch(player).name, player, DB.Fetch(DB.Fetch(player).Location).name, DB.Fetch(player).Location, DB.Fetch(DB.Fetch(DB.Fetch(player).Location).Owner).name, command, full_command);
 			}
 		}
 	}
@@ -1197,18 +1197,18 @@ func process_command(descr int, player dbref, command string) {
 	endtime := time.Now()
 	totaltime = endtime - starttime
 	if totaltime > (tp_cmd_log_threshold_msec / 1000.0) {
-		p := db.Fetch(player)
+		p := DB.Fetch(player)
 		if Typeof(player) == TYPE_PLAYER {
 			if Wizard(p.Owner) {
-				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s(%d) in %s(%d): %s", totaltime, starttime, DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 			} else {
-				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s(%d) in %s(%d): %s", totaltime, starttime, DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 			}
 		} else {
 			if Wizard(p.Owner) {
-				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, p.name, db.Fetch(p.Owner).name, player, db.Fetch(p.Location).name, p.Location, command)
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: WIZ: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, p.name, DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 			} else {
-				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, db.Fetch(player).name, db.Fetch(db.Fetch(player).Owner).name, player, db.Fetch(db.Fetch(player).Location).name, db.Fetch(player).Location, command)
+				log2file(LOG_CMD_TIMES, "%6.3fs, %.16s: %s owned by %s(%d) in %s(%d): %s", totaltime, starttime, DB.Fetch(player).name, DB.Fetch(DB.Fetch(player).Owner).name, player, DB.Fetch(DB.Fetch(player).Location).name, DB.Fetch(player).Location, command)
 			}
 		}
 	}

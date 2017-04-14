@@ -1,6 +1,6 @@
 package fbmuck
 
-func prim_array_make(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_make(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		items := op[0].(int)
 		if items < 0 {
@@ -15,7 +15,7 @@ func prim_array_make(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_make_dict(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_make_dict(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		items := op[0].(int)
 		if items < 0 {
@@ -39,7 +39,7 @@ func prim_array_make_dict(player, program dbref, mlev int, pc, arg *inst, top *i
 	})
 }
 
-func prim_array_explode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_explode(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		for arr := op[0].(type) {
 		case Array:
@@ -62,7 +62,7 @@ func prim_array_explode(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_vals(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_vals(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch arr := op[0].(type) {
 		case Array:
@@ -83,7 +83,7 @@ func prim_array_vals(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_keys(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_keys(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		arr := op[0].(stk_array)
 		result = arr.Len()
@@ -95,14 +95,14 @@ func prim_array_keys(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_count(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_count(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		result = op[0].(stk_array).Len()
 		push(arg, top, result)
 	})
 }
 
-func prim_array_first(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_first(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if temp1 = array_first(op[0].(stk_array)); temp1 != nil {
 			push(arg, top, temp1)
@@ -114,7 +114,7 @@ func prim_array_first(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_array_last(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_last(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if temp1 := array_last(op[0].(stk_array)); temp1 != nil {
 			push(arg, top, temp1)
@@ -126,7 +126,7 @@ func prim_array_last(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_prev(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_prev(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch oper1.(type) {
 		case int, string:
@@ -143,7 +143,7 @@ func prim_array_prev(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_next(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_next(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch oper1.(type) {
 		case int, string:
@@ -161,7 +161,7 @@ func prim_array_next(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_getitem(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_getitem(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch arr := op[0].(type) {
 		case Array:
@@ -174,7 +174,7 @@ func prim_array_getitem(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_setitem(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_setitem(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[2].(type) {
 		case int, string:
@@ -189,13 +189,13 @@ func prim_array_setitem(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_appenditem(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_appenditem(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, append(op[1].(Array), op[0]))
 	})
 }
 
-func prim_array_insertitem(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_insertitem(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[2].(type) {
 		case int, string:
@@ -210,7 +210,7 @@ func prim_array_insertitem(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_array_getrange(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_getrange(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[2].(type) {
 		case int, string:
@@ -231,7 +231,7 @@ func prim_array_getrange(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_array_setrange(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_setrange(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[1].(type) {
 		case int, string:
@@ -245,7 +245,7 @@ func prim_array_setrange(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_array_insertrange(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_insertrange(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[1].(type) {
 		case int, string:
@@ -259,7 +259,7 @@ func prim_array_insertrange(player, program dbref, mlev int, pc, arg *inst, top 
 	})
 }
 
-func prim_array_delitem(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_delitem(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch op[0].(type) {
 		case int, string:
@@ -273,7 +273,7 @@ func prim_array_delitem(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_delrange(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_delrange(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		switch op[2].(type) {
 		case int, string:
@@ -293,7 +293,7 @@ func prim_array_delrange(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_array_cut(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_cut(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		var nu1, nu2 stk_array
 		arr := op[0].(stk_array)
@@ -329,7 +329,7 @@ func prim_array_cut(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_array_n_union(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_n_union(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		items := op[0].(int)
 		if items < 0 {
@@ -348,7 +348,7 @@ func prim_array_n_union(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_n_intersection(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_n_intersection(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		items := op[0].(int)
 		if items < 0 {
@@ -371,7 +371,7 @@ func prim_array_n_intersection(player, program dbref, mlev int, pc, arg *inst, t
 	})
 }
 
-func prim_array_n_difference(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_n_difference(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		items := op[0].(int)
 		if items < 0 {
@@ -391,30 +391,30 @@ func prim_array_n_difference(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_notify(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_notify(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		strarr := op[0].(Array)
 		if !array_is_homogenous(strarr, "") {
 			panic("Argument not an array of strings. (1)")
 		}
 		refarr := op[1].(Array)
-		if !array_is_homogenous(refarr, dbref(0)) {
-			panic("Argument not an array of dbrefs. (2)")
+		if !array_is_homogenous(refarr, ObjectID(0)) {
+			panic("Argument not an array of ObjectIDs. (2)")
 		}
 		for i, k := range strarr {
 			data := k.(string)
 			if tp_force_mlev1_name_notify && mlev < JOURNEYMAN {
-				data = prefix_message(data, db.Fetch(player).name)
+				data = prefix_message(data, DB.Fetch(player).name)
 			}
 			for _, v := range refarr {
-				obj := v.(dbref)
-				notify_listeners(player, program, obj, db.Fetch(obj).Location, data, 1)
+				obj := v.(ObjectID)
+				notify_listeners(player, program, obj, DB.Fetch(obj).Location, data, 1)
 			}
 		}
 	})
 }
 
-func prim_array_reverse(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_reverse(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		arr := op[0].(Array)
 		nu := copy(make(Array, len(arr)), arr)
@@ -434,7 +434,7 @@ func sortcomp_shuffle(x, y interface{}) int {
  * 4: nocase, descending
  * 5: randomize
  */
-func prim_array_sort(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_sort(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(Array)
 		sort_type := op[1].(int)
@@ -495,7 +495,7 @@ func prim_array_sort(player, program dbref, mlev int, pc, arg *inst, top *int, f
  * 4: nocase, descending
  * 5: randomize
  */
-func prim_array_sort_indexed(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_sort_indexed(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		arr := op[0].(Array)
 		if !array_is_homogenous(arr, Array(nil)) {
@@ -560,9 +560,9 @@ func prim_array_sort_indexed(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_get_propdirs(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_get_propdirs(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		if dir == "" {
 			dir = "/"
@@ -584,9 +584,9 @@ func prim_array_get_propdirs(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_get_propvals(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_get_propvals(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		if dir == "" {
 			dir = "/"
@@ -607,7 +607,7 @@ func prim_array_get_propvals(player, program dbref, mlev int, pc, arg *inst, top
 						} else {
 							nu[propname] = UNLOCKED
 						}
-					case dbref:
+					case ObjectID:
 						nu[propname] = v
 					case int:
 						nu[propname] = v
@@ -621,9 +621,9 @@ func prim_array_get_propvals(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_get_proplist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_get_proplist(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		if dir == "" {
 			dir = "/"
@@ -677,7 +677,7 @@ func prim_array_get_proplist(player, program dbref, mlev int, pc, arg *inst, top
 						} else {
 							nu = append(nu, UNLOCKED)
 						}
-					case dbref:
+					case ObjectID:
 						nu = append(nu, v)
 					case int:
 						nu = append(nu, v)
@@ -695,9 +695,9 @@ func prim_array_get_proplist(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_put_propvals(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		obj := valid_object(op[0])
+		obj := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		switch case arr := op[2].(type) {
 		case Array:
@@ -707,7 +707,7 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 					panic("Permission denied while trying to set protected property.")
 				}
 				switch v.(type) {
-				case string, int, float64, dbref:
+				case string, int, float64, ObjectID:
 					set_property(ref, propname, v)
 				case Lock:
 					set_property(ref, propname, copy_bool(v.(Lock)))
@@ -722,7 +722,7 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				}
 
 				switch v.(type) {
-				case string, int, float64, dbref:
+				case string, int, float64, ObjectID:
 					set_property(ref, propname, v)
 				case Lock:
 					set_property(ref, propname, copy_bool(v.(Lock)))
@@ -737,7 +737,7 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				}
 
 				switch v.(type) {
-				case string, int, float64, dbref:
+				case string, int, float64, ObjectID:
 					set_property(ref, propname, v)
 				case Lock:
 					set_property(ref, propname, copy_bool(v.(Lock)))
@@ -755,7 +755,7 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 				}
 
 				switch v.(type) {
-				case string, int, float64, dbref:
+				case string, int, float64, ObjectID:
 					set_property(ref, propname, v)
 				case Lock:
 					set_property(ref, propname, copy_bool(v.(Lock)))
@@ -767,9 +767,9 @@ func prim_array_put_propvals(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_put_proplist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_put_proplist(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		arr := op[2].(Array)
 
@@ -811,7 +811,7 @@ func prim_array_put_proplist(player, program dbref, mlev int, pc, arg *inst, top
 			}
 
 			switch v.(type) {
-			case string, int, float64, dbref:
+			case string, int, float64, ObjectID:
 				propdat = v
 			case Lock:
 				propdat = copy_bool(v.(Lock))
@@ -841,9 +841,9 @@ func prim_array_put_proplist(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_array_get_reflist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_get_reflist(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		if !prop_read_perms(ProgUID, ref, dir, mlev) {
 			panic("Permission denied.")
@@ -869,14 +869,14 @@ func prim_array_get_reflist(player, program dbref, mlev int, pc, arg *inst, top 
 	})
 }
 
-func prim_array_put_reflist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_put_reflist(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		ref := valid_object(op[0])
+		ref := op[0].(ObjectID).ValidObject()
 		dir := op[1].(string)
 		arr := op[2].(Array)
 		switch {
-		case !array_is_homogenous(arr, dbref(0)):
-			panic("Argument must be a list array of dbrefs. (3)")
+		case !array_is_homogenous(arr, ObjectID(0)):
+			panic("Argument must be a list array of ObjectIDs. (3)")
 		case !prop_write_perms(ProgUID, ref, dir, mlev):
 			panic("Permission denied.")
 		}
@@ -885,14 +885,14 @@ func prim_array_put_reflist(player, program dbref, mlev int, pc, arg *inst, top 
 			if out != "" {
 				out += ' '
 			}
-			out += fmt.Sprintf("#%d", v.(dbref))
+			out += fmt.Sprintf("#%d", v.(ObjectID))
 		}
 		remove_property(ref, dir)
 		set_property(ref, dir, out)
 	})
 }
 
-func prim_array_findval(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_findval(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch arr := op[0].(type) {
 		case Array:
@@ -917,7 +917,7 @@ func prim_array_findval(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_compare(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_compare(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr1 := op[0].(stk_array)
 		arr2 := op[1].(stk_array)
@@ -951,7 +951,7 @@ func prim_array_compare(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_matchkey(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_matchkey(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(Dictionary)
 		pattern := op[1].(string)
@@ -967,7 +967,7 @@ func prim_array_matchkey(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_array_matchval(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_matchval(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		pattern := op[1].(string)
 		switch arr := op[0].(type) {
@@ -996,7 +996,7 @@ func prim_array_matchval(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_array_extract(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_extract(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		idxarr := op[1].(Array)
 		switch arr := op[0].(type) {
@@ -1019,7 +1019,7 @@ func prim_array_extract(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_array_excludeval(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_excludeval(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(Array)
 		nu := make(Array)
@@ -1032,7 +1032,7 @@ func prim_array_excludeval(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-void prim_array_join(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+void prim_array_join(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(Array)
 		items := make([]string, len(arr)
@@ -1042,7 +1042,7 @@ void prim_array_join(player, program dbref, mlev int, pc, arg *inst, top *int, f
 				items[i] = v
 			case int:
 				items[i] = fmt.Sprint(v)
-			case dbref:
+			case ObjectID:
 				items[i] = fmt.Sprintf("#%d", v)
 			case float64:
 				text := fmt.Sprintf("%.15g", v)
@@ -1060,7 +1060,7 @@ void prim_array_join(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_interpret(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
     apply_primitive(1, top, func(op Array) {
 		var text string
 		for i, v := range op[0].(Array) {
@@ -1069,7 +1069,7 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
 				text += v
 			case int:
 				text += fmt.Sprint(data)
-			case dbref:
+			case ObjectID:
 				switch {
 				case v == NOTHING:
 					text += "*NOTHING*"
@@ -1077,10 +1077,10 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
 					text += "*AMBIGUOUS*"
 				case v == HOME:
 					text += "*HOME*"
-				case !valid_reference(v):
+				case !v.IsValid():
 					text + = "*INVALID*"
 				default:
-					text += fmt.Sprint(db.Fetch(v).name)
+					text += fmt.Sprint(DB.Fetch(v).name)
 				}
 			case float64:
 				text += fmt.Sprintf("%.15g", v)
@@ -1097,9 +1097,9 @@ func prim_array_interpret(player, program dbref, mlev int, pc, arg *inst, top *i
     })
 }
 
-func prim_array_get_ignorelist(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_get_ignorelist(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 1, top, func(op Array) {
-		ref := db.Fetch(valid_object(op[0])).Owner
+		ref := DB.Fetch(op[0].(ObjectID).ValidObject()).Owner
 		nu := make(Array)
 		if tp_ignore_support {
 			if rawstr := get_property_class(ref, IGNORE_PROP); rawstr != "" {
@@ -1124,7 +1124,7 @@ func prim_array_get_ignorelist(player, program dbref, mlev int, pc, arg *inst, t
 	})
 }
 
-func prim_array_nested_get(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_nested_get(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(stk_array)
 		idxarr := op[1].(Array)
@@ -1142,7 +1142,7 @@ func prim_array_nested_get(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_array_nested_set(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_nested_set(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		arr := op[1].(stk_array)
 		idxarr := op[2].(Array)
@@ -1186,7 +1186,7 @@ func prim_array_nested_set(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_array_nested_del(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_nested_del(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		arr := op[0].(stk_array)
 		idxarr := op[1].(Array)
@@ -1223,17 +1223,17 @@ func prim_array_nested_del(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_array_filter_flags(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_filter_flags(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
     apply_primitive(2, top, func(op Array) {
 		objs := op[0].(Array)
-		if !array_is_homogenous(objs, dbref(0)) {
-			panic("Argument not an array of dbrefs. (1)")
+		if !array_is_homogenous(objs, ObjectID(0)) {
+			panic("Argument not an array of ObjectIDs. (1)")
 		}
 		flags := op[1].(string)
 		nw := make(Array)
 		_, check := init_checkflags(player, flags)
 		for _, in := range objs {
-			valid_object(in, func(obj dbref) {
+			in.(ObjectID).ValidObject(func(obj ObjectID) {
 				if checkflags(obj, check) {
 					nw = append(nw, obj)
 				}

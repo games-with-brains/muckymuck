@@ -6,18 +6,18 @@ package fbmuck
 
 /* Completely rewritten by darkfox and Foxen, for propdirs and other things */
 
-func set_property_nofetch(player dbref, name string, dat interface{}) {
+func set_property_nofetch(player ObjectID, name string, dat interface{}) {
 	if name != "" {
 		name = strings.TrimLeft(name, PROPDIR_DELIMITER)
-		if db.Fetch(player).flags & LISTENER != 0 && (strings.Prefix(name, "_listen") || strings.Prefix(name, "~listen") || strings.Prefix(name, "~olisten")) {
-			db.Fetch(player).flags |= LISTENER
+		if DB.Fetch(player).flags & LISTENER != 0 && (strings.Prefix(name, "_listen") || strings.Prefix(name, "~listen") || strings.Prefix(name, "~olisten")) {
+			DB.Fetch(player).flags |= LISTENER
 		}
 		buf := name
 		if n := strings.SplitN(buf, PROP_DELIMITER, 2); len(n) > 0 {
 			buf = [0]
 		}
 		if buf != "" {
-			p := db.Fetch(player).properties.propdir_new_elem(name)
+			p := DB.Fetch(player).properties.propdir_new_elem(name)
 			p.clear_propnode()
 			SetPFlagsRaw(p, dat.flags)
 			switch dat.(type) {
@@ -45,7 +45,7 @@ func set_property_nofetch(player dbref, name string, dat interface{}) {
 						remove_property_nofetch(player, name)
 					}
 				}
-			case dbref:
+			case ObjectID:
 				if p.data = dat; dat == NOTHING {
 					SetPType(p, PROP_DIRTYP)
 					p.data = nil
@@ -64,12 +64,12 @@ func set_property_nofetch(player dbref, name string, dat interface{}) {
 	}
 }
 
-func set_property(player dbref, name string, dat interface{}) {
+func set_property(player ObjectID, name string, dat interface{}) {
 	set_property_nofetch(player, name, dat)
-	db.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).flags |= OBJECT_CHANGED
 }
 
-func set_lock_property(player dbref, pname, lock string) {
+func set_lock_property(player ObjectID, pname, lock string) {
 	if lock == "" {
 		set_property(player, pname, UNLOCKED)
 	} else {
@@ -78,7 +78,7 @@ func set_lock_property(player dbref, pname, lock string) {
 }
 
 /* adds a new property to an object */
-func add_prop_nofetch(player dbref, pname, strval string, value int) {
+func add_prop_nofetch(player ObjectID, pname, strval string, value int) {
 	switch {
 	case strval != "":
 		set_property_nofetch(player, pname, strval)
@@ -90,12 +90,12 @@ func add_prop_nofetch(player dbref, pname, strval string, value int) {
 }
 
 /* adds a new property to an object */
-func add_property(player dbref, pname, strval string, value int) {
+func add_property(player ObjectID, pname, strval string, value int) {
 	add_prop_nofetch(player, pname, strval, value)
-	db.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).flags |= OBJECT_CHANGED
 }
 
-func remove_proplist_item(player dbref, p *Plist, all bool) {
+func remove_proplist_item(player ObjectID, p *Plist, all bool) {
 	if p != nil {
 		if ptr := p.key; !Prop_System(ptr) {
 			if !all {
@@ -109,39 +109,39 @@ func remove_proplist_item(player dbref, p *Plist, all bool) {
 }
 
 /* removes property list --- if it's not there then ignore */
-func remove_property_list(player dbref, all int) {
-	if l := db.Fetch(player).properties; l != nil {
+func remove_property_list(player ObjectID, all int) {
+	if l := DB.Fetch(player).properties; l != nil {
 		p := l.first_node()
 		for p != nil {
 			n := l.next_node(p.key)
 			remove_proplist_item(player, p, all)
-			l = db.Fetch(player).properties
+			l = DB.Fetch(player).properties
 			p = n
 		}
 	}
-	db.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).flags |= OBJECT_CHANGED
 }
 
 /* removes property --- if it's not there then ignore */
-func remove_property_nofetch(player dbref, name string) {
-	db.Fetch(player).properties = db.Fetch(player).properties.propdir_delete_elem(name)
-	db.Fetch(player).flags |= OBJECT_CHANGED
+func remove_property_nofetch(player ObjectID, name string) {
+	DB.Fetch(player).properties = DB.Fetch(player).properties.propdir_delete_elem(name)
+	DB.Fetch(player).flags |= OBJECT_CHANGED
 }
 
-func remove_property(player dbref, pname string) {
+func remove_property(player ObjectID, pname string) {
 	remove_property_nofetch(player, pname)
 }
 
-func get_property(player dbref, name string) (p *Plist) {
-	return db.Fetch(player).properties.propdir_get_elem(name)
+func get_property(player ObjectID, name string) (p *Plist) {
+	return DB.Fetch(player).properties.propdir_get_elem(name)
 }
 
 /* checks if object has property, returning true if it or any of its contents has the property stated */
-func contains_property(descr int, player, what dbref, pname, strval string, value int) (r bool) {
+func contains_property(descr int, player, what ObjectID, pname, strval string, value int) (r bool) {
 	if has_property(descr, player, what, pname, strval, value) {
 		r = true
 	} else {
-		for things := db.Fetch(what).Contents; things != NOTHING; things = db.Fetch(things).next {
+		for things := DB.Fetch(what).Contents; things != NOTHING; things = DB.Fetch(things).next {
 			if contains_property(descr, player, things, pname, strval, value) {
 				r = true
 			}
@@ -160,7 +160,7 @@ func contains_property(descr int, player, what dbref, pname, strval string, valu
 
 var has_prop_recursion_limit = 2
 /* checks if object has property, returns true if it has the property */
-func has_property(descr int, player, what dbref, name, strval string, value int) (r bool) {
+func has_property(descr int, player, what ObjectID, name, strval string, value int) (r bool) {
 	if p := get_property(what, pname); p != nil {
 		switch v := p.data.(type) {
 		case string:
@@ -183,7 +183,7 @@ func has_property(descr int, player, what dbref, name, strval string, value int)
 }
 
 /* return string value of property */
-func get_property_class(player dbref, name string) (r string) {
+func get_property_class(player ObjectID, name string) (r string) {
 	if p := get_property(player, pname); p {
 		if v, ok := p.data.(string); ok {
 			r = v
@@ -193,7 +193,7 @@ func get_property_class(player dbref, name string) (r string) {
 }
 
 /* return value of property */
-func get_property_value(player dbref, name string) (r int) {
+func get_property_value(player ObjectID, name string) (r int) {
 	if p := get_property(player, name); p != nil {
 		if v, ok := p.data.(int); ok {
 			r = v
@@ -202,7 +202,7 @@ func get_property_value(player dbref, name string) (r int) {
 }
 
 /* return float value of a property */
-func get_property_fvalue(player dbref, name string) (r float) {
+func get_property_fvalue(player ObjectID, name string) (r float) {
 	if p := get_property(player, name); p != nil {
 		if ok, v := p.data.(float64); ok {
 			r = v
@@ -211,17 +211,17 @@ func get_property_fvalue(player dbref, name string) (r float) {
 	return
 }
 
-func get_property_dbref(player dbref, name string) (r dbref) {
+func get_property_ObjectID(player ObjectID, name string) (r ObjectID) {
 	r = NOTHING
 	if p := get_property(player, name); p != nil {
-		if v, ok := p.data.(dbref); ok {
+		if v, ok := p.data.(ObjectID); ok {
 			r = v
 		}
 	}
 	return
 }
 
-func get_property_lock(player dbref, name string) (r Lock) {
+func get_property_lock(player ObjectID, name string) (r Lock) {
 	if p := get_property(player, pname); p == nil {
 		r = UNLOCKED
 	} else {
@@ -235,7 +235,7 @@ func get_property_lock(player dbref, name string) (r Lock) {
 }
 
 /* return flags of property */
-func get_property_flags(player dbref, name string) (r int) {
+func get_property_flags(player ObjectID, name string) (r int) {
 	if p := get_property(player, name); p != nil {
 		r = PropFlags(p)
 	}
@@ -243,7 +243,7 @@ func get_property_flags(player dbref, name string) (r int) {
 }
 
 /* return flags of property */
-func clear_property_flags(player dbref, name string, flags int) {
+func clear_property_flags(player ObjectID, name string, flags int) {
 	flags &= ~PROP_TYPMASK
 	if p := get_property(player, name); p != nil {
 		SetPFlags(p, (PropFlags(p) & ~flags))
@@ -251,29 +251,29 @@ func clear_property_flags(player dbref, name string, flags int) {
 }
 
 /* return flags of property */
-func set_property_flags(player dbref, name string, flags int) {
+func set_property_flags(player ObjectID, name string, flags int) {
 	flags &= ~PROP_TYPMASK
 	if p := get_property(player, name); p != nil {
 		SetPFlags(p, PropFlags(p) | flags)
 	}
 }
 
-func copy_prop(old dbref) *Plist {
-	return db.Fetch(old).properties.copy_proplist(old)
+func copy_prop(old ObjectID) *Plist {
+	return DB.Fetch(old).properties.copy_proplist(old)
 }
 
 /* Return a pointer to the first property in a propdir and duplicates the
    property name into 'name'.  Returns NULL if the property list is empty
    or does not exist. */
-func (list *Plist) first_prop_nofetch(player dbref, dir, name string) (n string, p *Plist) {
+func (list *Plist) first_prop_nofetch(player ObjectID, dir, name string) (n string, p *Plist) {
 	if dir = strings.TrimLeft(dir, PROPDIR_DELIMITER); dir = "" {
-		*list = db.Fetch(player).properties
+		*list = DB.Fetch(player).properties
 		if p = *list.first_node(); p != nil {
 			n = p.key
 		}
 	} else {
 		buf := dir
-		p = db.Fetch(player).properties.propdir_get_elem(buf)
+		p = DB.Fetch(player).properties.propdir_get_elem(buf)
 		*list = p
 		if p != nil {
 			*list = p.dir
@@ -286,12 +286,12 @@ func (list *Plist) first_prop_nofetch(player dbref, dir, name string) (n string,
 }
 
 /* first_prop() returns a pointer to the first property.
- * player    dbref of object that the properties are on.
+ * player    ObjectID of object that the properties are on.
  * dir       pointer to string name of the propdir
  * list      pointer to a proplist pointer.  Returns the root node.
  * name      printer to a string.  Returns the name of the first node.
  */
-func (list *Plist) first_prop(player dbref, dir string, name string) (p *Plist) {
+func (list *Plist) first_prop(player ObjectID, dir string, name string) (p *Plist) {
 	_, p = list.first_prop_nofetch(player, dir, name)
 	return
 }
@@ -317,14 +317,14 @@ func (prop *Plist) next_prop(list *Plist) (p *Plist, name string) {
  * Returns null if propdir doesn't exist, or if no more properties in list.
  * Call with name set to "" to get the first property of the root propdir.
  */
-func next_prop_name(player dbref, name string) (r string) {
+func next_prop_name(player ObjectID, name string) (r string) {
 	switch buf := name; {
 	case len(name) == 0, name[len(name) - 1] == PROPDIR_DELIMITER:
-		if p := propdir_first_elem(db.Fetch(player).properties, name); p != nil {
+		if p := propdir_first_elem(DB.Fetch(player).properties, name); p != nil {
 			r = name + p.key
 		}
 	} else {
-		if p := db.Fetch(player).properties.propdir_next_elem(buf); p != nil {
+		if p := DB.Fetch(player).properties.propdir_next_elem(buf); p != nil {
 			ptr := strrchr(name, PROPDIR_DELIMITER)
 			if ptr == nil {
 				ptr = name
@@ -335,18 +335,18 @@ func next_prop_name(player dbref, name string) (r string) {
 	return
 }
 
-func is_propdir(player dbref, name string) bool {
-	return db.Fetch(player).properties.propdir_get_elem(name).IsPropDir()
+func is_propdir(player ObjectID, name string) bool {
+	return DB.Fetch(player).properties.propdir_get_elem(name).IsPropDir()
 }
 
-func envprop(where dbref, propname string) (obj dbref, p *Plist) {
+func envprop(where ObjectID, propname string) (obj ObjectID, p *Plist) {
 	for obj = where; obj != NOTHING && p == nil; obj = getparent(obj) {
 		p = get_property(obj, propname)
 	}
 	return
 }
 
-func envpropstr(where dbref, propname string) (obj dbref, r string) {
+func envpropstr(where ObjectID, propname string) (obj ObjectID, r string) {
 	var p interface{}
 	obj, p = envprop(where, propname)
 	if v, ok := p.(string); ok {
@@ -355,7 +355,7 @@ func envpropstr(where dbref, propname string) (obj dbref, r string) {
 	return
 }
 
-func displayprop(player, obj dbref, name string) (r string) {
+func displayprop(player, obj ObjectID, name string) (r string) {
 	int pdflag;
 	if p := get_property(obj, name); p == nil {
 		r = fmt.Sprint("%v: No such property.", name)
@@ -375,7 +375,7 @@ func displayprop(player, obj dbref, name string) (r string) {
 		switch v := p.data.(type) {
 		case string:
 			r = fmt.Sprintf("%c str %s:%v", blesschar, mybuf, v)
-		case dbref:
+		case ObjectID:
 			r = fmt.Sprintf("%c ref %s:%s", blesschar, mybuf, unparse_object(player, v))
 		case int:
 			r = fmt.Sprintf("%c int %s:%d", blesschar, mybuf, v)
@@ -399,7 +399,7 @@ func corrupt_property_warning(strfmt string, args ...interface{}) {
 	log_sanity(strfmt, args...)
 }
 
-func db_get_single_prop(f *FILE, obj dbref, pos int, pnode *Plist, pdir string) (r int) {
+func db_get_single_prop(f *FILE, obj ObjectID, pos int, pnode *Plist, pdir string) (r int) {
 	r = 1
 	var tpos int
 	if pos != 0 {
@@ -489,7 +489,7 @@ func db_get_single_prop(f *FILE, obj dbref, pos int, pnode *Plist, pdir string) 
 					set_property_nofetch(obj, name, mydat)
 				case PROP_REFTYP:
 					if !unicode.IsNumber(value) {
-						corrupt_property_warning("Failed to read property from disk: Corrupt dbref value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
+						corrupt_property_warning("Failed to read property from disk: Corrupt ObjectID value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
 						r = -1
 					}
 				}
@@ -498,7 +498,7 @@ func db_get_single_prop(f *FILE, obj dbref, pos int, pnode *Plist, pdir string) 
 	}
 }
 
-func db_getprops(f *FILE, obj dbref, dir string) {
+func db_getprops(f *FILE, obj ObjectID, dir string) {
 	for db_get_single_prop(f, obj, 0, nil, dir) != nil {}
 }
 
@@ -514,7 +514,7 @@ func (p *Plist) db_putprop(f *os.File, dir string) {
 		if v != 0 {
 			buf = fmt.Sprintf("%.17g", v)
 		}
-	case dbref:
+	case ObjectID:
 		if v != NOTHING {
 			buf = intostr(v)
 		}
@@ -535,7 +535,7 @@ func (p *Plist) db_putprop(f *os.File, dir string) {
 	}
 }
 
-func (p *Plist) db_dump_props_rec(obj dbref, f *FILE, dir string) (r int) {
+func (p *Plist) db_dump_props_rec(obj ObjectID, f *FILE, dir string) (r int) {
 	if p != nil {
 		r = p.left.db_dump_props_rec(obj, f, dir)
 		p.db_putprop(f, dir)
@@ -547,11 +547,11 @@ func (p *Plist) db_dump_props_rec(obj dbref, f *FILE, dir string) (r int) {
 	return
 }
 
-func db_dump_props(f *FILE, obj dbref) {
-	db.Fetch(obj).properties.db_dump_props_rec(obj, f, "/")
+func db_dump_props(f *FILE, obj ObjectID) {
+	DB.Fetch(obj).properties.db_dump_props_rec(obj, f, "/")
 }
 
-func reflist_add(dbref obj, const char* propname, dbref toadd) {
+func reflist_add(ObjectID obj, const char* propname, ObjectID toadd) {
 	if ptr := get_property(obj, propname); ptr != nil {
 		switch temp := ptr.data.(type) {
 		case string:
@@ -590,7 +590,7 @@ func reflist_add(dbref obj, const char* propname, dbref toadd) {
 			outbuf += fmt.Sprintf(" #%d", toadd)
 			temp = strings.TrimLeftFunc(outbuf, unicode.IsSpace)
 			add_property(obj, propname, temp, 0)
-		case dbref:
+		case ObjectID:
 			if temp != toadd {
 				add_property(obj, propname, fmt.Sprintf("#%d #%d", temp, toadd), 0)
 			}
@@ -602,7 +602,7 @@ func reflist_add(dbref obj, const char* propname, dbref toadd) {
 	}
 }
 
-func reflist_del(dbref obj, const char* propname, dbref todel) {
+func reflist_del(ObjectID obj, const char* propname, ObjectID todel) {
 	if ptr := get_property(obj, propname); ptr != nil {
 		switch temp := ptr.data.(type) {
 		case string:
@@ -638,7 +638,7 @@ func reflist_del(dbref obj, const char* propname, dbref todel) {
 				temp = strings.TrimLeftFunc(outbuf, unicode.IsSpace)
 				add_property(obj, propname, temp, 0)
 			}
-		case dbref:
+		case ObjectID:
 			if temp == todel {
 				add_property(obj, propname, "", 0)
 			}
@@ -646,7 +646,7 @@ func reflist_del(dbref obj, const char* propname, dbref todel) {
 	}
 }
 
-func reflist_find(obj dbref, propname string, tofind dbref) (r int) {
+func reflist_find(obj ObjectID, propname string, tofind ObjectID) (r int) {
 	if ptr := get_property(obj, propname); ptr != nil {
 		switch temp := ptr.data.(type) {
 		case string:
@@ -673,7 +673,7 @@ func reflist_find(obj dbref, propname string, tofind dbref) (r int) {
 			if pat != "" {
 				r = count
 			}
-		case dbref:
+		case ObjectID:
 			if temp == tofind {
 				r = 1
 			}

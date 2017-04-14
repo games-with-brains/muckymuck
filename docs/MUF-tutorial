@@ -286,18 +286,18 @@ reference.
 sort of ignored till now.  For the sake of completeness, I will introduce the
 word
 
-dbref (i -- d)
-Where i is an integer and d is a database reference, dbref converts between
+ObjectID (i -- d)
+Where i is an integer and d is a database reference, ObjectID converts between
 the two types.  The line
 
-2032 dbref
+2032 ObjectID
 
 will return item #2032 in the Muck database.  This is useful since there
 are lots of functions that operate on database references that won't work
 on integers.  [If you want to declare something in one of your programs as
-being a dbref instead of an integer, you should just put a # in front.  For
+being a ObjectID instead of an integer, you should just put a # in front.  For
 example, 69 means the integer 69, while #69 means object number 69.  You
-could say '69 dbref' instead of '#69', but it would be a little slower and
+could say '69 ObjectID' instead of '#69', but it would be a little slower and
 a little harder to read.]
 
 Me @ will return the player's item reference, while loc @ will return the
@@ -306,7 +306,7 @@ program, whether it is a player, exit, room, whatever.  A useful word to
 know is:
 
 name (d -- s)
-Where d is a db reference and s is a string, name returns the name of item
+Where d is a ObjectID and s is a string, name returns the name of item
 x.
 
 
@@ -402,7 +402,7 @@ Concatenate strings s1 and s2, returning the result.
 it also uses
 
 location (d -- d')
-Takes db reference d and returns d', the db reference for its location.
+Takes ObjectID d and returns d', the ObjectID for its location.
 
 and
 
@@ -412,7 +412,7 @@ Duplicate the top of the stack.
 and
 
 dbcmp (d1 d2 -- )
-Works just like =, except operates on db references instead of integers.
+Works just like =, except operates on ObjectIDs instead of integers.
 
 
 : far_vision
@@ -425,9 +425,9 @@ Works just like =, except operates on db references instead of integers.
         " is currently in "
         strcat                (Attach name to sentence so far         )
         swap                  (Flip the sentence back so we can get at)
-                              (Celia's dbref again.                   )
+                              (Celia's ObjectID again.                   )
 
-                      (Celia's dbref is now at top of stack.   )
+                      (Celia's ObjectID is now at top of stack.   )
 
         location      (Where is Celia?                         )
         name          (What is the name of the place she is in?)

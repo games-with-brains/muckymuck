@@ -377,7 +377,7 @@ output list.  Oh hell, let me just give you an example.
     {parse:item,{contents:here},{name:{&item}}}
 This will take the stringlist of references to the contents of the room,
 that the {contents} command gives, and gets the name of them (since the
-reference is usually a dbref) to put in the returned list.  You can simulate
+reference is usually a ObjectID) to put in the returned list.  You can simulate
 the 'Contents:' listing of a room look with just the following:
   
     {with:cont,{contents:here},

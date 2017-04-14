@@ -30,14 +30,14 @@
 
         int?            ( ? -- i )         is top stack item is an integer?
         string?         ( ? -- i )         is top stack item is an string?
-        dbref?          ( ? -- i )         is top stack item is an dbref?
+        ObjectID?          ( ? -- i )         is top stack item is an ObjectID?
         nextprop        ( d s -- s )       object, propname -- next propname
         propdir?        ( d s -- i )       object, propname -- is it a propdir?
         envpropstr      ( d s -- d s )     obj, propname -- foundoneobj, strval
         awake?          ( d -- i )         player -- number of connections
         online          ( -- dN ... d1 N ) all connected players w/ count
         concount        ( -- i )           number of connections to the server
-        condbref        ( i -- d )         connection number -- player
+        conObjectID        ( i -- d )         connection number -- player
         conidle         ( i -- i )         conn. number -- idle time in secs
         contime         ( i -- i )         conn. number -- online time in secs
         conhost         ( i -- s )         conn. number -- hostname
@@ -56,7 +56,7 @@
         version         ( -- s )           Version String
         depth           ( -- i )           stack depth
         dbtop           ( -- d )           top of database + 1 item.
-        prog            ( -- d )           this program's dbref
+        prog            ( -- d )           this program's ObjectID
         trig            ( -- d )           a secure form of trigger @
         caller          ( -- d )           the program that called this one.
         force           ( d s -- )         player, force string

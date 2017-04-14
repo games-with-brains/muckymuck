@@ -37,6 +37,6 @@ Only a wizard can kill a defined macro, with the command '<name> kill.'
   
 Miscellaneous commands:
     help                      show this file
-    <dbref of prog> view      view program header
+    <ObjectID of prog> view      view program header
     quit                      quit the program editor
   

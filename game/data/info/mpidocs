@@ -598,7 +598,7 @@ substitution with regards to the given object.
 {tell:string}
 {tell:string,player}
     If passed only a string, tells the user that string.  If passed both
-a string, and a player dbref, it will tell the given player the message.
+a string, and a player ObjectID, it will tell the given player the message.
 This returns the message that was sent.  If the trigger isn't a room, or
 an exit on a room, and if the message doesn't already begin with the
 user's name, then the user's name will be prepended to the message.  The

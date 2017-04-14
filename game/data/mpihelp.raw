@@ -657,7 +657,7 @@ TELL
 {tell:string}
 {tell:string,player}
     If passed only a string, tells the user that string.  If passed both
-a string, and a player dbref, it will tell the given player the message.
+a string, and a player ObjectID, it will tell the given player the message.
 This returns the message that was sent.  If the trigger isn't a room, or
 an exit on a room, and if the message doesn't already begin with the
 user's name, then the user's name will be prepended to the message.  The
@@ -872,7 +872,7 @@ PARSE
 each evaluation, the temporary variable var will contain the value of the
 item under scrutiny.  This function returns a list containing the output
 of expr for each item within the list.  This lets you do direct translat-
-ion of a list of dbrefs, for example, into a list of names.  var will
+ion of a list of ObjectIDs, for example, into a list of names.  var will
 only be defined for the duration of expr, and will be undefined after the
 {filter} construct finishes.  If sep is given, then it uses that string
 as the item seperator in the input list, instead of the usual carriage
@@ -894,7 +894,7 @@ items delimited by that string, otherwise it assumes a carriage return.
 ~~section Database Related Functions|Database|DBFuncs
 REF
 {ref:obj}
-    Returns the dbref of the given object in the form #xxxx.  The object
+    Returns the ObjectID of the given object in the form #xxxx.  The object
 must be in the vicinity, or controlled by the owner of the trigger object.
 ~
 ~
@@ -1312,8 +1312,8 @@ ISNUM
 ~
 ~
 ISDBREF
-{isdbref:dbref}
-    Returns true if the string passed to it is a valid dbref.
+{isObjectID:ObjectID}
+    Returns true if the string passed to it is a valid ObjectID.
 ~
 ~
 VERSION

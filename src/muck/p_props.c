@@ -12,7 +12,7 @@ func extract_propname(s string) (r string) {
 	}	
 }
 
-func prop_read_perms(player, obj dbref, name string, mlev int) (r bool) {
+func prop_read_perms(player, obj ObjectID, name string, mlev int) (r bool) {
 	switch {
 	case Prop_System(name):
 	case mlev < MASTER && Prop_Private(name) && !permissions(player, obj):
@@ -23,7 +23,7 @@ func prop_read_perms(player, obj dbref, name string, mlev int) (r bool) {
 	return
 }
 
-func prop_write_perms(player, obj dbref, name string, mlev int) bool {
+func prop_write_perms(player, obj ObjectID, name string, mlev int) bool {
 	if Prop_System(name) {
 		return false
 	}
@@ -50,9 +50,9 @@ func prop_write_perms(player, obj dbref, name string, mlev int) bool {
 	return true
 }
 
-func prim_getpropval(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_getpropval(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		if !prop_read_perms(ProgUID, obj, prop, mlev) {
 			panic("Permission denied.")
@@ -62,9 +62,9 @@ func prim_getpropval(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_getpropfval(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_getpropfval(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		if !prop_read_perms(ProgUID, obj, prop, mlev) {
 			panic("Permission denied.")
@@ -74,9 +74,9 @@ func prim_getpropfval(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_getprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_getprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		if !prop_read_perms(ProgUID, obj, prop, mlev) {
 			panic("Permission denied.")
@@ -87,7 +87,7 @@ func prim_getprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				push(arg, top, v)
 			case Lock:
 				push(arg, top, v)
-			case dbref:
+			case ObjectID:
 				push(arg, top, v)
 			case int:
 				push(arg, top, v)
@@ -102,9 +102,9 @@ func prim_getprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_getpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_getpropstr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		if !prop_read_perms(ProgUID, obj, prop, mlev) {
 			panic("Permission denied.")
@@ -114,7 +114,7 @@ func prim_getpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			switch v := ptr.(type) {
 			case string:
 				value = v
-			case dbref:
+			case ObjectID:
 				value = fmt.Sprintf("#%d", v)
 			case Lock:
 				value = v.Unparse(ProgUID, true)
@@ -124,10 +124,10 @@ func prim_getpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_remove_prop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_remove_prop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		prop := extract_propname(op[0].(string))
-		obj := valid_remote_object(player, mlev, op[1])
+		obj := op[1].(ObjectID).ValidRemoteObject(player, mlev)
 		switch {
 		case prop == "":
 			panic("Can't remove root propdir (2)")
@@ -139,9 +139,9 @@ func prim_remove_prop(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_envprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_envprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		what := valid_remote_object(player, mlev, op[0])
+		what := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		var p interface{}
 		if what, p = envprop(what, prop); what != NOTHING && !prop_read_perms(ProgUID, what, prop, mlev) {
@@ -158,7 +158,7 @@ func prim_envprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				push(arg, top, v)
 			case float64:
 				push(arg, top, v)
-			case dbref:
+			case ObjectID:
 				push(arg, top, v)
 			case Lock:
 				push(arg, top, v)
@@ -169,9 +169,9 @@ func prim_envprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_envpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_envpropstr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		what := valid_remote_object(player, mlev, op[0])
+		what := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		rawprop := op[1].(string)
 		prop := extract_propname(rawprop)
 		var value string
@@ -180,7 +180,7 @@ func prim_envpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			switch v := p.(type) {
 			case string:
 				value = v
-			case dbref:
+			case ObjectID:
 				value = fmt.Sprintf("#%d", v)
 			case Lock:
 				value = v.Unparse(ProgUID, true)
@@ -194,27 +194,27 @@ func prim_envpropstr(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	}
 }
 
-func prim_blessprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_blessprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(WIZBIT, mlev, 2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		set_property_flags(obj, prop, PROP_BLESSED)
 		ts_modifyobject(obj)
 	})
 }
 
-func prim_unblessprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_unblessprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(WIZBIT, mlev, 2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		clear_property_flags(obj, prop, PROP_BLESSED)
 		ts_modifyobject(obj)
 	})
 }
 
-func prim_setprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_setprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		switch {
 		case JOURNEYMAN < 2 && !permissions(ProgUID, obj):
@@ -231,7 +231,7 @@ func prim_setprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 			propdat = value
 		case float64:
 			propdat = value
-		case dbref:
+		case ObjectID:
 			propdat = value
 		case Lock:
 			propdat = copy_bool(value)
@@ -243,9 +243,9 @@ func prim_setprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_addprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_addprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(4, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1])
 		s := op[2].(string)
 		i := op[3].(int)
@@ -261,9 +261,9 @@ func prim_addprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_nextprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_nextprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		obj := valid_object(op[0])
+		obj := op[0].(ObjectID).ValidObject()
 		prop := extract_propname(op[1].(string))
 		nextprop := next_prop_name(obj, prop)
 		for prop != "" && !prop_read_perms(ProgUID, obj, prop, mlev) {
@@ -273,18 +273,18 @@ func prim_nextprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_propdirp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_propdirp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(JOURNEYMAN, mlev, 2, top, func(op Array) {
-		obj := valid_object(op[0])
-		prop := op[1].(dbref)
+		obj := op[0].(ObjectID).ValidObject()
+		prop := op[1].(ObjectID)
 		result = is_propdir(obj, prop)
 		push(arg, top, result)
 	})
 }
 
-func prim_parseprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_parseprop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 4, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		ptr := op[2].(string)
 		propname := extract_propname(op[1].(string))
 		isprivate := op[3].(int)
@@ -312,17 +312,17 @@ func prim_parseprop(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_array_filter_prop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_filter_prop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		arr := op[0].(Array)
-		if !array_is_homogenous(arr, dbref(0)) {
-			panic("Argument not an array of dbrefs. (1)")
+		if !array_is_homogenous(arr, ObjectID(0)) {
+			panic("Argument not an array of ObjectIDs. (1)")
 		}
 		prop := extract_propname(op[1].(string))
 		pattern := op[2].(string)
 		nu := make(Array)
 		for _, temp1 := range arr {
-			ref := valid_remote_object(player, mlev, temp1)
+			ref := temp1.(ObjectID).ValidRemoteObject(player, mlev)
 			if prop_read_perms(ProgUID, ref, prop, mlev) {
 				var buf string
 				if pptr := get_property(ref, prop); pptr != nil {
@@ -331,7 +331,7 @@ func prim_array_filter_prop(player, program dbref, mlev int, pc, arg *inst, top 
 						buf = v
 					case Lock:
 						buf = v.Unparse(ProgUID, false)
-					case dbref:
+					case ObjectID:
 						buf = fmt.Sprintf("#%i", v)
 					case int:
 						buf = fmt.Sprint(v)
@@ -351,11 +351,11 @@ func prim_array_filter_prop(player, program dbref, mlev int, pc, arg *inst, top 
 	})
 }
 
-func prim_reflist_find(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_reflist_find(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
-		prog := op[2].(dbref)
+		prog := op[2].(ObjectID)
 		if !prop_read_perms(ProgUID, obj, prop, mlev) {
 			panic("Permission denied.")
 		}
@@ -364,11 +364,11 @@ func prim_reflist_find(player, program dbref, mlev int, pc, arg *inst, top *int,
 }
 
 
-func prim_reflist_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_reflist_add(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		propobj := valid_remote_object(player, mlev, op[0])
+		propobj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
-		obj := op[2].(dbref)
+		obj := op[2].(ObjectID)
 		if !prop_write_perms(ProgUID, propobj, prop, mlev) {
 			abort_interp("Permission denied.")
 		}
@@ -376,11 +376,11 @@ func prim_reflist_add(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_reflist_del(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_reflist_del(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		propobj := valid_remote_object(player, mlev, op[0])
+		propobj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		propname := extract_propname(op[1].(string))
-		obj := op[2].(dbref)
+		obj := op[2].(ObjectID)
 		if !prop_write_perms(ProgUID, propobj, propname, mlev) {
 			panic("Permission denied.")
 		}
@@ -388,9 +388,9 @@ func prim_reflist_del(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_blessedp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_blessedp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(JOURNEYMAN, mlev, 2, top, func(op Array) {
-		obj := valid_object(op[0])
+		obj := op[0].(ObjectID).ValidObject()
 		prop := op[1].(string)
 		if Prop_Blessed(obj, prop) {
 			result = 1
@@ -401,9 +401,9 @@ func prim_blessedp(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_parsepropex(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_parsepropex(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 4, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		prop := extract_propname(op[1].(string))
 		vars := op[2].(Dictionary)
 		private := op[3].(int)
@@ -424,9 +424,9 @@ func prim_parsepropex(player, program dbref, mlev int, pc, arg *inst, top *int, 
 				flags |= MPI_NOHOW
 			}
 			switch val.(type) {
-			case int, float64, dbref, string, Lock:
+			case int, float64, ObjectID, string, Lock:
 			default:
-				panic("Only integer, float, dbref, string and lock values supported. (3)")
+				panic("Only integer, float, ObjectID, string and lock values supported. (3)")
 			}
 		}
 
@@ -438,7 +438,7 @@ func prim_parsepropex(player, program dbref, mlev int, pc, arg *inst, top *int, 
 					set_mvalue(MPI_VARIABLES, key, fmt.Sprint(val))
 				case float64:
 					set_mvalue(MPI_VARIABLES, key, fmt.Sprint(val))
-				case dbref:
+				case ObjectID:
 					set_mvalue(MPI_VARIABLES, key, fmt.Sprintf("#%i", val))
 				case string:
 					set_mvalue(MPI_VARIABLES, key, val)

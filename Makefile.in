@@ -135,7 +135,7 @@ package: help
 	cp -fp  game/data/*.txt             ${TMPPKGDIR}/game/data
 	cp -fp  game/data/*.raw             ${TMPPKGDIR}/game/data
 	cp -fp  game/data/minimal.db        ${TMPPKGDIR}/game/data
-	cp -fp  game/data/minimal.db.README ${TMPPKGDIR}/game/data
+	cp -fp  game/data/minimal.DB.README ${TMPPKGDIR}/game/data
 	cp -fpr game/data/man*              ${TMPPKGDIR}/game/data
 	cp -fpr game/data/help*             ${TMPPKGDIR}/game/data
 	cp -fpr game/data/news*             ${TMPPKGDIR}/game/data

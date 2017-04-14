@@ -272,7 +272,7 @@ func (ptr *Plist) next_node(name string) (r *Plist) {
 }
 
 //	copies properties
-func (old *Plist) copy_proplist(obj dbref) (nu *Plist) {
+func (old *Plist) copy_proplist(obj ObjectID) (nu *Plist) {
 	if old != nil {
 		p := nu.new_prop(old.key)
 		SetPFlagsRaw(p, PropFlagsRaw(old))

@@ -117,11 +117,11 @@ ANNOBJ= announce.o
 
 MISCSRC= Makefile.in ChangeLog COPYING mkversion.sh
 
-CSRC= array.c boolexp.c compile.c create.c db.c db_header.c debugger.c \
+CSRC= array.c boolexp.c compile.c create.c DB.c db_header.c debugger.c \
 	disassem.c diskprop.c edit.c events.c game.c hashtab.c help.c inst.c \
 	interp.c log.c look.c match.c mcp.c mcpgui.c mcppkgs.c mfuns2.c \
 	mfuns.c move.c msgparse.c mufevent.c oldcompress.c p_array.c \
-	p_connects.c p_db.c p_error.c p_float.c player.c p_math.c p_mcp.c \
+	p_connects.c p_DB.c p_error.c p_float.c player.c p_math.c p_mcp.c \
 	p_misc.c p_props.c p_regex.c predicates.c propdirs.c property.c \
 	props.c p_stack.c p_strings.c random.c rob.c sanity.c set.c \
 	signal.c smatch.c snprintf.c speech.c strftime.c stringutil.c \
@@ -131,11 +131,11 @@ LSRC= copyright.c
 MSRC= compress.c olddecomp.c reconst.c interface.c resolver.c topwords.c
 
 
-COBJ= array.o boolexp.o compile.o create.o db_header.o db.o debugger.o \
+COBJ= array.o boolexp.o compile.o create.o db_header.o DB.o debugger.o \
 	disassem.o diskprop.o edit.o events.o game.o hashtab.o help.o inst.o \
 	interp.o log.o look.o match.o mcp.o mcpgui.o mcppkgs.o mfuns2.o \
 	mfuns.o move.o msgparse.o mufevent.o oldcompress.o p_array.o \
-	p_connects.o p_db.o p_error.o p_float.o player.o p_math.o p_mcp.o \
+	p_connects.o p_DB.o p_error.o p_float.o player.o p_math.o p_mcp.o \
 	p_misc.o p_props.o p_regex.o predicates.o propdirs.o property.o \
 	props.o p_stack.o p_strings.o random.o rob.o sanity.o set.o \
 	signal.o smatch.o snprintf.o speech.o strftime.o stringutil.o \
@@ -287,8 +287,8 @@ install-sysv-inits: all
 #
 #	${INSTALL} -d ${INSTALL_DBSDIR}
 #	for d in minimal base; do \
-#		cd dbs/${d} && tar cf ${INSTALL_DBSDIR}/${d}db.tar *; \
-#		gzip ${INSTALL_DBSDIR}/${d}db.tar; \
+#		cd dbs/${d} && tar cf ${INSTALL_DBSDIR}/${d}DB.tar *; \
+#		gzip ${INSTALL_DBSDIR}/${d}DB.tar; \
 #	done
 
 # #######################################################################

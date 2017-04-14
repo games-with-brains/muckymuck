@@ -101,7 +101,7 @@ typedef struct COMPILE_STATE_T {
 	int start_comment;              /* Line last comment started at */
 	int force_comment;              /* Only attempt certain compile. */
 	const char *next_char;		/* next char * */
-	dbref player, program;		/* player and program for this compile */
+	ObjectID player, program;		/* player and program for this compile */
 
 	int compile_err;			/* 1 if error occured */
 
@@ -142,13 +142,13 @@ do_abort_compile(COMPSTATE * cstat, const char *c)
 		free((void *) cstat->line_copy);
 		cstat->line_copy = NULL;
 	}
-	if (db.Fetch(cstat.player).flags & INTERACTIVE != 0 && db.Fetch(cstat.player).flags & READMODE == 0) || cstat.force_err_display {
+	if (DB.Fetch(cstat.player).flags & INTERACTIVE != 0 && DB.Fetch(cstat.player).flags & READMODE == 0) || cstat.force_err_display {
 		notify_nolisten(cstat->player, _buf, true)
 	} else {
 		log_muf("%s(#%d) [%s(#%d)] %s(#%d) %s",
-			db.Fetch(db.Fetch(cstat.program).Owner).name, db.Fetch(cstat.program).Owner,
-			db.Fetch(cstat.program).name, cstat.program,
-			db.Fetch(cstat.player).name, cstat.player,
+			DB.Fetch(DB.Fetch(cstat.program).Owner).name, DB.Fetch(cstat.program).Owner,
+			DB.Fetch(cstat.program).name, cstat.program,
+			DB.Fetch(cstat.player).name, cstat.player,
 			_buf
 		);
 	}
@@ -169,7 +169,7 @@ do_abort_compile(COMPSTATE * cstat, const char *c)
 	cleanup(cstat)
 	cstat.PublicAPI = nil
 	free_prog(cstat.program)
-	p := db.Fetch(cstat.program).program
+	p := DB.Fetch(cstat.program).program
 	p.PublicAPI = nil
 	p.mcp_binding = nil
 	p.proftime.tv_usec = 0
@@ -253,7 +253,7 @@ func size_pubs(mypubs *PublicAPI) (r int) {
 
 func expand_def(cstat *COMPSTATE, defname string) (r string) {
 	if r = cstat.defhash[defname]; r == "" && defname == BEGINMACRO {
-		r = macro_expansion(macrotop, &defname[1])
+		r = macro_expansion(Macros, &defname[1])
 	}
 	return
 }
@@ -270,7 +270,7 @@ func insert_intdef(COMPSTATE * cstat, const char *defname, int deff) {
 	insert_def(cstat, defname, fmt.Sprint(deff))
 }
 
-func include_defs(cstat *COMPSTATE, i dbref) {
+func include_defs(cstat *COMPSTATE, i ObjectID) {
 	char dirname[BUFFER_LEN];
 	char temp[BUFFER_LEN];
 	const char *tmpptr;
@@ -399,24 +399,24 @@ func init_defs(cstat *COMPSTATE) {
 	include_internal_defs(cstat)
 
 	/* Include any defines set in #0's _defs/ propdir. */
-	include_defs(cstat, (dbref) 0)
+	include_defs(cstat, (ObjectID) 0)
 
 	/* Include any defines set in program owner's _defs/ propdir. */
-	include_defs(cstat, db.Fetch(cstat.program).Owner)
+	include_defs(cstat, DB.Fetch(cstat.program).Owner)
 }
 
-func uncompile_program(i dbref) {
+func uncompile_program(i ObjectID) {
 	dequeue_prog(i, 1)
 	free_prog(i)
-	db.Fetch(i).(Program) = nil
+	DB.Fetch(i).(Program) = nil
 }
 
-func do_uncompile(dbref player) {
-	if !Wizard(db.Fetch(player).Owner) {
+func do_uncompile(ObjectID player) {
+	if !Wizard(DB.Fetch(player).Owner) {
 		notify_nolisten(player, "Permission denied. (uncompile)", true);
 		return;
 	}
-	EachObject(func(obj dbref) {
+	EachObject(func(obj ObjectID) {
 		if IsProgram(obj) {
 			uncompile_program(obj)
 		}
@@ -426,7 +426,7 @@ func do_uncompile(dbref player) {
 
 func free_unused_programs() {
 	time_t now = time(nil)
-	EachObject(func(obj dbref, o *Object) {
+	EachObject(func(obj ObjectID, o *Object) {
 		var instances int
 		if p := o.program; p.sp != nil {
 			instances = p.instances
@@ -938,8 +938,8 @@ func OptimizeIntermediate(cstat *COMPSTATE, force_err_display bool) (r int) {
 
 
 //	overall control code.  Does piece-meal tokenization parsing and backward checking.
-func do_compile(descr int, player, program dbref, force_err_display bool) {
-	p := db.Fetch(program).program
+func do_compile(descr int, player, program ObjectID, force_err_display bool) {
+	p := DB.Fetch(program).program
 	cstat := &COMPSTATE{
 		force_err_display: force_err_display,
 		descr: descr,
@@ -1041,8 +1041,8 @@ func do_compile(descr int, player, program dbref, force_err_display bool) {
 		cleanup(&cstat)
 		p.instances = 0
 		/* restart AUTOSTART program. */
-		if db.Fetch(cstat.program).flags & ABODE != 0 && TrueWizard(db.Fetch(cstat.program).Owner) {
-			add_muf_queue_event(-1, db.Fetch(cstat.program).Owner, NOTHING, NOTHING, cstat.program, "Startup", "Queued Event.", 0)
+		if DB.Fetch(cstat.program).flags & ABODE != 0 && TrueWizard(DB.Fetch(cstat.program).Owner) {
+			add_muf_queue_event(-1, DB.Fetch(cstat.program).Owner, NOTHING, NOTHING, cstat.program, "Startup", "Queued Event.", 0)
 		}
 
 		if force_err_display {
@@ -1312,9 +1312,9 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		name := nextToken
 		cstat.next_char = ""
 		advance_line(cstat)
-		if name == "" || MLevel(db.Fetch(cstat.program).Owner) < WIZBIT {
-			include_defs(cstat, db.Fetch(cstat.program).Owner)
-			include_defs(cstat, dbref(0))
+		if name == "" || MLevel(DB.Fetch(cstat.program).Owner) < WIZBIT {
+			include_defs(cstat, DB.Fetch(cstat.program).Owner)
+			include_defs(cstat, ObjectID(0))
 		}
 	case "enddef":
 		v_abort_compile(cstat, "$enddef without a previous matching $define.")
@@ -1385,12 +1385,12 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		cstat.next_char = ""
 		advance_line(cstat)
 	case "include":
-		var i dbref
+		var i ObjectID
 		if name := next_token_raw(cstat); name == "":
 			v_abort_compile(cstat, "Unexpected end of file while doing $include.")
 		} else {
 			i = do_directive_match(cstat, name)
-			if !valid_reference(i) {
+			if !i.IsValid() {
 				v_abort_compile(cstat, "I don't understand what object you want to $include.")
 			}
 			include_defs(cstat, i)
@@ -1504,7 +1504,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 			}
 		}
 	case "ifcancall", "ifncancall":
-		var i dbref
+		var i ObjectID
 		switch name := next_token_raw(cstat); name {
 		case "":
 			v_abort_compile(cstat, "Unexpected end of file for ifcancall.")
@@ -1513,7 +1513,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		default:
 			i = do_directive_match(cstat, name)
 		}
-		if !valid_reference(i) {
+		if !i.IsValid() {
 			v_abort_compile(cstat, "I don't understand what program you want to check in ifcancall.")
 		}
 		name := next_token_raw(cstat)
@@ -1522,17 +1522,17 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		}
 		cstat.next_char = ""
 		advance_line(cstat)
-		if program := db.Fetch(i).program; program.code == nil {
+		if program := DB.Fetch(i).program; program.code == nil {
 			tmpline := program.first
 			program.first = read_program(i)
-			do_compile(cstat.descr, db.Fetch(i).Owner, i, 0)
+			do_compile(cstat.descr, DB.Fetch(i).Owner, i, 0)
 			program.first = tmpline
 		}
 		j := 0
-		if MLevel(db.Fetch(i).Owner) > NON_MUCKER && (MLevel(db.Fetch(cstat.program).Owner) >= WIZBIT || db.Fetch(i).Owner == db.Fetch(cstat.program).Owner || Linkable(i)) {
-			pbs := db.Fetch(i).(Program).PublicAPI
+		if MLevel(DB.Fetch(i).Owner) > NON_MUCKER && (MLevel(DB.Fetch(cstat.program).Owner) >= WIZBIT || DB.Fetch(i).Owner == DB.Fetch(cstat.program).Owner || Linkable(i)) {
+			pbs := DB.Fetch(i).(Program).PublicAPI
 			for ; pbs != nil && name != pbs.subname; pbs = pbs.next {}
-			if pbs != nil && MLevel(db.Fetch(cstat.program).Owner) >= pbs.mlev {
+			if pbs != nil && MLevel(DB.Fetch(cstat.program).Owner) >= pbs.mlev {
 				j = 1
 			}
 		}
@@ -1565,13 +1565,13 @@ func do_directive(cstat *COMPSTATE, direct string) {
 		if name := next_token_raw(cstat); name == "" {
 			v_abort_compile(cstat, "Unexpected end of file while doing $ifver.")
 		} else {
-			var i dbref
+			var i ObjectID
 			if name == "this" {
 				i = cstat.program			
 			} else {
 				i = do_directive_match(cstat, name)
 			}
-			if !valid_reference(i) {
+			if !i.IsValid() {
 				v_abort_compile(cstat, "I don't understand what object you want to check with $ifver.")
 			}
 			var property string
@@ -1633,7 +1633,7 @@ func do_directive(cstat *COMPSTATE, direct string) {
 			v_abort_compile(cstat, "Unexpected end of file in $iflib/$ifnlib clause.")
 		}
 		i = do_directive_match(cstat, name)
-		if !valid_reference(i) || !IsProgram(i) {
+		if !i.IsValid() || !IsProgram(i) {
 			j = 1
 		} else {
 			j = 0
@@ -2186,7 +2186,7 @@ func lvar_word(cstat *COMPSTATE, token string) *INTERMEDIATE {
 
 /* check if object is in database before putting it in */
 func object_word(cstat *COMPSTATE, token string) *INTERMEDIATE {
-	return add_word(cstat, dbref(strconv.Atoi(token[1:])))
+	return add_word(cstat, ObjectID(strconv.Atoi(token[1:])))
 }
 
 /* support routines for internal data structures. */
@@ -2449,7 +2449,7 @@ func copy_program(cstat *COMPSTATE) {
 	for i := 0; curr != nil; i++ {
 		code[i].line = curr.in.line
 		switch code[i].(type) {
-		case PROG_PRIMITIVE, int, PROG_SVAR, PROG_SVAR_AT, PROG_SVAR_AT_CLEAR, PROG_SVAR_BANG, PROG_LVAR, PROG_LVAR_AT, PROG_LVAR_AT_CLEAR, PROG_LVAR_BANG, PROG_VAR, float64, string, dbref:
+		case PROG_PRIMITIVE, int, PROG_SVAR, PROG_SVAR_AT, PROG_SVAR_AT_CLEAR, PROG_SVAR_BANG, PROG_LVAR, PROG_LVAR_AT, PROG_LVAR_AT_CLEAR, PROG_LVAR_BANG, PROG_VAR, float64, string, ObjectID:
 			code[i].data = curr.in.data
 		case MUFProc:
 			data := curr.in.data.(MUFProc)
@@ -2470,14 +2470,14 @@ func copy_program(cstat *COMPSTATE) {
 		}
 		curr = curr.next
 	}
-	db.Fetch(cstat.program).(Program) = code
+	DB.Fetch(cstat.program).(Program) = code
 }
 
 func set_start(cstat *COMPSTATE) {
-	db.Fetch(cstat.program).(Program).siz = cstat.nowords
+	DB.Fetch(cstat.program).(Program).siz = cstat.nowords
 
 	/* address instr no is resolved before this gets called. */
-	db.Fetch(cstat.program).(Program).start = db.Fetch(cstat.program).(Program).code + cstat.procs.code.no
+	DB.Fetch(cstat.program).(Program).start = DB.Fetch(cstat.program).(Program).code + cstat.procs.code.no
 }
 
 func prealloc_inst(cstat *COMPSTATE) (r *INTERMEDIATE) {
@@ -2514,8 +2514,8 @@ func alloc_addr(cstat *COMPSTATE, offset int, codestart *inst) *Address {
 	return &Address{ cstat.program, data: codestart + offset }
 }
 
-func free_prog_real(prog dbref, file, line string) {
-	p := db.Fetch(prog).program
+func free_prog_real(prog ObjectID, file, line string) {
+	p := DB.Fetch(prog).program
 	if p.code != nil {
 		var instances int
 		if p.sp != nil {

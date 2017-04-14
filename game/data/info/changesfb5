@@ -36,8 +36,8 @@ Removed the internal primitives IN_IF and IN_PROGRAM.
 Added PROG_IF, PROG_EXEC and PROG_JMP internal instruction types for handling
   of if then, loops, and function execution.  These types are displayed in
   dumps as IF->address, EXEC->address and JMP->address.
-Changed storge of addresses to include dbref.
-Changed MUF system callstack to store dbrefs.
+Changed storge of addresses to include ObjectID.
+Changed MUF system callstack to store ObjectIDs.
 Fixed the single line primitive dump in the MUF debugger so that if the end
   of the line isn't shown, it will display a ... at the end instead of
   displaying just ..., as well as changed it so it would display the whole
@@ -54,16 +54,16 @@ Fixed a bug with finding the program UID on programs set HAVEN and STICKY.
 Fixed a bug that the instances of a program was never decremented.  This
   would result in programs never being freed, and POSSIBLY corruption if a
   program is freed because the instances count wrapped around.
-Added the dbref of the current program to the DEBUG dump.
+Added the ObjectID of the current program to the DEBUG dump.
 The MUF debugger will now go to the proper program for source listings if
   the current function was called in an EXECUTE from another program.
 Function addresses in argument stack backtraces are now displayed as
-  '#dbref'function if the address points to another program.
+  '#ObjectID'function if the address points to another program.
 Changed the wizard only mode and player limits to allow any truewizard to
   connect instead of just any wizard.  (ie: ignore QUELL bit for connects)
 Fixed bug in INTERP primitive that might have caused a crash on return of an
   address.
-Fixed crasher bug if a program was dequeued by dbref (IE compiled) and was
+Fixed crasher bug if a program was dequeued by ObjectID (IE compiled) and was
   running, but in a call to another program.
 Fixed MUF memory leak in CALL and possible leaks in EXECUTE, JMP, & SLEEP.
 Fixed MPI {dist} function to accept 2 arguments like it is supposed to.
@@ -273,7 +273,7 @@ Changed logging functions to give the time in HH:MM:SS MM/DD/YY format.
 Fixed unterminated result from {for} when boundries would cause no execution.
 Fixed ADDPROP to clear property values when passed a null string and a 0 for
   values.  If the property is not a propdir, it also gets removed.
-Fixed {ref} to always return value passed if passed a raw dbref.  ie: {ref:#8}
+Fixed {ref} to always return value passed if passed a raw ObjectID.  ie: {ref:#8}
 Updated the README packaged with the server.
 Added new shell script named 'optimdb' that re-optimizes the compression of
   a database, saving the optimized db out to another file.  The usage is:
@@ -296,7 +296,7 @@ Changed db format to store @tune parameters.  '@tune save' and '@tune load'
   in a monolithic dump, the @tune parameters are saved at the beginning of
   the DB.
 Changed the KILL muf primitive to allow ML1 and 2 programs to kill themselves.
-Changed dbref unparsing so player dbrefs no longer show to the owner of that
+Changed ObjectID unparsing so player ObjectIDs no longer show to the owner of that
   player's home room.
 Changed the compression algorithm to a dictionary based compression scheme.
   It gets better compression than the old bigraph compression.  The database
@@ -306,7 +306,7 @@ Changed the compression algorithm to a dictionary based compression scheme.
   AND IS USED IN FB BY SPECIFIC PERMISSION.  NOTE: these changes should reduce
   the size of large databases, but will likely increase the size of small DBs,
   compared to bigraph compression, due to the addition of the dictionary to
-  the db.
+  the DB.
 Changed main netmuck program launching argument format such that it can accept
   -option arguments anywhere in it's command line.  There are now two -options
   available.  -convert will cause netmuck to read the input database, then
@@ -315,7 +315,7 @@ Changed main netmuck program launching argument format such that it can accept
   to save the output databases it writes into an uncompressed format. Example:
   "netmuck -convert -decompress infile.db outfile.db" will convert the db in
   infile.db to the most current database format, with no compression.
-Added 'topwords' program that will find the 4096 most common words in a db.
+Added 'topwords' program that will find the 4096 most common words in a DB.
   topwords is a filter.  You pipe the uncompressed db into it and it returns
   the 4096 optimized dictionary words.  If you have a small database, it is
   best to simply use the game/data/wordlist.txt file provided with this re-
@@ -330,7 +330,7 @@ Added 'topwords' program that will find the 4096 most common words in a db.
 2.2fb5.43
 Fixed a bug with the fb5.42 fix to SETLINK.  Wizbit programs will be able to
   use SETLINK with impunity now.
-Changed unparse_object() so that players see the dbrefs of objects that they
+Changed unparse_object() so that players see the ObjectIDs of objects that they
   could @unlink.  This is so that @contents and @entrances provide useful
   information.
 Fixed a logic problem with @chown.  NOTE: IMPORTANT SECURITY FIX!!!!!!!
@@ -447,7 +447,7 @@ Fixed a crasher bug with '$define foo $enddef'
 2.2fb5.36
 Made significant changes to MPI to disassociate permissions from the trigger.
   This should make 'this' always be the object {exec}ed or {lexec}ed.
-Added INTERP (d d2 s -- ?) MUF prim that takes a program dbref to run, the
+Added INTERP (d d2 s -- ?) MUF prim that takes a program ObjectID to run, the
   trigger to use, and the top stack item string.  It runs the MUF program with
   the given trigger (with the given string on top of the stack) and returns
   the top stack item that the MUF program exits with.
@@ -490,7 +490,7 @@ Edited the documentation order of the MPI functions in the mpihelp file,
 
 2.2fb5.33
 Fixed {lrand}'s portability problems with random().
-Fixed crashing bugs with AWAKE? and DESCR_SETUSER getting bad dbrefs.
+Fixed crashing bugs with AWAKE? and DESCR_SETUSER getting bad ObjectIDs.
 Fixed bug with DESCRIPTORS giving incorrect errors.
 Fixed {strip} to work on output of other functions.
 
@@ -529,11 +529,11 @@ Changed {inc} and {dec} to accept a second argument to specify how much to add
   to or subtract from the variable.
 Added {lrand:list[,seperator]} function to return a random stringlist item.
 Split out mfunlist.h from msgparse.c, to make it easier to add functions.
-Changed all the propfetching functions in MPI to return integer and dbref vals
+Changed all the propfetching functions in MPI to return integer and ObjectID vals
   for properties, if they are not string properties.
 Added {prop!} {index!} and {exec!} to MPI, to look for props only on specified
   object, and not down the environment.
-Fixed a crashing bug where the AWAKE? prim accepted invalid dbrefs.
+Fixed a crashing bug where the AWAKE? prim accepted invalid ObjectIDs.
 Changed @find/@owned/@contents/@entrances to check both modified and lastused
   times when determining if an object is old and unused.
 Changed @find, @owned, @contents, and @entrances to now have two new search
@@ -570,7 +570,7 @@ Changed @unlink to reset thing and player homes to defaults.
 Put in a couple patches to hopefully prevent random program lossage.
 Fixed bug where text was output after the disconnect message for a player.
 Fixed two crashing bugs with @toading of a deltadumped player.
-Changed the db_read routine to allow for reading deltas seperately from db.
+Changed the db_read routine to allow for reading deltas seperately from DB.
 Changed sanity to accept an optional seperate deltasfile argument.
 
 
@@ -638,8 +638,8 @@ Added the LOCK_ENVCHECK @tune option.  When set to yes, locks will check
   down the environment, when looking for properties.
 Fixed a crashing bug with a static var in a recursive compile.c function.
 Fixed muf's SET primitive to work with Zombie.  (hopefully)
-Changed MPI so funcs won't return object names instead of dbrefs.
-Changed {name} to return the name for any object in the db.
+Changed MPI so funcs won't return object names instead of ObjectIDs.
+Changed {name} to return the name for any object in the DB.
 Changed the NEW* creation prims to set ownership to the UID of the program.
 Fixed the @set object=:clear bug.  (Finally.  For real this time.)
 Changed 'make clean' to make it not remove the makefile.  Use the 
@@ -716,10 +716,10 @@ Changed property struct to store the propname in the structure, instead of
  using a pointer to a separate propname.
 Added code to allow profiling of what is using up how much memory.
 Added DESCR_SETUSER ( i d s -- i ) primitive.  Used to reconnect a descriptor
-  to a different dbref.  It first disconnects from the old dbref, then connects
+  to a different ObjectID.  It first disconnects from the old ObjectID, then connects
   to the new one as if the connection typed QUIT, then logged into the new
-  character.  It takes the descriptor number, the dbref to connect to, and the
-  password string for the new player dbref.  If the password given doesn't
+  character.  It takes the descriptor number, the ObjectID to connect to, and the
+  password string for the new player ObjectID.  If the password given doesn't
   match the player's password, then it gives a permission denied error.  This
   returns a 1 if successful, or a 0 if the given descriptor was not found.
 Made bugfix for running of propqueue _departs before player is disconnected.
@@ -729,7 +729,7 @@ Made bugfix for running of propqueue _departs before player is disconnected.
 2.2fb5.16
 Fixed bug with setting properties with names that start with a colon.
 Added ENVPROP (d s -- ?) primitive.  Like ENVPROPSTR, but reads all proptypes.
-Changed ENVPROPSTR and GETPROPSTR to return string representations of dbref and
+Changed ENVPROPSTR and GETPROPSTR to return string representations of ObjectID and
   lock property types.
 Fixed crasher bug with free()ing of old @tune strings, on changing them.
 Changed SETOWN prim to check for @chlock Chown_OK locking.
@@ -756,7 +756,6 @@ Changed help, mpi, man, and news to show files with the given topic name, in
 
 2.2fb5.14
 Fixed bug with strings in $define-$endef constructs, AGAIN.
-Removed extra fclose() from macroload(), that caused LINUX to crash.
 Removed setvbuf() calls to speed loads and saves back up.
 @descriptions, @succs, etc will now parse MPI in args to @programs they run.
 Changed @tune to allow setting a string parm to a null value, using "-".
@@ -826,8 +825,8 @@ Fixed bug with @contents giving a not found error message twice.
 Fixed crashing bug with @set object=:clear
 Fixed bug with MPI parsing args in a way that mismatched the function run.
 Fixed bug with MPI misparsing of macros.
-Added {select:value,propname,dbref} MPI function.
-Added {timesub:period,offset,listname,dbref} MPI function.
+Added {select:value,propname,ObjectID} MPI function.
+Added {timesub:period,offset,listname,ObjectID} MPI function.
 
 
 
@@ -837,7 +836,7 @@ Fixed:
 
   Fixed copyobj data loss bug introduces a few beta versions back.
 
-  Fixed RMATCH to check for valid dbrefs passed to it.
+  Fixed RMATCH to check for valid ObjectIDs passed to it.
 
   Pair of bugs in announce.c that made it work less than optimally.
   
@@ -947,7 +946,7 @@ Added:
     entire db being written out in a monolithic dump.  When the deltas-file
     grows to about the same number of objects as the input file, it does the
     old monolithic dump to resynchronize the db file.  @dump and @shutdown
-    also do the monolithic dump to resynch the db.  Delta dumps are MUCH
+    also do the monolithic dump to resynch the DB.  Delta dumps are MUCH
     faster than old style dumps.  To create a loadable db from a deltas-file
     and the initial input db, simply append the data/deltas-file file to the
     end of a copy of the input file, and load it up.  This is also handled
@@ -1061,7 +1060,7 @@ Changed:
     If the container object does not have a _/clk lock property, then it
     is assumed that the container is locked, and no-one may use it.
   
-  Properties can now hold locks and dbrefs in addition to the standard
+  Properties can now hold locks and ObjectIDs in addition to the standard
     strings and integers.  This necessitates a database format change.
   
   Locks have been moved into _/lok properties.
@@ -1326,17 +1325,17 @@ Changed:
   
   
 Primitives:
-  CONTROLS (d d -- i) Takes a player dbref and an object dbref, and returns
+  CONTROLS (d d -- i) Takes a player ObjectID and an object ObjectID, and returns
                        true if the player has control over the given object.
 
   GETPROP (d s -- ?)  Gets the value of a given property, and puts it on the
-                        stack.  This can return a lock, a string, a dbref, or
+                        stack.  This can return a lock, a string, a ObjectID, or
                         an integer, depending on the type of the property.
                         Permissions are the same as those for GETPROPSTR.
                         This primitive returns 0 if no such property exists,
                         of if it is a valueless propdir.
   
-  SETPROP (d s ? -- ) Stores a lock, dbref, integer, or string into the named
+  SETPROP (d s ? -- ) Stores a lock, ObjectID, integer, or string into the named
                         property on the given object.  Perms are the same as
                         for ADDPROP.
   
@@ -1395,7 +1394,7 @@ Primitives:
                          and matches it against the names of the players who
                          are currently online.  If the given string is a
                          prefix of the name of a player who is online, then
-                         their dbref is returned.  If two players could be
+                         their ObjectID is returned.  If two players could be
                          matched by the given string, it returns a #-2.  If
                          None of the players online match, then it returns
                          a #-1.

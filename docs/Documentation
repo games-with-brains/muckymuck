@@ -13,7 +13,7 @@ RWHO.docs		Frequently asked questions about RWHO and mudwho
 edit-help.txt		MUF program editor help
 help.txt		An introduction to TinyMUCK (for TinyMUD people)
 macro.hlp		Using MUF macros
-minimal.db.README:	How to set up a MUD database.
+minimal.DB.README:	How to set up a MUD database.
 mpi-intro		An introduction to MPI in the fb5.xx MUCK game
 mpi-intro.html		HTML version of mpi-intro
 mpi-intro2		Foxen's intermediate guide to MPI programming

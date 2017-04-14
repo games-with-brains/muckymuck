@@ -1,5 +1,5 @@
 #include "config.h"
-#include "db.h"
+#include "DB.h"
 #include "props.h"
 #include "params.h"
 #include "tune.h"
@@ -56,7 +56,7 @@ check_dump_time(void)
 
 	if ((last_dump_time + tp_dump_interval) < currtime) {
 		last_dump_time = currtime;
-		add_property((dbref) 0, "_sys/lastdumptime", NULL, (int) currtime);
+		add_property((ObjectID) 0, "_sys/lastdumptime", NULL, (int) currtime);
 
 		if (tp_periodic_program_purge)
 			free_unused_programs();
@@ -74,7 +74,7 @@ dump_db_now(void)
 {
 	long currtime = (long) time((time_t *) NULL);
 
-	add_property((dbref) 0, "_sys/lastdumptime", NULL, (int) currtime);
+	add_property((ObjectID) 0, "_sys/lastdumptime", NULL, (int) currtime);
 	fork_and_dump();
 	last_dump_time = currtime;
 	dump_warned = 0;
@@ -85,7 +85,7 @@ delta_dump_now(void)
 {
 	long currtime = (long) time((time_t *) NULL);
 
-	add_property((dbref) 0, "_sys/lastdumptime", NULL, (int) currtime);
+	add_property((ObjectID) 0, "_sys/lastdumptime", NULL, (int) currtime);
 	dump_deltas();
 	last_dump_time = currtime;
 	dump_warned = 0;

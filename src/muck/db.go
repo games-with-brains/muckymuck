@@ -1,45 +1,41 @@
 package fbmuck
 
-func check_remote(player, what dbref) {
-	o := db.Fetch(what)
-	p := db.Fetch(player)
+func check_remote(player, what ObjectID) {
+	o := DB.Fetch(what)
+	p := DB.Fetch(player)
 	if mlev < JOURNEYMAN && o.Location != player && o.Location != p.Location && what != p.Location && what != player && !controls(ProgUID, what) {
 		panic("Mucker Level 2 required to get remote info.")
 	}
 }
 
-func valid_reference(obj dbref) bool {
-	return obj > -1 && obj < db_top
-}
-
 func EachObject(f interface{}) {
 	switch f := f.(type) {
-	case func(dbref):
-		for i := dbref(0); i < db_top; i++ {
+	case func(ObjectID):
+		for i := ObjectID(0); i < db_top; i++ {
 			f(i)
 		}
-	case func(dbref, object):
-		for i := dbref(0); i < db_top; i++ {
-			f(i, db.Fetch(i))
+	case func(ObjectID, object):
+		for i := ObjectID(0); i < db_top; i++ {
+			f(i, DB.Fetch(i))
 		}
 	case func(object):
-		for i := dbref(0); i < db_top; i++ {
-			f(db.Fetch(i))
+		for i := ObjectID(0); i < db_top; i++ {
+			f(DB.Fetch(i))
 		}
-	case func(dbref) bool:
+	case func(ObjectID) bool:
 		var done bool
-		for i := dbref(0); !done && i < db_top; i++ {
+		for i := ObjectID(0); !done && i < db_top; i++ {
 			done = f(i)
 		}
-	case func(dbref, object) bool:
+	case func(ObjectID, object) bool:
 		var done bool
-		for i := dbref(0); !done && i < db_top; i++ {
-			done = f(i, db.Fetch(i))
+		for i := ObjectID(0); !done && i < db_top; i++ {
+			done = f(i, DB.Fetch(i))
 		}
 	case func(object) bool:
 		var done bool
-		for i := dbref(0); !done && i < db_top; i++ {
-			done = f(db.Fetch(i))
+		for i := ObjectID(0); !done && i < db_top; i++ {
+			done = f(DB.Fetch(i))
 		}
 	default:
 		panic(f)
@@ -48,94 +44,36 @@ func EachObject(f interface{}) {
 
 func EachObjectInReverse(f interface{}) {
 	switch f := f.(type) {
-	case func(dbref):
+	case func(ObjectID):
 		for i := db_top - 1; i > -1; i-- {
 			f(i)
 		}
-	case func(dbref, object):
+	case func(ObjectID, object):
 		for i := db_top - 1; i > -1; i-- {
-			f(i, db.Fetch(i))
+			f(i, DB.Fetch(i))
 		}
 	case func(object):
 		for i := db_top - 1; i > -1; i-- {
-			f(db.Fetch(i))
+			f(DB.Fetch(i))
 		}
-	case func(dbref) bool:
+	case func(ObjectID) bool:
 		var done bool
 		for i := db_top - 1; !done && i > -1; i-- {
 			done = f(i)
 		}
-	case func(dbref, object) bool:
+	case func(ObjectID, object) bool:
 		var done bool
 		for i := db_top - 1; !done && i > -1; i++ {
-			done = f(i, db.Fetch(i))
+			done = f(i, DB.Fetch(i))
 		}
 	case func(object) bool:
 		var done bool
 		for i := db_top - 1; !done && i > -1; i++ {
-			done = f(db.Fetch(i))
+			done = f(DB.Fetch(i))
 		}
 	default:
 		panic(f)
 	}
-}
-
-/*
-	These helper functions operate in two modes:
-
-		if one or more functions are passed in then each of these is executed in sequence for a valid database reference, or NOTHING is returned
-		if no functions are passed in then either the valid database reference is returned or a panic occurs
-*/
-func valid_object(v interface{}, f ...func(dbref)) (obj dbref) {
-	switch obj = oper.(dbref); {
-	case valid_reference(obj):
-		for _, f := range f {
-			f(obj)
-		}
-	case f == nil:
-		panic("Not a valid object reference")
-	default:
-		obj = NOTHING
-	}
-	return
-}
-
-func valid_object_or_home(oper interface{}, f ...func(dbref)) (obj dbref) {
-	switch obj = oper.(dbref); {
-	case obj == HOME:
-		for _, f := range f {
-			f(obj)
-		}
-	case valid_object(oper, f...) != NOTHING:
-	default:
-		obj = NOTHING
-	}
-	return
-}
-
-func valid_player(oper interface{}, f ...func(dbref)) (obj dbref) {
-	switch obj = oper.(dbref); {
-	case valid_reference(obj) && IsPlayer(obj):
-		for _, f := raneg f {
-			f(obj)
-		}
-	case f == nil:
-		panic("Not a valid object reference")
-	default:
-		obj = NOTHING
-	return
-}
-
-func valid_remote_object(player dbref, mlev int, oper interface{}, f ...func(dbref)) (obj dbref) {
-	obj = valid_object(oper, f...)
-	check_remote(obj)
-	return
-}
-
-func valid_remote_player(player dbref, mlev int, oper interface{}, f ...func(dbref)) (obj dbref) {
-	obj = valid_player(oper, f...)
-	check_remote(obj)
-	return
 }
 
 
@@ -145,7 +83,7 @@ func valid_remote_player(player dbref, mlev int, oper interface{}, f ...func(dbr
 	#define BUFFER_LEN ((MAX_COMMAND_LEN)*4)
 	#define FILE_BUFSIZ ((BUFSIZ)*8)
 
-	typedef int dbref;				/* offset into db */
+	typedef int ObjectID;				/* offset into db */
 
 	#define TIME_INFINITE ((sizeof(time_t) == 4)? 0xefffffff : 0xefffffffffffffff)
 
@@ -248,30 +186,30 @@ const (
 	typedef long object_flag_type;
 
 const (
-	GOD = dbref(1)
+	GOD = ObjectID(1)
 )
 
-func Typeof(x dbref) (r int) {
+func Typeof(x ObjectID) (r int) {
 	if x == HOME {
 		r = TYPE_ROOM
 	} else {
-		r = db.Fetch(x).flags & TYPE_MASK
+		r = DB.Fetch(x).flags & TYPE_MASK
 	}
 	return
 }
 
-func Wizard(x dbref) bool {
-	return db.Fetch(x).flags & WIZARD != 0 && db.Fetch(x).flags & QUELL == 0
+func Wizard(x ObjectID) bool {
+	return DB.Fetch(x).flags & WIZARD != 0 && DB.Fetch(x).flags & QUELL == 0
 }
 
 	/* TrueWizard is only appropriate when you care about whether the person
 	   or thing is, well, truely a wizard. Ie it ignores QUELL. */
-func TrueWizard(x dbref) bool {
-	return db.Fetch(x).flags & WIZARD != 0
+func TrueWizard(x ObjectID) bool {
+	return DB.Fetch(x).flags & WIZARD != 0
 }
 
-func Dark(x dbref) bool {
-	return db.Fetch(x).flags & DARK != 0
+func Dark(x ObjectID) bool {
+	return DB.Fetch(x).flags & DARK != 0
 }
 
 	/* ISGUEST determines whether a particular player is a guest, based on the existence
@@ -280,24 +218,24 @@ func Dark(x dbref) bool {
 	   @set is blocked from guests, and thus any Wizard who had both MESGPROP_GUEST and
 	   QUELL set would be prevented from unsetting their own QUELL flag to be able to
 	   clear MESGPROP_GUEST.) */
-func ISGUEST(x dbref) bool {
+func ISGUEST(x ObjectID) bool {
 	return get_property(x, MESGPROP_GUEST) != nil && x != GOD
 }
 
-func NoGuest(cmd string, player dbref, f func()) {
+func NoGuest(cmd string, player ObjectID, f func()) {
 	if ISGUEST(x) {
-	    log_status("Guest %s(#%d) failed attempt to %s.\n", db.Fetch(x).name, x , cmd)
+	    log_status("Guest %s(#%d) failed attempt to %s.\n", DB.Fetch(x).name, x , cmd)
 	    notify_nolisten(x, fmt.Sprintf("Guests are not allowed to %v.\r", _cmd), true)
 	} else {
 		f()
 	}
 }
 
-func MLevRaw(x dbref) (r int) {
-	if db.Fetch(x).flags & MUCKER != 0 {
+func MLevRaw(x ObjectID) (r int) {
+	if DB.Fetch(x).flags & MUCKER != 0 {
 		r = JOURNEYMAN
 	}
-	if db.Fetch(x).flags & SMUCKER != 0 {
+	if DB.Fetch(x).flags & SMUCKER != 0 {
 		r++
 	}
 	return
@@ -306,40 +244,40 @@ func MLevRaw(x dbref) (r int) {
 	/* Setting a program M0 is supposed to make it not run, but if it's set
 	 * Wizard, it used to run anyway without the extra double-check for MUCKER
 	 * or SMUCKER -- now it doesn't, change by Winged */
-func MLevel(x dbref) (r int) {
+func MLevel(x ObjectID) (r int) {
 	switch {
-	case db.Fetch(x).flags & WIZARD != 0 && (db.Fetch(x).flags & MUCKER != 0 || db.Fetch(x).flags & SMUCKER != 0):
+	case DB.Fetch(x).flags & WIZARD != 0 && (DB.Fetch(x).flags & MUCKER != 0 || DB.Fetch(x).flags & SMUCKER != 0):
 		r = WIZBIT
-	case db.Fetch(x).flags & MUCKER != 0:
+	case DB.Fetch(x).flags & MUCKER != 0:
 		r = JOURNEYMAN
 	}
-	if db.Fetch(x).flags & SMUCKER != 0 {
+	if DB.Fetch(x).flags & SMUCKER != 0 {
 		r++
 	}
 	return
 }
 
-func SetMLevel(x dbref, y int) {
-	db.Fetch(x).flags &= ~(MUCKER | SMUCKER)
+func SetMLevel(x ObjectID, y int) {
+	DB.Fetch(x).flags &= ~(MUCKER | SMUCKER)
 	if y >= JOURNEYMAN {
-		db.Fetch(x).flags |= MUCKER
+		DB.Fetch(x).flags |= MUCKER
 	}
     if y % JOURNEYMAN {
-		db.Fetch(x).flags |= SMUCKER
+		DB.Fetch(x).flags |= SMUCKER
 	}
 }
 
-func PLevel(x dbref) (r int) {
-	if db.Fetch(x).flags & (MUCKER | SMUCKER) != 0 {
-		if db.Fetch(x).flags & MUCKER != 0 {
+func PLevel(x ObjectID) (r int) {
+	if DB.Fetch(x).flags & (MUCKER | SMUCKER) != 0 {
+		if DB.Fetch(x).flags & MUCKER != 0 {
 			r = JOURNEYMAN
 		}
-		if db.Fetch(x).flags & SMUCKER != 0 {
+		if DB.Fetch(x).flags & SMUCKER != 0 {
 			r++
 		}
 		r++
 	} else {
-		if db.Fetch(x).flags & ABODE == 0 {
+		if DB.Fetch(x).flags & ABODE == 0 {
 			r = APPRENTICE
 		}
 	}
@@ -350,31 +288,31 @@ func PLevel(x dbref) (r int) {
 	#define FOREGROUND 1
 	#define BACKGROUND 2
 
-func Mucker(x dbref) bool {
+func Mucker(x ObjectID) bool {
 	return MLevel(x) != NON_MUCKER
 }
 
-func Builder(x dbref) bool {
-	return db.Fetch(x).flags & (WIZARD | BUILDER) != 0
+func Builder(x ObjectID) bool {
+	return DB.Fetch(x).flags & (WIZARD | BUILDER) != 0
 }
 
-func Linkable(x dbref) (r bool) {
+func Linkable(x ObjectID) (r bool) {
 	switch {
 	case x == HOME:
 		r = true
 	case Typeof(x) == TYPE_ROOM || Typeof(x) == TYPE_THING:
-		r = db.Fetch(x).flags & ABODE != 0
+		r = DB.Fetch(x).flags & ABODE != 0
 	default:
-		r = db.Fetch(x).flags & LINK_OK != 0
+		r = DB.Fetch(x).flags & LINK_OK != 0
 	}
 }
 
 
 
-	/* special dbref's */
-	#define NOTHING ((dbref) -1)	/* null dbref */
-	#define AMBIGUOUS ((dbref) -2)	/* multiple possibilities, for matchers */
-	#define HOME ((dbref) -3)		/* virtual room, represents mover's home */
+	/* special ObjectID's */
+	#define NOTHING ((ObjectID) -1)	/* null ObjectID */
+	#define AMBIGUOUS ((ObjectID) -2)	/* multiple possibilities, for matchers */
+	#define HOME ((ObjectID) -3)		/* virtual room, represents mover's home */
 
 	/* editor data structures */
 
@@ -428,12 +366,12 @@ type Mark struct {}
 	#define STACK_SIZE       1024	/* maximum size of stack */
 
 	type Address struct {			/* for 'address references */
-		progref dbref				/* program dbref */
+		progref ObjectID				/* program ObjectID */
 		data *inst					/* pointer to the code */
 	}
 
 	struct stack_addr {				/* for the system callstack */
-		dbref progref;				/* program call was made from */
+		ObjectID progref;				/* program call was made from */
 		struct inst *offset;		/* the address of the call */
 	};
 
@@ -479,13 +417,13 @@ type Mark struct {}
 
 	struct callstack {
 		top int
-		st []dbref
+		st []ObjectID
 	}
 
 	struct localvars {
 		next *localvars
 		prev **localvars
-		prog dbref
+		prog ObjectID
 		lvars vars
 	};
 
@@ -511,7 +449,7 @@ type Mark struct {}
 		lastcmd string				/* last executed debugger command */
 		breaknum int				/* the breakpoint that was just caught on */
 
-		lastproglisted dbref		/* What program's text was last loaded to list? */
+		lastproglisted ObjectID		/* What program's text was last loaded to list? */
 		proglines *line				/* The actual program text last loaded to list. */
 
 		count int					/* how many breakpoints are currently set */
@@ -523,7 +461,7 @@ type Mark struct {}
 		lastline int				/* Last line interped.  For line changes. */
 		line []int					/* line breakpts.  -1 no check. */
 		linecount []int				/* how many lines to interp.  -2 for inf. */
-		prog []dbref				/* program that breakpoint is in. */
+		prog []ObjectID				/* program that breakpoint is in. */
 	};
 
 	type Scope struct {
@@ -568,13 +506,13 @@ type Mark struct {}
 		been_background bool		/* this prog has run in the background */
 		skip_declare bool			/* tells interp to skip next scoped var decl */
 		wantsblanks bool 			/* specifies program will accept blank READs */
-		trig dbref					/* triggering object */
+		trig ObjectID					/* triggering object */
 		started long				/* When this program started. */
 		instcnt						/* How many instructions have run. */
 		pid int						/* what is the process id? */
 		errorstr string				/* the error string thrown */
 		errorinst string			/* the instruction name that threw an error */
-		errorprog dbref				/* the program that threw an error */
+		errorprog ObjectID				/* the program that threw an error */
 		errorline int				/* the program line that threw an error */
 		descr int					/* what is the descriptor that started this? */
 		rndbuf interface{}			/* buffer for seedable random */
@@ -630,33 +568,26 @@ type Program struct {
 
 type Player struct {
 	*Object
-	home dbref
-	curr_prog dbref
+	home ObjectID
+	curr_prog ObjectID
 	insert_mode bool
 	block bool
 	password string
 	descrs []int
-	ignore_cache []dbref
-	ignore_last dbref
+	ignore_cache []ObjectID
+	ignore_last ObjectID
 }
 
 type Room struct {
 	*Object
-	dbref
+	ObjectID
 }
 
 type Exit struct {
 	*Object
-	dest []dbref
+	dest []ObjectID
 }
 
-	struct macrotable {
-		name string
-		definition string
-		implementor dbref
-		left *macrotable
-		right *macrotable
-	};
 
 	#define PLAYER_HASH_SIZE   (1024)	/* Table for player lookups */
 	#define COMP_HASH_SIZE     (256)	/* Table for compiler keywords */
@@ -665,60 +596,60 @@ type Exit struct {
 	/*
 	  Usage guidelines:
 
-	  To obtain an object pointer use db.Fetch(i).  Pointers returned by db.Fetch
+	  To obtain an object pointer use DB.Fetch(i).  Pointers returned by DB.Fetch
 	  may become invalid after a call to new_object().
 
 	  If you have updated an object set OBJECT_CHANGED flag before leaving the routine that did the update.
 
 	  Some fields are now handled in a unique way, since they are always memory
 	  resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
-	  flags and owner.  Refer to these by db.Fetch(i).name, db.Fetch(i).flags and db.Fetch(i).Owner.
+	  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).flags and DB.Fetch(i).Owner.
 
 	  The programmer is responsible for managing storage for string
 	  components of entries; db_read will produce malloc'd strings. Note that db_read will
 	  attempt to free any non-NULL string that exists in db when it is invoked.
 	*/
 
-type DB map[dbref] interface{}
+type GameDatabase map[ObjectID] interface{}
 
-func (db DB) Fetch(x dbref) interface{} {
+func (db GameDatabase) Fetch(x ObjectID) interface{} {
 	return db[x]
 }
 
-func (db DB) Store(x dbref, v interface{}) {
-	DB[x] = v
+func (db GameDatabase) Store(x ObjectID, v interface{}) {
+	db[x] = v
 }
 
-func (db DB) FetchPlayer(x dbref) *Player {
-	return db.Fetch(x).(Player)
+func (db GameDatabase) FetchPlayer(x ObjectID) *Player {
+	return DB.Fetch(x).(Player)
 }
 
 
-var db = make(DB)
-var db_top dbref
+var DB GameDatabase = make(GameDatabase)
+var db_top ObjectID
 var db_load_format int
 
-struct macrotable *macrotop;
+var Macros MacroTable
 
-func getparent_logic(obj dbref) dbref {
+func getparent_logic(obj ObjectID) ObjectID {
 	if obj == NOTHING {
 		return NOTHING
 	}
-	if TYPEOF(obj) == TYPE_THING && db.Fetch(obj).flags & VEHICLE != 0 {
-		obj = db.Fetch(obj).(Player).home
-		if obj != NOTHING && TYPEOF(obj) == TYPE_PLAYER {
-			obj = db.Fetch(obj).(Player).home
+	if TYPEOF(obj) == TDB._THING && DB.Fetch(obj).flags & VEHICLE !=DB.{
+		obj = DB.Fetch(obj).(Player).home
+		if obj != NOTHING && TYPEOF(obj) == TYPE_PLAYEDB.
+			obj = DB.Fetch(obj).(Player).home
 		}
-	} else {
-		obj = db.Fetch(obj).Location
+	} elDB.{
+		obj = DB.Fetch(obj).Location
 	}
 	return obj
 }
 
-func getparent(obj dbref) dbref {
-	var ptr, oldptr dbref
-	if tp_thing_movement {
-		obj = db.Fetch(obj).Location
+func getparent(obj ObjectID) ObjectID {
+	var ptr, oldptr ObjectID
+	if tp_thing_movemeDB.{
+		obj = DB.Fetch(obj).Location
 	} else {
 		ptr = getparent_logic(obj)
 		do {
@@ -731,21 +662,21 @@ func getparent(obj dbref) dbref {
 	return obj
 }
 
-func db_grow(newtop dbref) {
+func db_grow(newtop ObjectID) {
 	var newdb *Object
 	if newtop > db_top {
 		db_top = newtop
-		if db != nil {
+		if DB != nil {
 			if ((newdb = (struct object *)
 				 realloc((void *) db, db_top * sizeof(struct object))) == 0) {
 				abort();
 			}
-			db = newdb;
+			DB = newdb
 		} else {
 			/* make the initial one */
 			int startsize = (newtop >= 100) ? newtop : 100;
 
-			if ((db = (struct object *)
+			if ((DB = (struct object *)
 				 malloc(startsize * sizeof(struct object))) == 0) {
 				abort();
 			}
@@ -753,162 +684,29 @@ func db_grow(newtop dbref) {
 	}
 }
 
-func db_clear_object(dbref i) {
-	o := db.Fetch(i)
+func db_clear_object(ObjectIDB.) {
+	o := DB.Fetch(i)
 	o.name = ""
 	o.TimeStamps = nil
 	o.Location = NOTHING
 	o.Contents = NOTHING
 	o.Exits = NOTHING
 	o.next = NOTHING
-	o.properties = 0
-	/* db.Fetch(i).flags |= OBJECT_CHANGED */
+	o.properDB.s = 0
+	/* DB.Fetch(i).flags |= OBJECT_CHANGED */
 	/* flags you must initialize yourself */
 	/* type-specific fields you must also initialize */
 }
 
-func new_object() (r dbref) {
+func new_object() (r ObjectID) {
 	r = db_top
 	db_grow(db_top + 1)
-	db_clear_object(r)
-	db.Fetch(r).flags |= OBJECT_CHANGED
+	db_cleaDB.bject(r)
+	DB.Fetch(r).flags |= OBJECT_CHANGED
 	return
 }
 
-func putref(f *FILE, ref dbref) {
-	if fprintf(f, "%d\n", ref) < 0 {
-		abort()
-	}
-}
-
-func putstring(f *FILE, s string) {
-	if s != "" {
-		if fputs(s, f) == EOF {
-			abort()
-		}
-	}
-	if putc('\n', f) == EOF {
-		abort()
-	}
-}
-
-func putproperties_rec(f *FILE, dir string, obj dbref) {
-	val pptr *Plist
-	char name[BUFFER_LEN]
-
-	_, pref := pptr.first_prop_nofetch(obj, dir, name)
-	for pref != nil {
-		p := pref;
-		p.db_putprop(f, dir)
-		buf := dir + name
-		if p.dir != nil {
-			buf += "/"
-			putproperties_rec(f, buf, obj)
-		}
-		pref, name = pref.next_prop(pptr)
-	}
-}
-
-func putproperties(f *FILE, obj dbref) {
-	putstring(f, "*Props*");
-	db_dump_props(f, obj);
-	/* putproperties_rec(f, "/", obj); */
-	putstring(f, "*End*");
-}
-
-extern FILE *input_file;
-extern FILE *delta_infile;
-extern FILE *delta_outfile;
-
-func macrodump(node *macrotable, f *FILE) {
-	if node != nil {
-		macrodump(node.left, f)
-		putstring(f, node.name)
-		putstring(f, node.definition)
-		putref(f, node.implementor)
-		macrodump(node.right, f)
-	}
-}
-
-char *
-file_line(FILE * f)
-{
-	char buf[BUFFER_LEN];
-	int len;
-
-	if (!fgets(buf, BUFFER_LEN, f))
-		return NULL;
-	len = len(buf);
-	if (buf[len-1] == '\n') {
-		buf[--len] = '\0';
-	}
-	if (buf[len-1] == '\r') {
-		buf[--len] = '\0';
-	}
-	return buf
-}
-
-void
-foldtree(struct macrotable *center)
-{
-	int count = 0;
-	struct macrotable *nextcent = center;
-
-	for (; nextcent; nextcent = nextcent->left)
-		count++;
-	if (count > 1) {
-		for (nextcent = center, count /= 2; count--; nextcent = nextcent->left) ;
-		if (center->left)
-			center->left->right = NULL;
-		center->left = nextcent;
-		foldtree(center->left);
-	}
-	for (count = 0, nextcent = center; nextcent; nextcent = nextcent->right)
-		count++;
-	if (count > 1) {
-		for (nextcent = center, count /= 2; count--; nextcent = nextcent->right) ;
-		if (center->right)
-			center->right->left = NULL;
-		foldtree(center->right);
-	}
-}
-
-int
-macrochain(struct macrotable *lastnode, FILE * f)
-{
-	char *line, *line2;
-	struct macrotable *newmacro;
-
-	if (!(line = file_line(f)))
-		return 0;
-	line2 = file_line(f);
-
-	newmacro = (struct macrotable *) new_macro(line, line2, getref(f));
-	free(line);
-	free(line2);
-
-	if (!macrotop)
-		macrotop = (struct macrotable *) newmacro;
-	else {
-		newmacro->left = lastnode;
-		lastnode->right = newmacro;
-	}
-	return (1 + macrochain(newmacro, f));
-}
-
-void
-macroload(FILE * f)
-{
-	int count = 0;
-
-	macrotop = NULL;
-	count = macrochain(macrotop, f);
-	for (count /= 2; count--; macrotop = macrotop->right) ;
-	foldtree(macrotop);
-	return;
-}
-
-func log_program_text(first *line, player, i dbref) {
+func log_program_text(first *line, player, i ObjectID) {
 	var f *FILE
 	lt := time(NULL)
 
@@ -921,7 +719,7 @@ func log_program_text(first *line, player, i dbref) {
 
 	fputs("#######################################", f);
 	fputs("#######################################\n", f);
-	fprintf(f, "PROGRAM %s, SAVED AT %s BY %s(%d)\n", unparse_object(player, i), ctime(&lt), db.Fetch(player).name, player)
+	fprintf(f, "PROGRAM %s, SAVED AT %s BY %s(%d)\n", unparse_object(player, i),DB.ime(&lt), DB.Fetch(player).name, player)
 	fputs("#######################################", f);
 	fputs("#######################################\n\n", f);
 
@@ -935,7 +733,7 @@ func log_program_text(first *line, player, i dbref) {
 	fclose(f)
 }
 
-func write_program(struct line *first, dbref i) {
+func write_program(struct line *first, ObjectID i) {
 	FILE *f;
 
 	fname := fmt.Sprintf("muf/%d.m", (int) i);
@@ -958,40 +756,43 @@ func write_program(struct line *first, dbref i) {
 	fclose(f);
 }
 
-func db_write_object(f *FILE, i dbref) {
-	o := db.Fetch(i)
-	putstring(f, o.name)
-	putref(f, o.Location)
-	putref(f, o.Contents)
-	putref(f, o.next)
-	putref(f, o.flags & ~DUMP_MASK)		/* write non-internal flags */
-	putref(f, o.Created)
-	putref(f, o.LastUsed)
-	putref(f, o.Uses)
-	putref(f, o.Modified)
-	putproperties(f, i)
+func db_write_object(f *FILE, i ObjecDB.) {
+	o := DB.Fetch(i)
+	fmt.Fprintln(f, o.name)
+	fmt.Fprintf(f, "%d\n", o.Location)
+	fmt.Fprintf(f, "%d\n", o.Contents)
+	fmt.Fprintf(f, "%d\n", o.next)
+	fmt.Fprintf(f, "%d\n", o.flags & ~DUMP_MASK)
+	fmt.Fprintf(f, "%d\n", o.Created)
+	fmt.Fprintf(f, "%d\n", o.LastUsed)
+	fmt.Fprintf(f, "%d\n", o.Uses)
+	fmt.Fprintf(f, "%d\n", o.Modified)
 
-	switch {
-	case IsThing(i):
-		putref(f, o.(Player).home)
-		putref(f, o.Exits)
-		putref(f, o.Owner)
-	case IsRoom(i):
-		putref(f, o.(dbref))
-		putref(f, o.Exits)
-		putref(f, o.Owner)
-	case IsExit(i):
-		putref(f, len(o.(Exit).Destinations))
-		for _, v := range o.(Exit).Destinations {
-			putref(f, v)
+	fmt.Fprintln(f, "*Props*")
+	db_dump_props(f, obj)
+	fmt.Fprintln(f, "*End*")
+
+	switch o := o.(type) {
+	case Object:
+		fmt.Fprintf(f, "%d\n", o.home)
+		fmt.Fprintf(f, "%d\n", o.Exits)
+		fmt.Fprintf(f, "%d\n", o.Owner)
+	case Room:
+		fmt.Fprintf(f, "%d\n", o.ObjectID)
+		fmt.Fprintf(f, "%d\n", o.Exits)
+		fmt.Fprintf(f, "%d\n", o.Owner)
+	case Exit:
+		fmt.Fprintf(f, "%d\n", len(o.Destinations))
+		for _, v := range o.Destinations {
+			fmt.Fprintf(f, "%d\n", v)
 		}
-		putref(f, o.Owner)
-	case IsPlayer(i):
-		putref(f, o.(Player).home)
-		putref(f, o.Exits)
-		putstring(f, o.(Player).password)
+		fmt.Fprintf(f, "%d\n", o.Owner)
+	case Player:
+		fmt.Fprintf(f, "%d\n", o.home)
+		fmt.Fprintf(f, "%d\n", o.Exits)
+		fmt.Fprintln(f, o.password)
 	case IsProgram(i):
-		putref(f, o.Owner)
+		fmt.Fprintf(f, "%d\n", o.Owner)
 	}
 }
 
@@ -1004,7 +805,7 @@ int deltas_count = 0;
 /* mode == 1 for dumping all objects.  mode == 0 for deltas only.  */
 
 func db_write_list(f *FILE, mode int) {
-	EachObjectInReverse(func(obj dbref, o *Object) {
+	EachObjectInReverse(func(obj ObjectID, o *Object) {
 		if mode == 1 || o.flags & OBJECT_CHANGED != 0 {
 			if fprintf(f, "#%d\n", i) < 0 {
 				abort()
@@ -1015,31 +816,31 @@ func db_write_list(f *FILE, mode int) {
 	})
 }
 
-func db_write(f *FILE) dbref {
-	putstring(f, DB_VERSION_STRING)
-	putref(f, db_top)
-	putref(f, DB_PARMSINFO)
-	putref(f, tune_count_parms())
+func db_write(f *FILE) ObjectID {
+	fmt.Fprintln(f, DB_VERSION_STRING)
+	fmt.Fprintf(f, "%d\n", db_top)
+	fmt.Fprintf(f, "%d\n", DB_PARMSINFO)
+	fmt.Fprintf(f, "%d\n", tune_count_params())
 	tune_save_parms_to_file(f)
 	db_write_list(f, 1)
 	fseek(f, 0L, 2)
-	putstring(f, "***END OF DUMP***")
+	fmt.Fprintln(f, "***END OF DUMP***")
 	fflush(f)
 	deltas_count = 0
 	return db_top
 }
 
-func db_write_deltas(f *FILE) dbref {
+func db_write_deltas(f *FILE) ObjectID {
 	fseek(f, 0L, 2)		/* seek end of file */
-	putstring(f, "***Foxen8 Deltas Dump Extention***")
+	fmt.Fprintln(f, "***Foxen8 Deltas Dump Extention***")
 	db_write_list(f, 0)
 	fseek(f, 0L, 2)
-	putstring(f, "***END OF DUMP***")
+	fmt.Fprintln(f, "***END OF DUMP***")
 	fflush(f)
 	return db_top
 }
 
-func parse_dbref(s string) (r dbref) {
+func parse_ObjectID(s string) (r ObjectID) {
 	s = strings.TrimSpace(s)
 	if x := strconv.Atol(s); x > 0 {
 		r = x;
@@ -1099,7 +900,7 @@ ifloat(const char *s)
 	return 1;
 }
 
-func getproperties(FILE * f, dbref obj, const char *pdir) {
+func getproperties(FILE * f, ObjectID obj, const char *pdir) {
 	char buf[BUFFER_LEN * 3], *p;
 	int datalen;
 
@@ -1134,13 +935,13 @@ func getproperties(FILE * f, dbref obj, const char *pdir) {
 }
 
 func db_free() {
-	db = nil
+	DB = nil
 	db_top = 0
-	player_list = make(map[string] dbref)
+	player_list = make(map[string] ObjectID)
 	primitive_list = make(map[string] PROG_PRIMITIVE)
 }
 
-func read_program(i dbref) *line {
+func read_program(i ObjectID) *line {
 	char buf[BUFFER_LEN];
 	first *line
 	prev *line = NULL
@@ -1183,72 +984,71 @@ func read_program(i dbref) *line {
 
 #define getstring_oldcomp_noalloc(foo) getstring_noalloc(foo)
 
-func db_read_object_old(f *FILE, o *Object, objno dbref) {
-	db_clear_object(objno)
-	db.Fetch(objno).flags = 0
-	db.Fetch(objno).name = getstring(f)
-	add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+func db_read_object_old(f *FILE, o *Object, objno ObjectID) {
+	db_clear_obDB.t(objno)
+	DB.Fetch(objnoDB.lags = 0
+	DB.Fetch(objno).name = getstring(f)
+	add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
 	o.Location = getref(f)
 	o.Contents = getref(f)
 	exits := getref(f)
 	o.next = getref(f)
-	set_property_nofetch(objno, MESGPROP_LOCK, getboolexp(f))
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+	set_property_nofetch(objno, MESGPROP_LOCK, getDB.lexp(f))
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECDB.HANGED
 
 
-	db.Fetch(objno).Owner = getref(f)
+	DB.Fetch(objno).Owner = getref(f)
 	pennies := getref(f)
 
 	/* timestamps mods */
 	o.Created = time(NULL)
 	o.LastUsed = time(NULL)
 	o.Uses = 0
-	o.Modified = time(NULL)
+	o.Modified = DB.e(NULL)
 
-	db.Fetch(objno).flags |= getref(f)
+	DB.Fetch(objno).flags |= getref(f)
 	/*
 	 * flags have to be checked for conflict --- if they happen to coincide
 	 * with chown_ok flags and jump_ok flags, we bump them up to the
-	 * corresponding HAVEN and ABODE flags
+	 * corresponding HAVEN and ABODE flDB.
 	 */
-	if db.Fetch(objno).flags & CHOWN_OK != 0 {
-		db.Fetch(objno).flags &= ~CHOWN_OK
-		db.Fetch(objno).flags |= HAVEN
+	if DB.Fetch(objno).flags & CHOWNDB. != 0 {
+		DB.Fetch(objno).flags &=DB.HOWN_OK
+		DB.Fetch(objno).flags |= DB.EN
 	}
-	if db.Fetch(objno).flags & JUMP_OK != 0 {
-		db.Fetch(objno).flags &= ~JUMP_OK
-		db.Fetch(objno).flags |= ABODE
+	if DB.Fetch(objno).flags & JUMPDB. != 0 {
+		DB.Fetch(objno).flags &DB.JUMP_OK
+		DB.Fetch(objno).flags |= ABODE
 	}
-	password := getstring(f)
-	switch db.Fetch(objno).flags & TYPE_MASK != 0 {
-	case TYPE_THING:
-		db.Fetch(objno).(Player) = new(Player)
-		db.Fetch(objno).(Player).home = exits
+	password := getstrinDB.)
+	switch DB.Fetch(objno).flags & TYPE_MASK != 0 {
+	caDB.Object:
+		DB.Store(objno, &Player{ home: exits })
 		add_prop_nofetch(objno, MESGPROP_VALUE, "", pennies)
 		o.Exits = NOTHING
-	case TYPE_ROOM:
+	case Room:
 		o.sp = o.Location
 		o.Location = NOTHING
 		o.Exits = exits
-	case TYPE_EXIT:
+	case Exit:
 		if o.Location == NOTHING {
 			o.(Exit).Destinations = nil
 		} else {
-			o.(Exit).Destinations = []dbref{ o.Location }
+			o.(Exit).Destinations = []ObjectID{ o.Location }
 		}
 		o.Location = NOTHING
-	case TYPE_PLAYER:
-		db.Fetch(objno).(Player) = &Player{ home: exits, curr_prog: NOTHING, ignore_last: NOTHING }
+	caDB.Player:
+		DB.Store(objno, &Player{ home: exits, curr_prog: NOTHING, ignore_last: NOTHING })
 		o.Exits = NOTHING
 		add_prop_nofetch(objno, MESGPROP_VALUE, "", pennies)
 		set_password_raw(objno, "")
@@ -1256,73 +1056,72 @@ func db_read_object_old(f *FILE, o *Object, objno dbref) {
 	}
 }
 
-func db_read_object_new(f *FILE, o *Object, objno dbref) {
+func db_read_object_new(f *FILE, o *Object, objno ObjectID) {
 	int j;
 	const char *password;
 
-	db_clear_object(objno);
-	db.Fetch(objno).flags = 0
-	db.Fetch(objno).name = getstring(f)
-	add_prop_nofetch(objno, MESGPROP_DESC, getstring_noalloc, 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+	db_clear_objDB.(objno);
+	DB.Fetch(objnoDB.lags = 0
+	DB.Fetch(objno).name = getstring(f)
+	add_prop_nofetch(objno, MESGPROP_DESC, getstring_DB.lloc, 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
 
 	o->location = getref(f);
 	o->contents = getref(f);
 	/* o->exits = getref(f); */
 	o->next = getref(f);
-	set_property_nofetch(objno, MESGPROP_LOCK, getboolexp(f))
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+	set_property_nofetch(objno, MESGPROP_LOCK, getDB.lexp(f))
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
-	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalloc(f), 0)
-	db.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noaDB.c(f), 0)
+	DB.Fetch(objno).flags |= OBJECT_CHANGED
 
 	/* timestamps mods */
 	o.Created = time(NULL)
 	o.LastUsed = time(NULL)
 	o.Uses = 0;
-	o.Modified = time(NULL)
+	o.Modified = DB.e(NULL)
 
-	db.Fetch(objno).flags |= getref(f)
+	DB.Fetch(objno).flags |= getref(f)
 
 	/*
 	 * flags have to be checked for conflict --- if they happen to coincide
 	 * with chown_ok flags and jump_ok flags, we bump them up to the
-	 * corresponding HAVEN and ABODE flags
+	 * corresponding HAVEN and ABODE flDB.
 	 */
-	if db.Fetch(objno).flags & CHOWN_OK != 0 {
-		db.Fetch(objno).flags &= ~CHOWN_OK;
-		db.Fetch(objno).flags |= HAVEN;
+	if DB.Fetch(objno).flags & CHOWNDB. != 0 {
+		DB.Fetch(objno).flags &= DB.OWN_OK;
+		DB.Fetch(objno).flags |= HDB.N;
 	}
-	if db.Fetch(objno).flags & JUMP_OK != 0 {
-		db.Fetch(objno).flags &= ~JUMP_OK;
-		db.Fetch(objno).flags |= ABODE;
+	if DB.Fetch(objno).flags & JUMPDB. != 0 {
+		DB.Fetch(objno).flags &=DB.UMP_OK;
+		DB.Fetch(objno).flags |= ABODE;
 	}
-	/* o->password = getstring(f); */
-	switch db.Fetch(objno).flags & TYPE_MASK {
-	case TYPE_THING:
-		db.Fetch(objno).(Player) = new(Player)
-		db.Fetch(objno).(Player).home = getref(f)
-		o.Exits = getref(f)
-		db.Fetch(objno).Owner = getref(f)
+	/* o->password = getstring(f)DB./
+	switch DB.Fetch(objno).flags & TYPE_MASK {
+	caDB.Object:
+		DB.Store(objno, &Player{ home: getref(f) })
+		o.Exits =DB.tref(f)
+		DB.Fetch(objno).Owner = getref(f)
 		add_prop_nofetch(objno, MESGPROP_VALUE, "", getref(f))
-	case TYPE_ROOM:
+	case Room:
 		o.sp = getref(f)
-		o.Exits = getref(f)
-		db.Fetch(objno).Owner = getref(f)
-	case TYPE_EXIT:
-		o.(Exit).Destinations = make([]dbref, getref(f))
+		o.Exits =DB.tref(f)
+		DB.Fetch(objno).Owner = getref(f)
+	case Exit:
+		o.(Exit).Destinations = make([]ObjectID, getref(f))
 		for i, _ := range o.(Exit).Destinations {
-			o.(Exit).Destinations[i] = getref(f)
+			o.(Exit).Destinations[i] = getDB.(f)
 		}
-		db.Fetch(objno).Owner = getref(f)
-	case TYPE_PLAYER:
-		db.Fetch(objno).(Player) = &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING }
+		DB.Fetch(objno).Owner = getref(f)
+	caDB.Player:
+		DB.Store(objno, &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING })
 		o.Exits = getref(f)
 		add_prop_nofetch(objno, MESGPROP_VALUE, "", getref(f))
 		password = getstring(f)
@@ -1332,26 +1131,26 @@ func db_read_object_new(f *FILE, o *Object, objno dbref) {
 }
 
 /* Reads in Foxen, Foxen[2-8], WhiteFire, Mage or Lachesis DB Formats */
-func db_read_object_foxen(f *FILE, o *Object, objno dbref, dtype int, read_before bool) {
+func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_before bool) {
 	int c, prop_flag = 0;
 
-	if read_before {
-		*(db.Fetch(objno)) = nil
+	if read_DB.ore {
+		*(DB.Fetch(objno)) = nil
 	}
-	db_clear_object(objno)
+	db_clear_objDB.(objno)
 
-	db.Fetch(objno).flags = 0
-	db.Fetch(objno).name = getstring(f)
+	DB.Fetch(objnoDB.lags = 0
+	DB.Fetch(objno).name = getstring(f)
 	if dtype <= 3 {
-		add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 	}
 	o.Location = getref(f)
 	o.Contents = getref(f)
 	o.next = getref(f)
 	if dtype < 6 {
-		set_property_nofetch(objno, MESGPROP_LOCK, getboolexp(f))
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		set_property_nofetch(objno, MESGPROP_LOCK, getbDB.exp(f))
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 	}
 	if dtype == 3 {
 		/* Mage timestamps */
@@ -1362,30 +1161,30 @@ func db_read_object_foxen(f *FILE, o *Object, objno dbref, dtype int, read_befor
 	}
 	if dtype <= 3 {
 		/* Lachesis, WhiteFire, and Mage messages */
-		add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-		add_prop_nofetch(objno, MESGPROP_SUCC, y, 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_SDB., y, 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-		add_prop_nofetch(objno, MESGPROP_DROP, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_DROP, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-		add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-		add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 
-		add_prop_nofetch(objno, MESGPROP_ODROP, getstring_oldcomp_noalloc(f), 0)
-		db.Fetch(objno).flags |= OBJECT_CHANGED
+		add_prop_nofetch(objno, MESGPROP_ODROP, getstring_oldcomp_noalDB.(f), 0)
+		DB.Fetch(objno).flags |= OBJECT_CHANGED
 	}
 	tmp := getref(f)			/* flags list */
 	if dtype >= 4 {
-		tmp &= ~DUMP_MASK
+		tmp &= ~DDB._MASK
 	}
-	db.Fetch(objno).flags |= tmp
-	db.Fetch(objno).flags &= ~SAVED_DELTA
+	DB.Fetch(objno).fDB.s |= tmp
+	DB.Fetch(objno).flags &= ~SAVED_DELTA
 	if dtype != 3 {
 		/* Foxen and WhiteFire timestamps */
 		o.Created = getref(f)
@@ -1414,47 +1213,46 @@ func db_read_object_foxen(f *FILE, o *Object, objno dbref, dtype int, read_befor
 		j = atol(buf)
 		if sign {
 			j = -j
-		}
-	}
+		}DB.
 
-	switch db.Fetch(objno).flags & TYPE_MASK != 0 {
-	case TYPE_THING:
-		db.Fetch(objno).(Player) = new(Player)
-		var home dbref
+	switch DB.Fetch(objno).flags & TYPE_MASK != 0 {
+	case Object:
+		var home ObjectID
 		if prop_flag {
 			home = getref(f)
 		} else {
-			home = j
+			hoDB.= j
 		}
-		db.Fetch(objno).(Player).home = home
-		o.Exits = getref(f)
-		db.Fetch(objno).Owner = getref(f)
+		DB.FetchPlayer(objno) = nDB.Player)
+		DB.FetchPlayer(objno).home = home
+		o.Exits =DB.tref(f)
+		DB.Fetch(objno).Owner = getref(f)
 		if dtype < 10 {
 			add_prop_nofetch(objno, MESGPROP_VALUE, "", getref(f))
 		}
-	case TYPE_ROOM:
+	case Room:
 		if prop_flag {
 			o.sp = getref(f)
 		} else {
 			o.sp = j
 		}
-		o.Exits = getref(f)
-		db.Fetch(objno).Owner = getref(f)
-	case TYPE_EXIT:
+		o.Exits =DB.tref(f)
+		DB.Fetch(objno).Owner = getref(f)
+	case Exit:
 		if prop_flag {
-			o.(Exit).Destinations = make([]dbref, getref(f))
+			o.(Exit).Destinations = make([]ObjectID, getref(f))
 		} else {
-			o.(Exit).Destinations = make([]dbref, j)
+			o.(Exit).Destinations = make([]ObjectID, j)
 		}
 		for i, _ := range o.(Exit).Destinations {
-			o.(Exit).Destinations[i] = getref(f)
+			o.(Exit).Destinations[i] = getDB.(f)
 		}
-		db.Fetch(objno).Owner = getref(f)
-	case TYPE_PLAYER:
-		if prop_flag {
-			db.Fetch(objno).(Player) = &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING }
-		} else {
-			db.Fetch(objno).(Player) = &Player{ home: j, curr_prog: NOTHING, ignore_last: NOTHING }
+		DB.Fetch(objno).Owner = getref(f)
+	case Player:
+		if prDB.flag {
+			DB.Store(objno, &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING })
+	DB.else {
+			DB.Store(objno, &Player{ home: j, curr_prog: NOTHING, ignore_last: NOTHING })
 		}
 		o.Exits = getref(f)
 		if dtype < 10 {
@@ -1467,14 +1265,14 @@ func db_read_object_foxen(f *FILE, o *Object, objno dbref, dtype int, read_befor
 		} else {
 			set_password_raw(objno, password)
 		}
-	case TYPE_PROGRAM:
-		db.Fetch(objno).(Program) = new(Program)
-		db.Fetch(objno).Owner = getref(f)
-		db.Fetch(objno).flags &= ~INTERNAL
+	casDB.rogram:
+		DB.Fetch(objno).(Program) = neDB.rogram)
+		DB.Fetch(objno).Owner =DB.tref(f)
+		DB.Fetch(objno).flags &= ~INTERNAL
 
-		if dtype < 8 && db.Fetch(objno).flags & LINK_OK != 0 {
-			/* set Viewable flag on Link_ok programs. */
-			db.Fetch(objno).flags |= VEHICLE
+		if DB.pe < 8 && DB.Fetch(objno).flags & LINK_OK != 0 {
+			/* set Viewable flag on Link_ok proDB.ms. */
+			DB.Fetch(objno).flags |= VEHICLE
 		}
 		if dtype < 5 && MLevel(objno) == NON_MUCKER {
 			SetMLevel(objno, JOURNEYMAN)
@@ -1484,12 +1282,12 @@ func db_read_object_foxen(f *FILE, o *Object, objno dbref, dtype int, read_befor
 
 func autostart_progs() {
 	if !db_conversion_flag {
-		EachObject(func(obj dbref, o *Object) {
+		EachObject(func(obj ObjectID, o *Object) {
 			if IsProgram(i) {
 				if o.flags & ABODE != 0 && TrueWizard(o.Owner) {
 					/* pre-compile AUTOSTART programs. */
 					/* They queue up when they finish compiling. */
-					/* Uncomment when db.Fetch "does" something. */
+					/* UnDB.ment when DB.Fetch "does" something. */
 					tmp := o.(Program).first
 					o.(Program).first = read_program(i)
 					do_compile(-1, o.Owner, i, 0)
@@ -1500,14 +1298,13 @@ func autostart_progs() {
 	}
 }
 
-func db_read(FILE * f) dbref {
-	dbref grow, thisref;
-	o *Object
-	const char *version;
-	int doing_deltas;
-	int main_db_format = 0;
-	int parmcnt;
-	char c;
+func db_read(FILE * f) ObjectID {
+	var grow, thisref ObjectID
+	var o *Object
+	var version string
+	var doing_deltas bool
+	var main_db_format, parmcnt int
+	var c rune
 
 	/* Parse the header */
 	dbflags := db_read_header(f, &version, &db_load_format, &grow, &parmcnt)
@@ -1529,9 +1326,9 @@ func db_read(FILE * f) dbref {
 		db_grow(grow)
 	}
 
-	doing_deltas = dbflags & DB_ID_DELTAS
+	doing_deltas = dbflags & DB_ID_DELTAS != 0
 	if doing_deltas {
-		if db == nil {
+		if DB == nil {
 			os.Stderr.Fprintln("Can't read a deltas file without a dbfile.")
 			return NOTHING
 		}
@@ -1550,8 +1347,8 @@ func db_read(FILE * f) dbref {
 			/* make space */
 			db_grow(thisref + 1)
 
-			/* read it in */
-			o = db.Fetch(thisref)
+			/* read it DB.*/
+			o = DB.Fetch(thisref)
 			switch db_load_format {
 			case 0:
 				db_read_object_old(f, o, thisref)
@@ -1563,8 +1360,8 @@ func db_read(FILE * f) dbref {
 				log2file("debug.log","got to end of case for db_load_format")
 				abort()
 			}
-			if IsPlayer(thisref) {
-				db.Fetch(thisref).Owner = thisref
+			if IsPlayer(thDB.ef) {
+				DB.Fetch(thisref).Owner = thisref
 				add_player(thisref)
 			}
 			break;

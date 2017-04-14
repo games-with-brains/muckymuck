@@ -116,7 +116,7 @@ var (
 	absolute = []string { "", "its", "hers", "his", "hirs" }
 )
 
-func pronoun_substitute(descr int, player dbref, str string) string {
+func pronoun_substitute(descr int, player ObjectID, str string) string {
 	char c;
 	char d;
 	char prn[3];
@@ -124,7 +124,7 @@ func pronoun_substitute(descr int, player dbref, str string) string {
 	char *result;
 	const char *self_sub;		/* self substitution code */
 	const char *temp_sub;
-	dbref mywhere = player;
+	ObjectID mywhere = player;
 	int sex;
 
 	prn[0] = '%';
@@ -211,7 +211,7 @@ func pronoun_substitute(descr int, player dbref, str string) string {
 					temp_sub = ""
 					if self_sub[0] == '%' && strings.ToUpper(self_sub[1]) == 'N' {
 						temp_sub = self_sub
-						self_sub = db.Fetch(player).name
+						self_sub = DB.Fetch(player).name
 					}
 					result += self_sub
 					if isupper(prn[1]) && islower(*result) {
@@ -229,9 +229,9 @@ func pronoun_substitute(descr int, player dbref, str string) string {
 				case sex == GENDER_UNASSIGNED:
 					switch c {
 					case 'n', 'N', 'o', 'O', 's', 'S', 'r', 'R':
-						result += db.Fetch(player).name)
+						result += DB.Fetch(player).name)
 					case 'a', 'A', 'p', 'P':
-						result += db.Fetch(player).name) + "'s"
+						result += DB.Fetch(player).name) + "'s"
 					default:
 						result[0] = *str
 						result[1] = 0
@@ -251,7 +251,7 @@ func pronoun_substitute(descr int, player dbref, str string) string {
 					case 'r', 'R':
 						result += reflexive[sex]
 					case 'n', 'N':
-						result += db.Fetch(player).name
+						result += DB.Fetch(player).name
 					default:
 						result = str[0]
 					}

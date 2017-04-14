@@ -2,7 +2,7 @@ package fbmuck
 
 type Lock interface {
 	IsTrue() bool
-	Unparse(dbref, bool) string
+	Unparse(ObjectID, bool) string
 }
 
 func IsTrue(v interface{}) (r bool) {
@@ -27,11 +27,11 @@ func (u Unlocked) IsTrue() bool {
 	return true
 }
 
-func (u Unlocked) Unparse(player dbref, fullname bool) string {
+func (u Unlocked) Unparse(player ObjectID, fullname bool) string {
 	return "*UNLOCKED*"
 }
 
-func (u Unlocked) Eval(descr int, player, thing dbref) (r bool) {
+func (u Unlocked) Eval(descr int, player, thing ObjectID) (r bool) {
 	return true
 }
 
@@ -43,11 +43,11 @@ func (l Locked) IsTrue() bool {
 	return false
 }
 
-func (l Locked) Unparse(player dbref, fullname bool) string {
+func (l Locked) Unparse(player ObjectID, fullname bool) string {
 	return "*LOCKED*"
 }
 
-func (l Locked) Eval(descr int, player, thing dbref) (r bool) {
+func (l Locked) Eval(descr int, player, thing ObjectID) (r bool) {
 	return false
 }
 
@@ -63,7 +63,7 @@ func (r RequireAllKeys) IsTrue() (ok bool) {
 	return
 }
 
-func (r RequireAllKeys) Unparse(player dbref, fullname, nested bool) (r string) {
+func (r RequireAllKeys) Unparse(player ObjectID, fullname, nested bool) (r string) {
 	terms := make([]strings, len(r))
 	for i, v := range r {
 		terms[i] = v.Unparse(player, fullname)
@@ -75,7 +75,7 @@ func (r RequireAllKeys) Unparse(player dbref, fullname, nested bool) (r string) 
 	return
 }
 
-func (r RequireAllKeys) Eval(descr int, player, thing dbref) (r bool) {
+func (r RequireAllKeys) Eval(descr int, player, thing ObjectID) (r bool) {
 	return r.IsTrue()
 }
 
@@ -90,7 +90,7 @@ func (r RequireAnyKey) IsTrue() (ok bool) {
 	return
 }
 
-func (r RequireAnyKey) Unparse(player dbref, fullname bool)  (r string) {
+func (r RequireAnyKey) Unparse(player ObjectID, fullname bool)  (r string) {
 	terms := make([]strings, len(r))
 	for i, v := range r {
 		if _, ok := v.(RequireAllKeys); ok {
@@ -103,7 +103,7 @@ func (r RequireAnyKey) Unparse(player dbref, fullname bool)  (r string) {
 	return
 }
 
-func (r RequireAnyKeys) Eval(descr int, player, thing dbref) (r bool) {
+func (r RequireAnyKeys) Eval(descr int, player, thing ObjectID) (r bool) {
 	return r.IsTrue()
 }
 
@@ -116,7 +116,7 @@ func (i IgnoreKey) IsTrue() bool {
 	return !i.Lock.IsTrue()
 }
 
-func (i IgnoreKey) Unparse(player dbref, fullname bool) (r string) {
+func (i IgnoreKey) Unparse(player ObjectID, fullname bool) (r string) {
 	switch i.Lock.(type) {
 	case RequireAnyKey, RequireAllKeys:
 		r = fmt.Sprintf("!(%v)", i.Lock.Unparse(player, fullname))
@@ -126,20 +126,20 @@ func (i IgnoreKey) Unparse(player dbref, fullname bool) (r string) {
 	return
 }
 
-func (i IgnoreKey) Eval(descr int, player, thing dbref) (r bool) {
+func (i IgnoreKey) Eval(descr int, player, thing ObjectID) (r bool) {
 	return i.IsTrue()
 }
 
 
 type ObjectKey struct {
-	dbref
+	ObjectID
 }
 
 func (o ObjectKey) IsTrue() bool {
 	return o != NOTHING
 }
 
-func (o ObjectKey) Unparse(player dbref, fullname bool) (r string) {
+func (o ObjectKey) Unparse(player ObjectID, fullname bool) (r string) {
 	if fullname {
 		r = unparse_object(player, o)
 	} else {
@@ -148,21 +148,21 @@ func (o ObjectKey) Unparse(player dbref, fullname bool) (r string) {
 	return
 }
 
-func (o ObjectKey) Eval(descr int, player, thing dbref) (r bool) {
-	if o.dbref != NOTHING {
-		if _, ok := o.dbref.(TYPE_PROGRAM):
-			var real_player dbref
+func (o ObjectKey) Eval(descr int, player, thing ObjectID) (r bool) {
+	if o.ObjectID != NOTHING {
+		if _, ok := o.ObjectID.(TYPE_PROGRAM):
+			var real_player ObjectID
 			switch player.(type) {
 			case TYPE_PLAYER, TYPE_THING:
 				real_player = player
 			default:
-				real_player = db.Fetch(player).Owner
+				real_player = DB.Fetch(player).Owner
 			}
-			if tmpfr := interp(descr, real_player, db.Fetch(player).Location, o.dbref, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
-				r = interp_loop(real_player, o.dbref, tmpfr, false) != nil
+			if tmpfr := interp(descr, real_player, DB.Fetch(player).Location, o.ObjectID, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+				r = interp_loop(real_player, o.ObjectID, tmpfr, false) != nil
 			}
 		}
-		r ||= o.dbref == player || o.dbref == db.Fetch(player).Owner || member(o.dbref, db.Fetch(player).Contents) || o.dbref == db.Fetch(player).Location
+		r ||= o.ObjectID == player || o.ObjectID == DB.Fetch(player).Owner || member(o.ObjectID, DB.Fetch(player).Contents) || o.ObjectID == DB.Fetch(player).Location
 	}
 	return
 }
@@ -176,11 +176,11 @@ func (p PropertyKey) IsTrue() bool {
 	return false
 }
 
-func (p PropertyKey) Unparse(player dbref, fullname bool) string {
+func (p PropertyKey) Unparse(player ObjectID, fullname bool) string {
 	return p.key + ":" + p.data.(string)
 }
 
-func (p PropertyKey) Eval(descr int, player, thing dbref) (r bool) {
+func (p PropertyKey) Eval(descr int, player, thing ObjectID) (r bool) {
 	if v, ok := p.data.(string); ok {
 		r = contains_property(descr, player, player, p.key, v, 0)
 	}
@@ -213,7 +213,7 @@ func copy_bool(l Lock) (r Lock) {
 	case IgnoreKey:
 		r = IgnoreKey{ copy_bool(l.Lock) }
 	case ObjectKey:
-		r = ObjectKey{ l.dbref }
+		r = ObjectKey{ l.ObjectID }
 	case PropertyKey:
 		if l.Plist == nil {
 			r = nil
@@ -233,7 +233,7 @@ func copy_bool(l Lock) (r Lock) {
 /* UNLOCKED cannot be typed in by the user; use @unlock instead */
 
 /* F -> (E); F -> !F; F -> object identifier */
-func ParseLock_F(descr int, lockdef string, player dbref, dbloadp int) (r Lock) {
+func ParseLock_F(descr int, lockdef string, player ObjectID, dbloadp int) (r Lock) {
 	switch lockdef = strings.TrimSpace(lockdef); lockdef[0] {
 	case '(':
 		r = ParseLock_E(descr, lockdef[1:], player, dbloadp)
@@ -258,7 +258,7 @@ func ParseLock_F(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 			r = parse_boolprop(buf)
 		} else {
 			if dbloadp {
-				if i := strconv.Atoi(buf[1:]); buf[0] == NUMBER_TOKEN && !valid_reference(i) {
+				if i := strconv.Atoi(buf[1:]); buf[0] == NUMBER_TOKEN && !i.IsValid() {
 					r = ObjectKey{ i }
 				} else {
 					r = UNLOCKED
@@ -276,7 +276,7 @@ func ParseLock_F(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 					MatchResult()
 				}
 
-				switch r.dbref {
+				switch r.ObjectID {
 				case NOTHING:
 					notify(player, fmt.Sprintf("I don't see %s here.", buf))
 					r = UNLOCKED
@@ -291,7 +291,7 @@ func ParseLock_F(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 }
 
 /* T -> F; T -> F & T */
-func ParseLock_T(descr int, lockdef string, player dbref, dbloadp int) (r Lock) {
+func ParseLock_T(descr int, lockdef string, player ObjectID, dbloadp int) (r Lock) {
 	if r = ParseLock_F(descr, lockdef, player, dbloadp); !r.IsTrue() {
 		lockdef = strings.TrimSpace(lockdef)
 		if lockdef[0] == AND_TOKEN {
@@ -303,7 +303,7 @@ func ParseLock_T(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 }
 
 /* E -> T; E -> T | E */
-func ParseLock_E(descr int, lockdef string, player dbref, dbloadp int) (r Lock) {
+func ParseLock_E(descr int, lockdef string, player ObjectID, dbloadp int) (r Lock) {
 	if r = ParseLock_T(descr, lockdef, player, dbloadp); !r.IsTrue() {
 		if lockdef = strings.TrimSpace(lockdef); lockdef[0] == OR_TOKEN {
 			if r = RequireAnyKey{ r, ParseLock_E(descr, lockdef[1:], player, dbloadp) }; r[1].IsTrue() {
@@ -314,7 +314,7 @@ func ParseLock_E(descr int, lockdef string, player dbref, dbloadp int) (r Lock) 
 	return
 }
 
-func ParseLock(descr int, player dbref, lockdef string, dbloadp int) Lock {
+func ParseLock(descr int, player ObjectID, lockdef string, dbloadp int) Lock {
 	return ParseLock_E(descr, &lockdef, player, dbloadp)
 }
 
@@ -420,14 +420,13 @@ func getboolexp1(f *FILE) (b Lock) {
 		return b;
 
 	default:
-		/* better be a dbref */
+		/* better be a ObjectID */
 		ungetc(c, f)
 		b = ObjectKey{}
 
 		/* NOTE possibly non-portable code */
-		/* Will need to be changed if putref/getref change */
 		while (isdigit(c = getc(f))) {
-			b.dbref = b.dbref * 10 + c - '0';
+			b.ObjectID = b.ObjectID * 10 + c - '0';
 		}
 		ungetc(c, f)
 		return b

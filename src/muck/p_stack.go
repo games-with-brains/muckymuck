@@ -1,16 +1,16 @@
 package fbmuck
 
-func prim_pop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_pop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {})
 }
 
-func prim_dup(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_dup(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	checkop_readonly(1, top)
 	CHECKOFLOW(1)
 	push(arg, top, arg[*top - 1].Dup())
 }
 
-func prim_popn(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_popn(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if count, ok := op[0].(int); !ok {
 			panic("Operand not an integer.")
@@ -26,7 +26,7 @@ func prim_popn(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_dupn(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_dupn(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if result, ok := op[0].(int); !ok {
 			panic("Operand is not an integer.")
@@ -43,7 +43,7 @@ func prim_dupn(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_ldup(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ldup(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	checkop_readonly(1, top)
 	if result, ok := arg[*top - 1].data.(int); !ok {
 		panic("Operand is not an integer.")
@@ -60,7 +60,7 @@ func prim_ldup(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	}
 }
 
-func prim_at(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_at(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch data := (*op[0]).data.(type) {
 		case PROG_LVAR:
@@ -88,7 +88,7 @@ func prim_at(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame
 	})
 }
 
-func prim_bang(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_bang(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch data := op[1].(type) {
 		case PROG_VAR:
@@ -116,32 +116,32 @@ func prim_bang(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_var(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_var(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, op[0].(int))
 	})
 }
 
-func prim_localvar(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_localvar(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, op[0].(int))
 	})
 }
 
-func prim_swap(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_swap(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[1])
 		push(arg, top, op[0])
 	})
 }
 
-func prim_over(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_over(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	checkop_readonly(2, top)
 	CHECKOFLOW(1)
 	push(arg, top, arg[*top - 2].Dup())
 }
 
-func prim_pick(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_pick(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		depth := *op[0].(int)
 		if depth <= 0 {
@@ -152,7 +152,7 @@ func prim_pick(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_put(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_put(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		depth := op[1].(int)
 		if depth <= 0 {
@@ -163,7 +163,7 @@ func prim_put(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_rot(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_rot(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		push(arg, top, op[1])
 		push(arg, top, op[2])
@@ -171,7 +171,7 @@ func prim_rot(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_rotate(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_rotate(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		tmp = op[0].(int);	/* Depth on stack */
 		checkop(abs(tmp), top)
@@ -192,98 +192,98 @@ func prim_rotate(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_dbtop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_dbtop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, db_top)
 	})
 }
 
-func prim_depth(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_depth(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, *top)
 	})
 }
 
-func prim_version(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_version(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, VERSION)
 	})
 }
 
-func prim_prog(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_prog(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, program)
 	})
 }
 
-func prim_trig(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_trig(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, fr.trig)
 	})
 }
 
-func prim_caller(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_caller(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, fr.caller.st[fr.caller.top - 1])
 	})
 }
 
-func prim_intp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_intp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(int)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_floatp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_floatp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(float64)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_arrayp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_arrayp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(Array)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_dictionaryp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_dictionaryp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(Dictionary)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_stringp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_stringp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(string)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_dbrefp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ObjectIDp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		_, ok := op[0].(dbref)
+		_, ok := op[0].(ObjectID)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_addressp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_addressp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(Address)
 		push(arg, top, MUFBool(ok))
 	})
 }
 
-func prim_lockp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_lockp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		_, ok := op[0].(Lock)
 		push(arg, top, MUFBool(ok))
@@ -305,7 +305,7 @@ type RangeStackFrame struct {
 	next *RangeStackFrame
 }
 
-func prim_checkargs(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_checkargs(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	var range_stack *RangeStackFrame
 
 	var zbuf string
@@ -400,78 +400,78 @@ func prim_checkargs(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 							abort_checkargs(stackpos, "Stack underflow.")
 						}
 						if ref, ok := arg[stackpos].data.(objref); !ok {
-							abort_checkargs(stackpos, "Expected a dbref.")
+							abort_checkargs(stackpos, "Expected a ObjectID.")
 						} else {
-							if !valid_reference(ref) && ref != HOME {
-								abort_checkargs(stackpos, "Invalid dbref.")
+							if !ref.IsValid() && ref != HOME {
+								abort_checkargs(stackpos, "Invalid ObjectID.")
 							}
 						}
 						switch buf[currpos] {
 						case 'D':
 							if ref < 0 && ref != HOME {
-								abort_checkargs(stackpos, "Invalid dbref.")
+								abort_checkargs(stackpos, "Invalid ObjectID.")
 							}
 							fallthrough
 						case 'd':
 							if ref < HOME {
-								abort_checkargs(stackpos, "Invalid dbref.")
+								abort_checkargs(stackpos, "Invalid ObjectID.")
 							}
 						case 'P':
 							if ref < 0 {
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							}
 							fallthrough
 						case 'p':
 							switch {
 							case ref >= 0 && Typeof(ref) != TYPE_PLAYER:
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							case ref == HOME:
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							}
 						case 'R':
 							if ref < 0 && ref != HOME {
-								abort_checkargs(stackpos, "Expected room dbref.")
+								abort_checkargs(stackpos, "Expected room ObjectID.")
 							}
 							fallthrough
 						case 'r':
 							if ref >= 0 && Typeof(ref) != TYPE_ROOM {
-								abort_checkargs(stackpos, "Expected room dbref.")
+								abort_checkargs(stackpos, "Expected room ObjectID.")
 							}
 						case 'T':
 							if ref < 0 {
-								abort_checkargs(stackpos, "Expected thing dbref.")
+								abort_checkargs(stackpos, "Expected thing ObjectID.")
 							}
 							fallthrough
 						case 't':
 							switch {
 							case ref >= 0 && Typeof(ref) != TYPE_THING:
-								abort_checkargs(stackpos, "Expected thing dbref.")
+								abort_checkargs(stackpos, "Expected thing ObjectID.")
 							case ref == HOME:
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							}
 						case 'E':
 							if ref < 0 {
-								abort_checkargs(stackpos, "Expected exit dbref.")
+								abort_checkargs(stackpos, "Expected exit ObjectID.")
 							}
 							fallthrough
 						case 'e':
 							switch {
 							case ref >= 0 && Typeof(ref) != TYPE_EXIT:
-								abort_checkargs(stackpos, "Expected exit dbref.")
+								abort_checkargs(stackpos, "Expected exit ObjectID.")
 							case ref == HOME:
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							}
 						case 'F':
 							if ref < 0 {
-								abort_checkargs(stackpos, "Expected program dbref.")
+								abort_checkargs(stackpos, "Expected program ObjectID.")
 							}
 							fallthrough
 						case 'f':
 							switch {
 							case ref >= 0 && Typeof(ref) != TYPE_PROGRAM:
-								abort_checkargs(stackpos, "Expected program dbref.")
+								abort_checkargs(stackpos, "Expected program ObjectID.")
 							case ref == HOME:
-								abort_checkargs(stackpos, "Expected player dbref.")
+								abort_checkargs(stackpos, "Expected player ObjectID.")
 							}
 						}
 					case '?':
@@ -533,7 +533,7 @@ func prim_checkargs(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_mode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mode(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		result = fr.multitask
 		CHECKOFLOW(1)
@@ -541,14 +541,14 @@ func prim_mode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_mark(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mark(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, Mark{})
 	})
 }
 
-func prim_findmark(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_findmark(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		depth := 1
 		height := *top - 1
@@ -576,7 +576,7 @@ func prim_findmark(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_setmode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_setmode(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	spply_primitive(1, top, func() {
 		switch op[0].(int) {
 		case BACKGROUND:
@@ -594,10 +594,10 @@ func prim_setmode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_interp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_interp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
-		program := valid_object(op[0])
-		trigger := valid_remote_object(player, mlev, op[1])
+		program := op[0].(ObjectID).ValidObject()
+		trigger := op[1].(ObjectID).ValidRemoteObject(player, mlev)
 		match_args = op[2].(string)
 
 		switch {
@@ -611,7 +611,7 @@ func prim_interp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 
 		buf := match_args
 		var rv *inst
-		if tmpfr := interp(fr.descr, player, db.Fetch(player).Location, program, trigger, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+		if tmpfr := interp(fr.descr, player, DB.Fetch(player).Location, program, trigger, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
 			rv = interp_loop(player, oper1->data.objref, tmpfr, true)
 		}
 		match_args = buf
@@ -631,7 +631,7 @@ func prim_interp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_for(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_for(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		if fr.forstack.top >= STACK_SIZE {
 			panic("Too many nested FOR loops.")
@@ -649,7 +649,7 @@ func prim_for(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_foreach(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_foreach(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if fr.forstack.top >= STACK_SIZE {
 			panic("Too many nested FOR loops.")
@@ -671,7 +671,7 @@ func prim_foreach(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_foriter(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_foriter(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		if !fr.forstack.st {
 			panic("Internal error; FOR stack underflow.")
@@ -721,7 +721,7 @@ func prim_foriter(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_forpop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_forpop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		if fr.forstack.top == 0 {
 			panic("Internal error; FOR stack underflow.")
@@ -734,7 +734,7 @@ func prim_forpop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_trypop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_trypop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		if !fr.trys.top {
 			panic("Internal error; TRY stack underflow.")
@@ -744,7 +744,7 @@ func prim_trypop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_reverse(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_reverse(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		depth := op[0].(int)
 		if depth < 0 {
@@ -761,7 +761,7 @@ func prim_reverse(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_lreverse(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_lreverse(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		depth := op[0].(int)
 		if depth < 0 {

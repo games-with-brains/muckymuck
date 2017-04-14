@@ -878,12 +878,12 @@ P(layer), E(xit), F(orth program), or R(oom).  Otherwise it's a Thing.
   You can specify objects (things, players, exits, and rooms) by name if
 they're in your inventory or in the same room as you. You need only type
 enough letters of the name to be unambiguous. You can also specify objects
-anywhere by their DBRef, in the form #&lt;dbrefnumber&gt;. Players in other rooms
+anywhere by their DBRef, in the form #&lt;ObjectIDnumber&gt;. Players in other rooms
 may be specified in the form *&lt;player name&gt;. The keywords 'me' can be used
 for yourself, and 'here' for the room you're in.
 
 <p>
-  Each object has an ID number (the 'dbref'), which appears after the
+  Each object has an ID number (the 'ObjectID'), which appears after the
 name of the object, and is followed by any flags on the object; Ie:
 Foo(#3672PB) is a Player, named Foo, set BUILDER.  The number is a
 database reference, and is used to specify objects at a distance;
@@ -946,7 +946,7 @@ pennies, and in return, the object is endowed with a value according
 to the formula: ((cost / 5) - 1).  Usually the maximum value of an
 object is 100 pennies, which would cost 505 pennies to create. If a
 &lt;regname&gt; is specified, then the _reg/&lt;regname&gt; property on the player
-is set to the dbref of the new object.  This lets players refer to
+is set to the ObjectID of the new object.  This lets players refer to
 the object as $&lt;regname&gt; (ie: $mybutton) in @locks, @sets, et cetera.
 Only a builder may use this command.
 <p>
@@ -962,7 +962,7 @@ name.  If no parent is given, it defaults to the first ABODE room down the
 environment tree from the current room.  If it fails to find one, it sets
 the parent to the global environment, which is typically room #0.  If no
 &lt;regname&gt; is given, then it doesn't register the object.  If one is given,
-then the object's dbref is recorded in the player's _reg/&lt;regname&gt; property,
+then the object's ObjectID is recorded in the player's _reg/&lt;regname&gt; property,
 so that they can refer to the object later as $&lt;regname&gt;.  Digging a room
 costs 10 pennies, and you must be able to link to the parent room if
 specified.  Only a builder may use this command.
@@ -976,7 +976,7 @@ specified.  Only a builder may use this command.
 </a></h4>
   Opens an exit in the current room, optionally attempting to link it
 simultaneously.  If a &lt;regname&gt; is specified, then the _reg/&lt;regname&gt;
-property on the player is set to the dbref of the new object.  This lets
+property on the player is set to the ObjectID of the new object.  This lets
 players refer to the object as $&lt;regname&gt; (ie: $mybutton) in @locks,
 @sets, etc.  Opening an exit costs a penny, and an extra penny to link
 it, and you must control the room where it is being opened.
@@ -990,7 +990,7 @@ it, and you must control the room where it is being opened.
 </a></h4>
   Creates a new action and attaches it to the thing, room, or player
 specified.  If a &lt;regname&gt; is specified, then the _reg/&lt;regname&gt; property
-on the player is set to the dbref of the new object.  This lets players
+on the player is set to the ObjectID of the new object.  This lets players
 refer to the object as $&lt;regname&gt; (ie: $mybutton) in @locks, @sets, etc.
 You may only attach actions you control to things you control.  Creating
 an action costs 1 penny.  The action can then be linked with the command
@@ -1450,12 +1450,12 @@ properties to an object, or remove properties from an object.
 <p>
   If the first format above is specified, the @propset command sets
 &lt;property&gt; on &lt;object&gt; to &lt;value&gt;, where &lt;value&gt; is of type &lt;type&gt;.
-&lt;type&gt; can be one of 'string', 'integer', 'float, 'dbref', or 'lock'.
+&lt;type&gt; can be one of 'string', 'integer', 'float, 'ObjectID', or 'lock'.
 A string can be any set of characters the MUCK recognizes.  An integer
 must be composed solely of numerals with the possible exception of
 a leading sign indicator (+ or -).  A float must be a valid floating
-point number.  A dbref must be of the form # followed by a positive
-integer, and it must be a valid dbref (i.e., the object must exist).
+point number.  A ObjectID must be of the form # followed by a positive
+integer, and it must be a valid ObjectID (i.e., the object must exist).
 A lock value must be a key that would be accepted by @lock or a similar
 command (see the help for @lock for more details).
 <p>
@@ -2026,7 +2026,7 @@ will still act wizbitted whether or not the owner is QUELLED.
 </a></h4>
   If a thing is STICKY, it goes home when dropped (See HOMES). If a room is
 STICKY, its drop-to is delayed until the last person leaves (See DROP-TO).
-If a player is STICKY (SILENT), they don't see the dbrefs on things they
+If a player is STICKY (SILENT), they don't see the ObjectIDs on things they
 own, and they do not see dark objects.  If an exit is linked to a Thing,
 and it is located on another Thing, then if the exit is not STICKY, the
 Thing the exit is located on will go home when the exit is triggered.  If
@@ -2034,7 +2034,7 @@ a program is STICKY (SETUID) it runs with the permissions of the owner of
 the program, not the perms of the user.
 
 <p>
-  A player can set themselves &quot;SILENT&quot; and not see all the dbrefs and dark
+  A player can set themselves &quot;SILENT&quot; and not see all the ObjectIDs and dark
 objects that they own.  They won't see objects in a dark room either.
 They still control the objects though.  Silent is the same flag as STICKY.
 <p>
@@ -2645,7 +2645,7 @@ processes that they can @kill.
 <br>
 @KILL &lt;playername&gt;
 <br>
-@KILL &lt;programdbref&gt;
+@KILL &lt;programObjectID&gt;
 <br>
 @KILL all
 <br>
@@ -2655,7 +2655,7 @@ processes that they can @kill.
   If passed a processid (a number without a '#' preceeding it), it will kill
 the given process, if the player controls it.  If passed a player name, it
 will kill all the processes controlled by that player.  If passed a program
-dbref, it will kill all processes that that program is running in.  If the
+ObjectID, it will kill all processes that that program is running in.  If the
 argument passed is &quot;all&quot;, and the player is a wizard, it will kill all
 processes on the timequeue.
 <p>

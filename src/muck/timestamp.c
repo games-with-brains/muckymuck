@@ -14,9 +14,9 @@ func NewTimeStamps() *TimeStamps {
 	return &TimeStamps{ Created: now, Modified: now, LastUsed: now }
 }
 
-func ts_useobject(thing dbref) {
+func ts_useobject(thing ObjectID) {
 	if thing != NOTHING {
-		p := db.Fetch(thing)
+		p := DB.Fetch(thing)
 		p.LastUsed = time(nil)
 		p.Uses++
 		p.flags |= OBJECT_CHANGED
@@ -26,9 +26,9 @@ func ts_useobject(thing dbref) {
 	}
 }
 
-func ts_lastuseobject(thing dbref) {
+func ts_lastuseobject(thing ObjectID) {
 	if thing != NOTHING {
-		p := db.Fetch(thing)
+		p := DB.Fetch(thing)
 		p.LastUsed = time(nil)
 		p.flags |= OBJECT_CHANGED
 		if Typeof(thing) == TYPE_ROOM {
@@ -37,8 +37,8 @@ func ts_lastuseobject(thing dbref) {
 	}
 }
 
-func ts_modifyobject(thing dbref) {
-	p := db.Fetch(thing)
+func ts_modifyobject(thing ObjectID) {
+	p := DB.Fetch(thing)
 	p.Modified = time(nil)
 	p.flags |= OBJECT_CHANGED
 }

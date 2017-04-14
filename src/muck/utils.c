@@ -46,23 +46,23 @@
 #include "copyright.h"
 #include "config.h"
 
-#include "db.h"
+#include "DB.h"
 #include "tune.h"
 
 /* remove the first occurence of what in list headed by first */
-func remove_first(dbref first, dbref what) dbref {
-	dbref prev;
+func remove_first(ObjectID first, ObjectID what) ObjectID {
+	ObjectID prev;
 
 	/* special case if it's the first one */
 	if (first == what) {
-		return db.Fetch(first).next
+		return DB.Fetch(first).next
 	} else {
 		/* have to find it */
 
-		for prev = first; prev != NOTHING; prev = db.Fetch(prev).next {
-			if db.Fetch(prev).next == what {
-				db.Fetch(prev).next = db.Fetch(what).next
-				db.Fetch(prev).flags |= OBJECT_CHANGED
+		for prev = first; prev != NOTHING; prev = DB.Fetch(prev).next {
+			if DB.Fetch(prev).next == what {
+				DB.Fetch(prev).next = DB.Fetch(what).next
+				DB.Fetch(prev).flags |= OBJECT_CHANGED
 				return first
 			}
 		}
@@ -70,20 +70,20 @@ func remove_first(dbref first, dbref what) dbref {
 	}
 }
 
-func member(thing, list dbref) (r bool) {
-	for ; !r && list != NOTHING; list = db.Fetch(list).next {
-		r = list == thing || (db.Fetch(list).Contents && member(thing, db.Fetch(list).Contents))
+func member(thing, list ObjectID) (r bool) {
+	for ; !r && list != NOTHING; list = DB.Fetch(list).next {
+		r = list == thing || (DB.Fetch(list).Contents && member(thing, DB.Fetch(list).Contents))
 	}
 	return
 }
 
-func reverse(list dbref) (newlist dbref) {
+func reverse(list ObjectID) (newlist ObjectID) {
 	for newlist = NOTHING; list != NOTHING; {
-		rest := db.Fetch(list).next
-		db.Fetch(list).next = newlist
-		db.Fetch(list).flags |= OBJECT_CHANGED
+		rest := DB.Fetch(list).next
+		DB.Fetch(list).next = newlist
+		DB.Fetch(list).flags |= OBJECT_CHANGED
 		newlist = list
-		db.Fetch(newlist).flags |= OBJECT_CHANGED
+		DB.Fetch(newlist).flags |= OBJECT_CHANGED
 		list = rest
 	}
 	return

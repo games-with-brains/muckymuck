@@ -64,7 +64,7 @@ STRUCTURES
 PRIMITIVE TERMINOLOGY
   
         v                                       type variable
-        d                                       type dbref
+        d                                       type ObjectID
         i                                       type int (boolean)
         s                                       type string
         a                                       type address (word)
@@ -126,8 +126,8 @@ SYNTAX
                                                  value may be any type data
         @               ( v -- x )              fetch value x from var v
         atoi            ( s -- i )              string --> integer
-        intostr         ( i -- s )              integer || dbref --> string
-        dbref           ( i -- d )              integer --> dbref
+        intostr         ( i -- s )              integer || ObjectID --> string
+        ObjectID           ( i -- d )              integer --> ObjectID
         int             ( x -- i )              VAR || object --> integer
         variable        ( i -- v )              integer --> VAR ref
   
@@ -185,12 +185,12 @@ SYNTAX
         set                     ( d s -- )      object, string (flag)
         flag?                   ( d s -- i )    object, string -- boolean
 	mlevel                  ( d -- i )      object -- mucker level.
-        match                   ( s -- d )      thing, dbref (#-1 = NOTHING,
+        match                   ( s -- d )      thing, ObjectID (#-1 = NOTHING,
                                                 #-2 = AMBIGUOUS, #-3 = HOME)
-        rmatch                  ( d s -- d )    object, thing, dbref           
-	part_pmatch             ( s -- d )      partial name -- dbref
-        copyobj                 ( d -- d' )     returns dbref of new object
-        contents                ( d -- ... i )  returns stack of dbrefs and i
+        rmatch                  ( d s -- d )    object, thing, ObjectID           
+	part_pmatch             ( s -- d )      partial name -- ObjectID
+        copyobj                 ( d -- d' )     returns ObjectID of new object
+        contents                ( d -- ... i )  returns stack of ObjectIDs and i
   
 	time            ( -- i i i)        seconds, minutes, hours
 	date            ( -- i i i)        monthday, month,  year
@@ -212,14 +212,14 @@ SYNTAX
   
         int?            ( ? -- i )         is top stack item an integer?
         string?         ( ? -- i )         is top stack item a string?
-        dbref?          ( ? -- i )         is top stack item a dbref?
+        ObjectID?          ( ? -- i )         is top stack item a ObjectID?
         nextprop        ( d s -- s )       object, propname -- next propname
         propdir?        ( d s -- i )       object, propname--is it a propdir?
   
         awake?          ( d -- i )         player -- number of connections
         online          ( -- dN ... d1 N ) all connected players w/ count
         concount        ( -- i )           # of connections to the server
-        condbref        ( i -- d )         connection number -- player
+        conObjectID        ( i -- d )         connection number -- player
         conidle         ( i -- i )         conn. # -- idle time in secs
         contime         ( i -- i )         conn. # -- online time in secs
         conhost         ( i -- s )         conn. # -- hostname
@@ -238,7 +238,7 @@ SYNTAX
         version         ( -- s )           Version String
         depth           ( -- i )           stack depth
         dbtop           ( -- d )           top of database + 1 item.
-        prog            ( -- d )           this program's dbref
+        prog            ( -- d )           this program's ObjectID
         trig            ( -- d )           a secure form of trigger @
         caller          ( -- d )           the program that called this one.
   

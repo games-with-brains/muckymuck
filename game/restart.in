@@ -28,9 +28,9 @@ UMASK=077
 # On a successful restart, DBIN is moved to DBOLD, and DBOUT is moved to DBIN,
 # then the server is started.  The server will save it's db to DBOUT.
 #
-DBOLD="$GAMEDIR/data/std-db.old"
-DBIN="$GAMEDIR/data/std-db.db"
-DBOUT="$GAMEDIR/data/std-db.new"
+DBOLD="$GAMEDIR/data/std-DB.old"
+DBIN="$GAMEDIR/data/std-DB.db"
+DBOUT="$GAMEDIR/data/std-DB.new"
 
 
 #

@@ -48,7 +48,7 @@ Defines used:
 Notes:
 
 Function Name:	notify_nolisten
-Arguments:	dbref (object to notify)
+Arguments:	ObjectID (object to notify)
 		const char * (string to notify)
 		int (isprivate<unknown functionality>)
 Called From:	<everywhere>
@@ -63,8 +63,8 @@ be echoed to anything other than the descriptor (or the player's descriptor,
 in the case of zombies and so on).
 
 Function Name:	notify_from_echo
-Arguments:	dbref (from)
-		dbref (player)
+Arguments:	ObjectID (from)
+		ObjectID (player)
 		const char * (string to tell)
 		int (isprivate<unknown functionality>)
 Called From:

@@ -20,7 +20,7 @@ func do_peek(f *FILE) int {
 	return (peekch);
 }
 
-func getref(f *FILE) dbref {
+func getref(f *FILE) ObjectID {
 	static char buf[BUFFER_LEN];
 	int peekch;
 
@@ -59,7 +59,7 @@ func getstring_noalloc(FILE * f) string {
 	return xyzzybuf;
 }
 
-func db_read_header(f *FILE, version *string, load_format *int, grow *dbref, parmcnt *int) (r int) {
+func db_read_header(f *FILE, version *string, load_format *int, grow *ObjectID, parmcnt *int) (r int) {
 	var grow_and_dbflags bool
 	const char *special;
 	char c;

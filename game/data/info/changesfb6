@@ -97,7 +97,7 @@ Fixed buffer overflow errors in MPI.  This might be remotely exploitable
 
 
 2.2fb6.06
-Fix db.h to not turn on DEBUG when it is not requested.
+Fix DB.h to not turn on DEBUG when it is not requested.
 A few changes to make 'make lint' on FreeBSD actually work properly.
 Changed a lot of "Permission Denied" messages to explain why permission
   was denied.
@@ -190,7 +190,7 @@ Added improved SSL error reporting, via stderr.
 Added feature #563307: array_filter_prop matching non-strings
 Fixed {debug} MPI tracing for some systems including Linux.
 Fixed bug #973899: fb-announce not compiled with ${CFLAGS}.
-Fixed bug #970128: array_get_reflist chokes on negative dbrefs.
+Fixed bug #970128: array_get_reflist chokes on negative ObjectIDs.
 Fixed bug #925712: getpidinfo on MPI process crashes.
 Fixed bug #924349: descrboot and conboot crash on non-wiz call.
 Fixed bug #910839: W MUF can newpassword W.
@@ -245,7 +245,7 @@ Fixed "RFE" #670187: recycling a room sends zombies home quietly
 Fixed crasher in for loops with stack overflow.
 Fixed crasher with Inf in union/diff/intersect prims.
 Fixed crasher with locks in union/diff/intersect prims.
-Fixed bug in ARRAY_GETLINKS that would have returned garbage dbrefs.
+Fixed bug in ARRAY_GETLINKS that would have returned garbage ObjectIDs.
 Fixed various compiler warnings given with -Wall.
 Fixed various calls to exit() and _exit() to use the correct ones.
 Fixed bug #806163: Invalid param to newobject crashes MUCK
@@ -266,8 +266,8 @@ Changed $ifdef to allow for syntax like: $ifdef "__muckname=Foo Bar Muck"
 Changed forked dump process to make it not do a pointless panic() on signals.
 Changed forked dump to make it not allow overlapping dumps.
 Added docs for ARRAY_FMTSTRINGS to muf manual.
-Added ARRAY_FILTER_FLAGS ( list:dbrefs str:flags -- list:dbrefsout ) MUF prim.
-  Takes a homogenous list array of dbrefs, and filters them for those objects
+Added ARRAY_FILTER_FLAGS ( list:ObjectIDs str:flags -- list:ObjectIDsout ) MUF prim.
+  Takes a homogenous list array of ObjectIDs, and filters them for those objects
   that pass the given flag test.  See 'help @find' for flags test info.
 Added FTOSTRC ( flt:val -- str:val ) MUF prim.  Returns string representation
   of a floating point value, without trailing zeros.  Like FTOSTR without the
@@ -275,11 +275,11 @@ Added FTOSTRC ( flt:val -- str:val ) MUF prim.  Returns string representation
 Added ARRAY_INTERPRET ( list:data -- string:catenated ) MUF prim.  Takes a
   list of heterogenous data, and catenates it together with best apropriate
   translations of each type.  Like array_join, except there's no delimiters,
-  and dbrefs are translated to names. (Protomuck prim)
+  and ObjectIDs are translated to names. (Protomuck prim)
 Added }cat compiler $define to '} array_make array_interpret'. (Proto)
 Added }array compiler $define to '} array_make'. (Proto)
-Added RFE #498330: For "recycle" [success] message, put the #dbref.
-Added RFE #788992: Allow @recycle by dbref
+Added RFE #498330: For "recycle" [success] message, put the #ObjectID.
+Added RFE #788992: Allow @recycle by ObjectID
 Added RFE #782388: Nested MUF comments
 Added RFE #578523: muf-errors log: owner and nicer format
 Added notification of start of comment line in MUF compile failure when
@@ -487,7 +487,7 @@ Removed dead LOCKOUT code from include/config.h.
 
 2.2fb6.00rc6
 Added "objtype" field to results of SYSPARM_ARRAY, for when the sysparm is
-  of the "dbref" type.  The "objtype" field specifies what type the dbref is
+  of the "ObjectID" type.  The "objtype" field specifies what type the ObjectID is
   restricted to.
 Added "label" field to results of SYSPARM_ARRAY, for human readable labels.
 Added }TELL MUF $define as '} array_make me @ 1 array_make array_notify'
@@ -608,7 +608,7 @@ Changed dbdump to fork() on DB dump.
 Added 'make distclean'.
 Added READ_WANTS_BLANKS ( -- ) muf primitive, to indicate the process wants
   READ to be able to return blank "" lines.
-Added new @tune -- default_room_parent. This is the dbref used to parent
+Added new @tune -- default_room_parent. This is the ObjectID used to parent
   rooms as the case of last resort, and defaults to #0 (which was previously
   the only thing used). Closes feature request #476091.
 
@@ -737,14 +737,14 @@ Added NEXTENTRANCE ( d1 d2 -- d3 ) muf primitive.  Searches the database for
   the next object after d2 that is linked to d1.  You can begin a search by
   passing #-1 as d2.  The search currently scans upwards through the database,
   but this ordering is not guaranteed.  If an object is found that links to
-  d1, then the dbref of that object is returned.  If no more such objects
+  d1, then the ObjectID of that object is returned.  If no more such objects
   are found in the db, then #-1 is returned.
 Added NEWPLAYER ( s1 s2 -- d ) muf primitive.  Creates a new player object,
-  with the name s1, and the password s2.  This returns the dbref of the new
+  with the name s1, and the password s2.  This returns the ObjectID of the new
   player object.
 Added COPYPLAYER ( d1 s1 s2 -- d2 ) muf primitive.  Creates a new player
   object with the name s1, and the password s2, and the properties, flags,
-  links, etc. of the template object d1.  This returns the dbref of the
+  links, etc. of the template object d1.  This returns the ObjectID of the
   newly created player object.
 Added OBJMEM ( d -- i ) muf primitive.  Returns the current number of bytes
   in use by the given object.
@@ -754,17 +754,17 @@ Added INSTANCES ( d -- i ) muf primitive.  Returns the number of active
 Added COMPILED? ( d -- i ) muf primitive.  Returns 0 if the given program
   is not compiled.  Otherwise returns the number of compiled instructions.
 Added NEWPROGRAM ( s -- d ) muf primitive.  Creates a new program object
-  with the given name, and returns its dbref.
+  with the given name, and returns its ObjectID.
 Added CONTENTS_ARRAY ( d -- a ) muf primitive.  Returns a list array that
-  contains the dbref of every object contained within the given object.  If
+  contains the ObjectID of every object contained within the given object.  If
   a #-1 is returned as the last list item, then there were too many objects
   to return all of them.
 Added EXITS_ARRAY ( d -- a ) muf primitive.  Returns a list array that
-  contains the dbref of every exit attached to the given object.  If a
+  contains the ObjectID of every exit attached to the given object.  If a
   #-1 is returned as the last list item, then there were too many exits
   to return all of them.
 Added GETLINKS_ARRAY ( d -- a ) muf primitive.  Returns a list array that
-  contains the dbref of every object that the given object is linked to.
+  contains the ObjectID of every object that the given object is linked to.
 Added NEWPASSWORD ( d s -- ) muf primitive.  Changed the password of the
   given player d to s.
 Added COMPILE ( d i1 -- i2 ) muf primitive.  Compiles the given program.
@@ -789,7 +789,7 @@ Fixed DoS security hole with exhausing memory via huge MCP messages.
 Changed MCP GUI code to limit to 256 "values" per dialog.
 Changed EVENT_SEND to send a dictionary instead of just a value.  The array
   will contain "data" with the value, "caller_pid" with the pid of the caller,
-  and "caller_prog" with the dbref of the caller.
+  and "caller_prog" with the ObjectID of the caller.
 Changed VEHICLE flag for muf progs to mean VIEWABLE, to let you @list them.
   Programs set LINK_OK are _not_ @listable unless they are also set VIEWABLE.
 Added inserver muf define for C_MENU.
@@ -797,10 +797,10 @@ Added support for "valname" option to MCP GUI control creation.
 Added a __fuzzball__ inserver MUF $define, set to 1, to let programmers
   differentiate between Fuzzball and ProtoMuck servers.
 Added ++ and -- muf primitives.  They will increment or decrement ints, floats
-  and dbrefs, and if passed a variable, they will increment/decrement the
-  int, float, or dbref contained within the variable, much like in C.  When
+  and ObjectIDs, and if passed a variable, they will increment/decrement the
+  int, float, or ObjectID contained within the variable, much like in C.  When
   passed a variable, nothing is returned on the stack.  When passed an int,
-  float, or dbref, the incremented/decremented value is returned.
+  float, or ObjectID, the incremented/decremented value is returned.
 Added DESCRLEASTIDLE ( d -- i ) muf primitive.  Returns the least idle
   connection descriptor for the given player.
 Added DESCRMOSTIDLE ( d -- i ) muf primitive.  Returns the most idle
@@ -811,7 +811,7 @@ Added FIRSTDESCR ( d -- i ) muf primitive.  Returns the most recent connection
 Added LASTDESCR ( d -- i ) muf primitive.  Returns the oldest connection
   descriptor for the given player.  If #-1 is given, then this returns the
   descriptor of the oldest connection to the MUCK.
-Added DESCRDBREF ( i -- d ) muf primitive.  Returns the dbref of the player
+Added DESCRDBREF ( i -- d ) muf primitive.  Returns the ObjectID of the player
   that is connected to the given descriptor connection.
 Added DESCRTIME ( i -- i ) muf primitive.  Returns the length of time in
   seconds, since the given descriptor connected.
@@ -851,9 +851,9 @@ Added BLESSED? (d s -- i) muf prim.  Given an object and a property string,
   returns a boolean telling if that property is blessed.
 Added four new data entries to USER muf event contexts sent by SEND_EVENT.
   "descr" contains the descriptor that initiated the sending program.
-  "trigger" contains the dbref of the trigger that ran the sending program.
-  "player" contains the dbref of the player that ran the sending program.
-  "prog_uid" contains the dbref of the player used for permissions in the
+  "trigger" contains the ObjectID of the trigger that ran the sending program.
+  "player" contains the ObjectID of the player that ran the sending program.
+  "prog_uid" contains the ObjectID of the player used for permissions in the
   sending program.
 
 
@@ -881,9 +881,9 @@ Added MPI {unbless:propname[,object]} command to unbless a property.  Requires
 Added MPI {revoke:commands} command to run the given mpi commands without
   any Blessing that the running script may currently have.  This is good
   to wrap around {eval} statments to prevent security holes.
-Added BLESSPROP (dbrefObject strPropname -- ) MUF primitive.  Blesses the given
+Added BLESSPROP (ObjectIDObject strPropname -- ) MUF primitive.  Blesses the given
   property for MPI.  Requires Wizbit perms.
-Added UNBLESSPROP (dbrefObject strPropname -- ) MUF primitive.  Unblesses the
+Added UNBLESSPROP (ObjectIDObject strPropname -- ) MUF primitive.  Unblesses the
   given property for MPI.  Requires Wizbit perms.
 Added GUI_CTRL_COMMAND (strDlogID strCtrlID strCommand dictArgs -- ) muf prim.
   This is the generic primitive for executing a GUI control specific command.
@@ -908,12 +908,12 @@ Added ARRAY_JOIN ([s] s -- s) muf primitive.  Takes a list array and a
   For example:   { "one" 2 "three" 3.14159 }list "... " array_join
   will result in a single string: "one... 2... three... 3.14159"
 Added ARRAY_FILTER_PROP ([d] s1 s2 -- [d']) muf primitive.  Takes a
-  homogenous list array of dbrefs, and returns a list array with only
-  those dbrefs who have a property specified by s1, set to a value that
+  homogenous list array of ObjectIDs, and returns a list array with only
+  those ObjectIDs who have a property specified by s1, set to a value that
   smatch matches s2.
 Added ARRAY_SORT (arrData intSortType -- arrSortedData) muf primitive.  This
   sorts all the items in the list array given, based on the given sort type.
-  This can sort strings, integers, floats, dbrefs, or mixes of types.  Integers
+  This can sort strings, integers, floats, ObjectIDs, or mixes of types.  Integers
   are sorted in with floats, but strings sort after all numbers.  Dbrefs sort
   after the other number types, but before string types.  Other stack item
   types will sort separately, but in an undefined consistent order.  The valid
@@ -960,16 +960,16 @@ Added FINDNEXT ( d1 d2 s1 s2 -- d' ) muf primitive.  Searches for the next
         dup while
         dup unparseobj .tell
     repeat
-Added REFLIST_ADD ( d1 s1 d2 -- ) muf primitive.  Adds dbref d2 to the reflist
+Added REFLIST_ADD ( d1 s1 d2 -- ) muf primitive.  Adds ObjectID d2 to the reflist
   in property s1 on object d1.  If d2 is already in the list, it is moved to
   the end of the reflist.
-Added REFLIST_DEL ( d1 s1 d2 -- ) muf primitive.  Removes dbref d2 from the
+Added REFLIST_DEL ( d1 s1 d2 -- ) muf primitive.  Removes ObjectID d2 from the
   reflist in property s1 on object d1.  If d2 is not in the list, nothing
   happens.
-Added REFLIST_FIND ( d1 s1 d2 -- i ) muf primitive.  Finds dbref d2 in the
+Added REFLIST_FIND ( d1 s1 d2 -- i ) muf primitive.  Finds ObjectID d2 in the
   reflist in property s1 on object d1.  If d2 is not in the list, then 0 is
-  returned.  Otherwise the position of the dbref in the list is returned,
-  with the first dbref being in position 1, the second dbref in 2, etc.
+  returned.  Otherwise the position of the ObjectID in the list is returned,
+  with the first ObjectID being in position 1, the second ObjectID in 2, etc.
 Added support for multiple listener sockets, a la FB5.
 Changed MPI to not use the trigger's wizbit for permissions.  Instead, if the
   property is itself Blessed, then it gets the permissions that wizbit mpi
@@ -1069,7 +1069,7 @@ Changed the way MUF lvars work.  Called progs no longer get a copy of the
   caller prog's lvars.  However, if prog A calls into prog B which calls
   back into prog A, then both the inner and outer prog A have the same
   lvars, and changes made to one are seen by the other.  Prog B has its
-  own lvars.  Basically, every different program dbref called will have
+  own lvars.  Basically, every different program ObjectID called will have
   its own lvars in that process.  The nice feature of this is that you
   can now make the equivalent of C-style static vars, which hold data
   persistently between calls into a lib.
@@ -1082,7 +1082,7 @@ Changed EVENT_SEND MUF prim to the following:
   be truncated at 32 characters.  The event data argument will contain
   the sent data in the "data" element.  A "caller_pid" element will
   contain the process id of the caller, and a "caller_prog" element will
-  have the dbref of the caller.  ie: '23 "foobar" 3.1416 event_send' will
+  have the ObjectID of the caller.  ie: '23 "foobar" 3.1416 event_send' will
   send an event to process 23, with an eventid of "USER.foobar", and a
   floating point data value of 3.1416 in the "data" element of the args
   dictionary that EVENT_WAIT will return.  This primitive requires at
@@ -1105,7 +1105,7 @@ Added new MUF procedure declaration syntax, to allow the declaration and
   what this procedure is expected to return.  Each variable can also be
   preceeded by an arbitrary type name and a colon (':'), as sort of a comment
   to show what stack item types it is expected to be.  The line:
-      : myproc[ str:foo int:bar dbref:baz -- lock:qux ]
+      : myproc[ str:foo int:bar ObjectID:baz -- lock:qux ]
   gets effectively translated to:
       : myproc var! baz var! bar var! foo
   Note that the type name and return section are optional, so the line:
@@ -1114,7 +1114,7 @@ Added new MUF procedure declaration syntax, to allow the declaration and
   returned values is _highly_ reccommended, though.  Type names may later
   get used to test that the passed arguments are of the right types, auto-
   matically.  This means that the type name should be one of 'addr', 'arr',
-  'dbref', 'dict', 'float', 'int', 'lock', 'str', 'var', or 'lvar'.
+  'ObjectID', 'dict', 'float', 'int', 'lock', 'str', 'var', or 'lvar'.
 Added MCP_REGISTER_EVENT ( strPkgName fltMinVers fltMaxVers -- ) MUF prim.
   Registers an MCP package so that clients can know what is supported, and
   marks this process as wanting to receive MCP messages as Muf Events.
@@ -1239,11 +1239,11 @@ Added ARRAY_PUT_PROPVALS ( d s a -- ) MUF prim.  Takes the values in
   Be aware that dictionary entries with keys starting with one of
   @ ~ _ or . may require special permissions to save.
 Added ARRAY_PUT_REFLIST ( d s a -- ) MUF prim.  Takes a list array of
-  dbrefs, and stores them in a property as a space delimited string of
-  dbrefs.  ie:  "#1234 #6646 #1026 #7104"
+  ObjectIDs, and stores them in a property as a space delimited string of
+  ObjectIDs.  ie:  "#1234 #6646 #1026 #7104"
 Added ARRAY_GET_REFLIST ( d s -- a ) MUF prim.  Reads in list of space
-  delimited dbrefs from a string property, and returns them as a list
-  array of dbrefs.  See ARRAY_PUT_REFLIST for property syntax.
+  delimited ObjectIDs from a string property, and returns them as a list
+  array of ObjectIDs.  See ARRAY_PUT_REFLIST for property syntax.
 Added ARRAY_GET_PROPLIST ( d s -- a ) MUF prim.  Reads in properties from
   a classic style proplist, and returns them in a dictionary, keyed by
   propname.  Proplists can be in any of the common proplist styles:
@@ -1308,11 +1308,11 @@ Added the following MUF primitives:
         otherwise.
     ONLINE_ARRAY  ( -- a)
         This is the same as the ONLINE primitive, except it returns a single
-        stack item which is an array of dbrefs instead of pushing every dbref
+        stack item which is an array of ObjectIDs instead of pushing every ObjectID
         separately onto the stack.
     DESCR_ARRAY  (d -- a)
         This returns an array of descriptors that are associated with the
-        given dbref.  This is effectively the same as the sequence
+        given ObjectID.  This is effectively the same as the sequence
         'descriptors array_make'.
     {  ( -- mark)
         Pushes a marker onto the stack, for use with the }, }LIST, and }DICT
@@ -1550,7 +1550,7 @@ Added the following MCP primitives to support MCP:
       Sends an MCP message for the given package to the given connection
       descriptor.  dictArgs contains key-value pairs, where each key is
       an argument name, and the value is the argument value.  Values can
-      be strings, floats, dbrefs, integers, or array lists of strings.
+      be strings, floats, ObjectIDs, integers, or array lists of strings.
       They all get translated into an appropriate string format before
       getting sent.
 
@@ -1564,7 +1564,7 @@ Fixed a bug in the debugger's "prim" command.
 Fixed an error that excluded topwords.c from the release packages.
 Fixed a crasher bug with 63 & 64 character filenames in the data/info dir.
 Added ARRAY_NOTIFY (a1 a2 -- ) muf primitive.  a1 is an array of strings to
-  notify to all the dbrefs in array a2.
+  notify to all the ObjectIDs in array a2.
 
 
 
@@ -1725,9 +1725,9 @@ Changed {list} and {lexec} to return a null string if the list wasn't found.
 
 
 2.2fb6.00a7
-Added NEXTOWNED (d -- d) primitive to MUF.  When called with a player dbref,
-  this returns the dbref of the first object they own.  When called with that
-  dbref, this returns the next object owned by the same player.  When there
+Added NEXTOWNED (d -- d) primitive to MUF.  When called with a player ObjectID,
+  this returns the ObjectID of the first object they own.  When called with that
+  ObjectID, this returns the next object owned by the same player.  When there
   are no more objects left owned by that player, then #-1 is returned.  The
   order of the objects is not guarenteed, but when used correctly, each object
   owned by that player will be returned exactly once.  The player object itself
@@ -1884,7 +1884,7 @@ are allowed -
   FLOAT types are not allowed to be used in the MOD command.
   All bit operations on FLOAT types will be converted to INT types.
   It is no longer nessevary to use DBCMP to compare for equality
-between two differnet dbref numbers.  Dbrefs can now use the standard
+between two differnet ObjectID numbers.  Dbrefs can now use the standard
 comparison operations (>,<,=,>=,<=).  DBCMP has been retained for
 backwards compatibility.
   INT will convert FLOAT types to INT as well as DBREF, VAR and LVAR
@@ -1935,7 +1935,7 @@ New string functions:
                 ASCII equivilent.
         ITOC - converts an integer to its ASCII equivilent character.  If it
                 is not a valid display character, a null string is returned.
-        STOD - takes a string and attempts to extract a dbref number from it.
+        STOD - takes a string and attempts to extract a ObjectID number from it.
                 Recognizes both plain numbers as well as numbers prepended
                 with the '#' sign.
         SPLIT - given a string and a string token, will split the first string
@@ -1969,8 +1969,8 @@ single character identifiers (case is important):
         s - string argument
         ? - unknown type argument, will print a string stating what the
             variable type is
-        d - dbref number, in the form of #123
-        D - dbref name reference; given a dbref, will print the associated
+        d - ObjectID number, in the form of #123
+        D - ObjectID name reference; given a ObjectID, will print the associated
             name for that object - terminates on bad reference
         l - pretty-lock, given a lock, will print the description
         f - float in xxx.yyy form

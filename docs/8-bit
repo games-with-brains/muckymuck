@@ -34,7 +34,7 @@ implementation details:
    names.)
 5) Due to the differences in object naming policy, we have introduced
    a new MUF primitive: EXT-NAME-OK? ( {s|d} s -- i )  This takes either
-   a dbref (for an already-created object) or a string specifying the type
+   a ObjectID (for an already-created object) or a string specifying the type
    of object, and the proposed name for it.  It returns 1 if the proposed
    name is okay for that object/type of object, or 0 if it is not.
 6) There is no support for "lowercase y umlaut", or "yuml" (code 0xff), due

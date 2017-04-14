@@ -21,7 +21,7 @@ const char *base_inst[] = {
 /* converts an instruction into a printable string, stores the string in
    buffer and returns a pointer to it.
  */
-func insttotext(struct frame *fr, int lev, struct inst *theinst, dbref program, int expandarrs) (buffer string) {
+func insttotext(struct frame *fr, int lev, struct inst *theinst, ObjectID program, int expandarrs) (buffer string) {
 	const char* ptr;
 	char buf2[BUFFER_LEN];
 	struct inst temp1;
@@ -113,7 +113,7 @@ func insttotext(struct frame *fr, int lev, struct inst *theinst, dbref program, 
 			buffer = fmt.Sprintf("JMP->line%d", op.call.line)
 		}
 		length = len(buffer)
-	case dbref:
+	case ObjectID:
 		buffer = fmt.Sprintf("#%d", op)
 		length = len(buffer)
 	case PROG_VAR:
@@ -169,7 +169,7 @@ func insttotext(struct frame *fr, int lev, struct inst *theinst, dbref program, 
 
 #define DEBUG_DEPTH 8 /* how far to give a stack list, at most */
 
-debug_inst(fr *frame, lev int, pc *inst, pid int, stack *inst, buffer string, buflen, sp int, program dbref) string {
+debug_inst(fr *frame, lev int, pc *inst, pid int, stack *inst, buffer string, buflen, sp int, program ObjectID) string {
 	char* bend;
 	char* bstart;
 	char* ptr;

@@ -1,6 +1,6 @@
 package fbmuck
 
-func prim_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_add(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch tf2 := op[0].(type) {
 		case float64:
@@ -27,7 +27,7 @@ func prim_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_subtract(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_subtract(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch tf2 := op[0].(type) {
 		case float64:
@@ -54,7 +54,7 @@ func prim_subtract(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_multiply(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_multiply(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch tf2 := op[0].(type) {
 		case float64:
@@ -81,7 +81,7 @@ func prim_multiply(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_divide(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_divide(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) (r interface{}) {
 		defer func() {
 			if recover() {
@@ -114,31 +114,31 @@ func prim_divide(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_mod(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mod(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[1].(int) % op[0].(int))
 	})
 }
 
-func prim_bitor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_bitor(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[1].(int) | op[0].(int))
 	})
 }
 
-func prim_bitxor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_bitxor(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[1].(int) ^ op[0].(int))
 	})
 }
 
-func prim_bitand(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_bitand(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[1].(int) & op[0].(int))
 	})
 }
 
-func prim_bitshift(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_bitshift(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		switch x := op[0].(int); {
 		case x > 0:
@@ -157,19 +157,19 @@ func apply_logic_primitive(top *int, f func(Array) bool) {
 	})
 }
 
-func prim_and(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_and(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_logic_primitive(top, func(op Array) bool {
 		return !ValueIsFalse(op[0]) && !ValueIsFalse(op[1])
 	})
 }
 
-func prim_or(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_or(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_logic_primitive(2, top, func(op Array) bool {
 		return !ValueIsFalse(op[0]) || !ValueIsFalse(op[1])
 	})
 }
 
-func prim_xor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_xor(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_logic_primitive(top, func(op Array) (ok bool) {
 		if ValueIsFalse(op[0]) {
 			ok = !ValueIsFalse(op[1])
@@ -180,7 +180,7 @@ func prim_xor(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_not(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_not(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, MUFBool(ValueIsFalse(op[0])))
 	})
@@ -188,7 +188,7 @@ func prim_not(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 
 func comp_t(op *inst) (r bool) {
 	switch op.data.(type) {
-	case int, float64, dbref:
+	case int, float64, ObjectID:
 		r = true
 	}
 	return
@@ -204,7 +204,7 @@ func apply_comparison_primitive(top *int, f func(op Array) bool) {
 	}
 }
 
-func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_lessthan(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
 		switch l := op[0].(type) {
 		case float64:
@@ -213,7 +213,7 @@ func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				ok = r < l
 			case int:
 				ok = r < l
-			case dbref:
+			case ObjectID:
 				ok = r < l
 			}
 		case int:
@@ -222,7 +222,7 @@ func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 				ok = r < l
 			case int:
 				ok = r < l
-			case dbref:
+			case ObjectID:
 				ok = r < l
 			}
 		}
@@ -230,7 +230,7 @@ func prim_lessthan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_greathan(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_greathan(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
 		switch l := op[0].(type) {
 		case float64:
@@ -256,7 +256,7 @@ func prim_greathan(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_equal(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_equal(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
 		switch l := op[0].(type) {
 		case float64:
@@ -282,7 +282,7 @@ func prim_equal(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	})
 }
 
-func prim_lesseq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_lesseq(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
 		switch l := op[0].(type) {
 		case float64:
@@ -308,7 +308,7 @@ func prim_lesseq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_greateq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_greateq(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_comparison_primitive(top, func(op Array) (ok bool) {
 		switch l := op[0].(type) {
 		case float64:
@@ -326,7 +326,7 @@ func prim_greateq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 				ok = r >= l
 			case int:
 				ok = r >= l
-			case dbref:
+			case ObjectID:
 				ok = r >= l
 			}
 		}
@@ -334,12 +334,12 @@ func prim_greateq(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_random(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_random(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	CHECKOFLOW(1)
 	push(arg, top, RANDOM())
 }
 
-func prim_srand(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_srand(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		if fr.rndbuf == nil {
@@ -349,7 +349,7 @@ func prim_srand(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	})
 }
 
-func prim_getseed(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_getseed(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		if fr.rndbuf == nil {
@@ -367,7 +367,7 @@ func prim_getseed(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_setseed(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_setseed(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if data, ok := op[0].(string); ok {
 			if fr.rndbuf != nil {
@@ -398,10 +398,10 @@ func prim_setseed(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_int(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_int(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch data := op[0].(type) {
-		case dbref:
+		case ObjectID:
 			push(arg, top, int(data))
 		case PROG_VAR:
 			push(arg, top, int(data))
@@ -415,7 +415,7 @@ func prim_int(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_plusplus(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_plusplus(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		temp1 := *op[0]
 		var temp2 inst
@@ -431,7 +431,7 @@ func prim_plusplus(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 			idx++
 			push(arg, top, idx)
 			return
-		case dbref:
+		case ObjectID:
 			idx++
 			push(arg, top, idx)
 			return
@@ -446,7 +446,7 @@ func prim_plusplus(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 		switch data := temp2.data.(type) {
 		case int:
 			data++
-		case dbref:
+		case ObjectID:
 			data++
 		case float64:
 			data++
@@ -469,7 +469,7 @@ func prim_plusplus(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_minusminus(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_minusminus(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var tmp *inst
 		var temp2 *inst
@@ -489,7 +489,7 @@ func prim_minusminus(player, program dbref, mlev int, pc, arg *inst, top *int, f
 			data--
 			push(arg, top, data)
 			return
-		case dbref:
+		case ObjectID:
 			data--
 			push(arg, top, data)
 			return
@@ -504,7 +504,7 @@ func prim_minusminus(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		switch data := temp2.data.(type) {
 		case int:
 			data--
-		case dbref:
+		case ObjectID:
 			data--
 		case float64:
 			data--
@@ -527,7 +527,7 @@ func prim_minusminus(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_abs(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_abs(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if result = op[0].(int); result < 0 {
 			result = -result
@@ -536,7 +536,7 @@ func prim_abs(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fram
 	})
 }
 
-func prim_sign(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_sign(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch v := op[0].(int) {
 		case v > 0:

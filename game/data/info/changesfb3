@@ -125,7 +125,7 @@ Changed:
     props that are not readable by the uid the program is running under.
   
   Commands like @desc, @lock, @succ, @osucc, etc. now will work at a distance
-    for the owner of the object, if the object is referred to by dbref.  This
+    for the owner of the object, if the object is referred to by ObjectID.  This
     facilitates builder programs.
   
   @dig, @action, @open, and @create can now take a third parameter in the form:
@@ -139,7 +139,7 @@ Changed:
     if Joe_blow types '@dig Bedroom=$myenv=mybedroom' then it will create
     the room "Bedroom" and set it's parent to the room referred to by $myenv
     then registers it on the player as $mybedroom by setting the _reg/mybedroom
-    property to the dbref of the room object created.  If the <registername>
+    property to the ObjectID of the room object created.  If the <registername>
     parameter is excluded, then the object isn't registered.  If you want
     to, for example, @create an object, but not set it's value, but you DO
     want to register it, then you just exclude That parameter, but remember
@@ -172,12 +172,12 @@ Added:
     and exit destinations.
   
 New Primitives:
-  ENVPROPSTR (s d -- s d )  Takes a starting object dbref and a property name
+  ENVPROPSTR (s d -- s d )  Takes a starting object ObjectID and a property name
                              and searches down the environment tree from that
                              object for a property with the given name.
                              If the property isn't found, it returns #-1 and
                              a null string.  If the property is found, it will
-                             return the dbref of the object it was found on,
+                             return the ObjectID of the object it was found on,
                              and the string value it contained.
   
   NOTIFY_EXCLUDE (d dn ... d1 n s -- )  Displays the message s to all the
@@ -222,7 +222,7 @@ Changed:
     "gen" or "cmd" and have at least one character after that.  (see the
     description of the SMATCH primitive later in this document)  The flags
     string argument is rather different.  It is a string that consists of
-    the letters you would see in the flags field after a dbref in an examine,
+    the letters you would see in the flags field after a ObjectID in an examine,
     and negations.  ie: "FW!D" would match programs that are set Wizard and
     NOT set Debug.  A wizard could find all the MUCKER players in the data-
     base who were not wizards simply with a '@find =P!WM'.  The '!' means
@@ -244,7 +244,7 @@ Changed:
   
   The matching routines no longer look for _progreg/xxxx, as I decided that
     this is too useful a mod to keep for programs alone.  It now looks for
-    $registered names in _reg/ for a STRING that contains the dbref of the
+    $registered names in _reg/ for a STRING that contains the ObjectID of the
     program to reference.  The string can simply be a number like "1234" or
     prepended by a # like "#1234".
   
@@ -302,7 +302,7 @@ Added:
       are nestable also.  Some examples:
       $ifndef __version>Muck2.2fb3.5 $define envprop .envprop $enddef $endif
       $define ploc $ifdef proplocs .proploc $else $endif $enddef
-    $include <dbref|progreg>
+    $include <ObjectID|progreg>
       Sets a bunch of $defines from the properties in the /_defs/ propdir.
       For example, if object #345 had the following properties:
         /_defs/desc: "_/de" getpropstr
@@ -433,7 +433,7 @@ Added:
   @prog'ed or @pcreated, or if the similar functions are done in MUF.
   
 Primitives:
-      TIMESTAMPS ( d -- i i i i )   Takes the dbref of an object, and returns
+      TIMESTAMPS ( d -- i i i i )   Takes the ObjectID of an object, and returns
                                      the four timestamp ints in the order of
                                      Created, Modified, Lastused, and Usecount
                                      where the three times are in systime

@@ -84,7 +84,7 @@ Installation in a shared environment is a little trickier:
 	The minimal db has nothing in it except the starter room and the #1
 	Wizard player.  The base db has a small set of commonly used muf
 	libraries and globals installed.  It's much generally easier to start
-	out with the base starter db.
+	out with the base starter DB.
 
     If you already have an existing muck database that you would like to
 	add to the list of servers managed by the fbmuck init scripts, you

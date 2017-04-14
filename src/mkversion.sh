@@ -114,7 +114,7 @@ const char *infotext[] =
 
 
 void
-do_credits(dbref player)
+do_credits(ObjectID player)
 {
     int i;
 
@@ -123,7 +123,7 @@ do_credits(dbref player)
     }
 }
 
-func do_version(dbref player) {
+func do_version(ObjectID player) {
 	s := fmt.Sprintf("Version: %s Compiled on: %s %s",VERSION,creation,debug);
 	notify(player, s);
 	return;

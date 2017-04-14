@@ -22,20 +22,20 @@ static struct err_type err_defs[] = {
 	{ "IBOUNDS", "Calculation resulted in an integer overflow.", I_BOUNDS },
 };
 
-func prim_clear(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_clear(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		fr.error.is_flags = 0
 	})
 }
 
-func prim_error_num(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_error_num(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, len(err_defs))
 	})
 }
 
-func prim_clear_error(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_clear_error(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var is_clear bool
 		switch v := op[0].(type) {
@@ -61,7 +61,7 @@ func prim_clear_error(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_set_error(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_set_error(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var is_set bool
 		switch v := op[0].(type) {
@@ -86,7 +86,7 @@ func prim_set_error(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_is_set(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_is_set(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var is_set bool
 		switch v := op[0].(type) {
@@ -109,7 +109,7 @@ func prim_is_set(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_error_str(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_error_str(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var message string
 		switch v := op[0].(type) {
@@ -130,7 +130,7 @@ func prim_error_str(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_error_name(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_error_name(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var name string
 		if v := op[0].(int); v > -1 || v < len(err_defs) {
@@ -140,7 +140,7 @@ func prim_error_name(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_error_bit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_error_bit(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		r := -1
 		if v, ok := op[0].(string); ok {
@@ -156,7 +156,7 @@ func prim_error_bit(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_is_error(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_is_error(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, MUFBool(fr.error.is_flags != 0))

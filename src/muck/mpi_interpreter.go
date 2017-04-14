@@ -9,8 +9,8 @@ const (
 	MPI_LISTSEP = '\r'
 )
 
-#define UNKNOWN ((dbref)-88)
-#define PERMDENIED ((dbref)-89)
+#define UNKNOWN ((ObjectID)-88)
+#define PERMDENIED ((ObjectID)-89)
 
 #define CHECKRETURN(vari,funam,num) if vari == "" { \
 	buf = fmt.Sprintf("%s %c%s%c (%s)", get_mvalue(MPI_VARIABLES, "how"), MFUN_LEADCHAR, funam, MFUN_ARGEND, num); \
@@ -26,7 +26,7 @@ const (
 
 type MPIArgs []string
 
-func ForceAction(program dbref, f func()) {
+func ForceAction(program ObjectID, f func()) {
 	force_prog = program
 	force_level++
 	f()

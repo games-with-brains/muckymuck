@@ -2,7 +2,7 @@ package fbmuck
 
 import "strings"
 
-func with_useful_object(caller string, obj dbref, f func()) {
+func with_useful_object(caller string, obj ObjectID, f func()) {
 	switch obj {
 	case UNKNOWN, AMBIGUOUS, NOTHING, HOME:
 		ABORT_MPI(caller, "Match failed.")
@@ -15,7 +15,7 @@ func with_useful_object(caller string, obj dbref, f func()) {
 
 /***** Insert MFUNs here *****/
 
-func mfn_func(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_func(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	var namebuf, argbuf, defbuf string
 
 	funcname := mesg_parse(descr, player, what, perms, argv[0], mesgtyp)
@@ -31,19 +31,19 @@ func mfn_func(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_muckname(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_muckname(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return tp_muckname
 }
 
-func mfn_version(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_version(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return VERSION
 }
 
-func mfn_prop(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_prop(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) == 2 {
-		what = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		what = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("PROP", what, func(obj dbref) {
+	with_useful_object("PROP", what, func(obj ObjectID) {
 		var blessed bool
 		if r, blessed = safegetprop(player, obj, perms, argv[0], mesgtyp); r == "" {
 			ABORT_MPI("PROP", "Failed read.")
@@ -52,11 +52,11 @@ func mfn_prop(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_propbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_propbang(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) == 2 {
-		what = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		what = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("PROP!", obj, func(obj dbref) {
+	with_useful_object("PROP!", obj, func(obj ObjectID) {
 		var blessed bool
 		if r, blessed = safegetprop_strict(player, what, perms, argv[0], mesgtyp); r = "" {
 			ABORT_MPI("PROP!", "Failed read.")
@@ -65,11 +65,11 @@ func mfn_propbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return
 }
 
-func mfn_store(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_store(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) > 2 {
-		what = mesg_dbref_strict(descr, player, what, perms, argv[2], mesgtyp)
+		what = mesg_ObjectID_strict(descr, player, what, perms, argv[2], mesgtyp)
 	}
-	with_useful_object("STORE", obj, func(obj dbref) {
+	with_useful_object("STORE", obj, func(obj ObjectID) {
 		if !safeputprop(what, perms, argv[1], argv[0], mesgtyp) {
 			ABORT_MPI("BLESS", "Permission denied.")
 		}
@@ -77,11 +77,11 @@ func mfn_store(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return argv[0]
 }
 
-func mfn_bless(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_bless(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) > 1 {
-		what = mesg_dbref_strict(descr, player, what, perms, argv[1], mesgtyp)
+		what = mesg_ObjectID_strict(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("BLESS", obj, func(obj dbref) {
+	with_useful_object("BLESS", obj, func(obj ObjectID) {
 		if !safeblessprop(obj, perms, argv[0], mesgtyp, 1) {
 			ABORT_MPI("BLESS", "Permission denied.")
 		}
@@ -89,11 +89,11 @@ func mfn_bless(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_unbless(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_unbless(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) > 1 {
-		what = mesg_dbref_strict(descr, player, what, perms, argv[1], mesgtyp)
+		what = mesg_ObjectID_strict(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("UNBLESS", what, func(obj dbref) {
+	with_useful_object("UNBLESS", what, func(obj ObjectID) {
 		if !safeblessprop(obj, perms, argv[0], mesgtyp, 0) {
 			ABORT_MPI("UNBLESS", "Permission denied.")
 		}
@@ -101,11 +101,11 @@ func mfn_unbless(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return
 }
 
-func mfn_delprop(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_delprop(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if len(argv) > 1 {
-		what = mesg_dbref_strict(descr, player, what, perms, argv[1], mesgtyp)
+		what = mesg_ObjectID_strict(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("DELPROP", what, func(obj dbref) {
+	with_useful_object("DELPROP", what, func(obj ObjectID) {
 		if !safeputprop(obj, perms, argv[0], nil, mesgtyp) {
 			ABORT_MPI("DELPROP", "Permission denied.")
 		}
@@ -113,12 +113,12 @@ func mfn_delprop(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return
 }
 
-func mfn_exec(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_exec(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("EXEC", obj, func(obj dbref) {
+	with_useful_object("EXEC", obj, func(obj ObjectID) {
 		pname := strings.TrimLeft(argv[0], PROPDIR_DELIMITER)
 		var blessed bool
 		if r, blessed = safegetprop(player, obj, perms, pname, mesgtyp); r = "" {
@@ -140,12 +140,12 @@ func mfn_exec(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_execbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_execbang(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("EXEC!", obj, func(obj dbref) {
+	with_useful_object("EXEC!", obj, func(obj ObjectID) {
 		var blessed bool
 		pname = strings.TrimLeft(pname, PROPDIR_DELIMITER)
 		if r, blessed = safegetprop_strict(player, obj, perms, argv[0], mesgtyp); r == "" {
@@ -167,12 +167,12 @@ func mfn_execbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return
 }
 
-func mfn_index(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_index(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("INDEX", obj, func(obj dbref) {
+	with_useful_object("INDEX", obj, func(obj ObjectID) {
 		tmpobj := obj
 		var blessed bool
 		if r, blessed = safegetprop(player, obj, perms, argv[0], mesgtyp); r != "" {
@@ -194,12 +194,12 @@ func mfn_index(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_indexbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_indexbang(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("INDEX!", obj, func(obj dbref) {
+	with_useful_object("INDEX!", obj, func(obj ObjectID) {
 		tmpobj := obj
 		var blessed bool
 		if r, blessed = safegetprop_strict(player, obj, perms, argv[0], mesgtyp); r != "" {
@@ -222,12 +222,12 @@ func mfn_indexbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp i
 	return
 }
 
-func mfn_propdir(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_propdir(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv, mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv, mesgtyp)
 	}
-	with_useful_object("PROPDIR", obj, func(obj dbref) {
+	with_useful_object("PROPDIR", obj, func(obj ObjectID) {
 		if is_propdir(obj, argv[0]) {
 			r = "1"
 		} else {
@@ -237,12 +237,12 @@ func mfn_propdir(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return
 }
 
-func mfn_listprops(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_listprops(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	obj := what
 	if len(argv) > 1 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("LISTPROPS", obj, func(obj dbref) {
+	with_useful_object("LISTPROPS", obj, func(obj ObjectID) {
 		var pattern string
 		if len(argv) > 2 {
 			pattern = argv[2]
@@ -261,10 +261,10 @@ func mfn_listprops(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp i
 				if Prop_Hidden(p) {
 					flag = false
 				}
-				if Prop_Private(p) && db.Fetch(what).Owner != db.Fetch(obj).Owner {
+				if Prop_Private(p) && DB.Fetch(what).Owner != DB.Fetch(obj).Owner {
 					flag = false
 				}
-				if obj != player && db.Fetch(obj).Owner != db.Fetch(what).Owner {
+				if obj != player && DB.Fetch(obj).Owner != DB.Fetch(what).Owner {
 					flag = false
 				}
 			}
@@ -283,26 +283,26 @@ func mfn_listprops(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp i
 	return
 }
 
-func mfn_concat(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_concat(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp);
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp);
 	}
-	with_useful_object("CONCAT", obj, func(obj dbref) {
+	with_useful_object("CONCAT", obj, func(obj ObjectID) {
 		var blessed bool
 		r = get_concat_list(player, what, perms, obj, argv[0], r, BUFFER_LEN, 1, mesgtyp, &blessed)
 	})
 	return
 }
 
-func mfn_select(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_select(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	char propname[BUFFER_LEN]
 	pname := argv[1]
 	obj := what
 	if len(argv) == 3 {
-		obj = mesg_dbref(descr, player, what, perms, argv[2], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[2], mesgtyp)
 	}
-	with_useful_object("SELECT", obj, func(obj dbref) {
+	with_useful_object("SELECT", obj, func(obj ObjectID) {
 		//	Search contiguously for a bit, looking for a best match. This allows fast hits on LARGE lists.
 		targval := strconv.Atoi(argv[0])
 	   	i := targval
@@ -330,7 +330,7 @@ func mfn_select(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 
 	   		var bestname string
 	   		var bestval int
-	   		var bestobj dbref
+	   		var bestobj ObjectID
 	   		baselen := len(origprop)
 	   		for ; obj != NOTHING; obj = getparent(obj) {
 	   			pname = next_prop_name(obj, origprop)
@@ -389,24 +389,24 @@ func mfn_select(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 	return
 }
 
-func mfn_list(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_list(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp);
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp);
 	}
-	with_useful_object("LIST", obj, func(obj dbref) {
+	with_useful_object("LIST", obj, func(obj ObjectID) {
 		var blessed bool
 		r = get_concat_list(player, what, perms, obj, argv[0], buf, BUFFER_LEN, 0, mesgtyp, &blessed)
 	})
 	return
 }
 
-func mfn_lexec(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_lexec(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("LEXEC", obj, func(obj dbref) {
+	with_useful_object("LEXEC", obj, func(obj ObjectID) {
 		pname := strings.TrimLeft(argv[0], PROPDIR_DELIMITER)
 		var blessed bool
 		r = get_concat_list(player, what, perms, obj, pname, buf, BUFFER_LEN, 2, mesgtyp, &blessed);
@@ -425,13 +425,13 @@ func mfn_lexec(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_rand(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_rand(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	pname := argv[0]
 	obj := what
 	if len(argv) == 2 {
-		obj = mesg_dbref(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("RAND", obj, func(obj dbref) {
+	with_useful_object("RAND", obj, func(obj ObjectID) {
 		var blessed bool
 		num := get_list_count(what, obj, perms, pname, mesgtyp, &blessed)
 		if num == 0 {
@@ -455,15 +455,15 @@ func mfn_rand(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_timesub(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_timesub(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	period := atoi(argv[0])
 	offset := atoi(argv[1])
 	pname := argv[2]
 	obj := what
 	if len(argv) == 4 {
-		obj = mesg_dbref(descr, player, what, perms, argv[3], mesgtyp)
+		obj = mesg_ObjectID(descr, player, what, perms, argv[3], mesgtyp)
 	}
-	with_useful_object("TIMESUB", obj, func(obj dbref) {
+	with_useful_object("TIMESUB", obj, func(obj ObjectID) {
 		var blessed bool
 		num := get_list_count(what, obj, perms, pname, mesgtyp, &blessed)
 		switch {
@@ -493,27 +493,27 @@ func mfn_timesub(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return
 }
 
-func mfn_nl(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_nl(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return MPI_LISTSEP
 }
 
-func mfn_lit(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_lit(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return strings.Join(argv, ",")
 }
 
-func mfn_eval(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_eval(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	r = mesg_parse(descr, player, what, perms, strings.Join(argv, ","), (mesgtyp & ~MPI_ISBLESSED))
 	CHECKRETURN(ptr, "EVAL", "arg 1");
 	return
 }
 
-func mfn_evalbang(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_evalbang(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	r = mesg_parse(descr, player, what, perms, strings.Join(argv, ","), mesgtyp)
 	CHECKRETURN(r, "EVAL!", "arg 1")
 	return
 }
 
-func mfn_strip(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_strip(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	r = strings.TrimLeftFunc(argv[0], unicode.IsSpace)
 	for i, v := range argv[1:] {
 		r = append(r, ",", v)
@@ -521,30 +521,30 @@ func mfn_strip(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return strings.TrimRightFunc(r, unicode.IsSpace)
 }
 
-func mfn_mklist(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_mklist(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	return strings.Join(argv, MPI_LISTSEP)
 }
 
-func mfn_pronouns(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_pronouns(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	obj := player
 	if len(argv) > 1 {
-		obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID_local(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("PRONOUNS", obj, func(obj dbref) {
+	with_useful_object("PRONOUNS", obj, func(obj ObjectID) {
 		r = pronoun_substitute(descr, obj, argv[0])
 	})
 	return
 }
 
-func mfn_ontime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_ontime(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	r = "-1"
-	switch obj := mesg_dbref_raw(descr, player, what, perms, argv[0]); obj {
+	switch obj := mesg_ObjectID_raw(descr, player, what, perms, argv[0]); obj {
 	case UNKNOWN, AMBIGUOUS, NOTHING, HOME:
 	case PERMDENIED:
 		ABORT_MPI("ONTIME", "Permission denied.")
 	default:
 		if Typeof(obj) != TYPE_PLAYER {
-			obj = db.Fetch(obj).Owner
+			obj = DB.Fetch(obj).Owner
 		}
 		if conn := least_idle_player_descr(obj); conn != 0 {
 			r = fmt.Sprint(pontime(conn))
@@ -553,15 +553,15 @@ func mfn_ontime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 	return
 }
 
-func mfn_idle(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_idle(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	r = "-1"
-	switch obj := mesg_dbref_raw(descr, player, what, perms, argv[0]); obj {
+	switch obj := mesg_ObjectID_raw(descr, player, what, perms, argv[0]); obj {
 	case PERMDENIED:
 		ABORT_MPI("IDLE", "Permission denied.")
 	case UNKNOWN, AMBIGUOUS, NOTHING, HOME:
 	default:
 		if Typeof(obj) != TYPE_PLAYER {
-			obj = db.Fetch(obj).Owner
+			obj = DB.Fetch(obj).Owner
 		}
 		if conn := least_idle_player_descr(obj); conn != 0 {
 			r = fmt.Sprint(pidle(conn))
@@ -570,13 +570,13 @@ func mfn_idle(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_online(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_online(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if mesgtyp & MPI_ISBLESSED == 1 {
 		for count := current_descr_count; count > 0; count-- {
 			if r != "" {
 				r = append(r, MPI_LISTSEP)
 			}
-			r = append(r, ref2str(pdbref(count)))
+			r = append(r, ref2str(pObjectID(count)))
 		}
 	} else {
 		ABORT_MPI("ONLINE", "Permission denied.")
@@ -593,15 +593,15 @@ func msg_compare(s1, s2 string) (r int) {
 	return
 }
 
-func mfn_contains(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("CONTAINS (1)", mesg_dbref_local(descr, player, what, perms, argv[0], mesgtyp), func(obj1 dbref) {
+func mfn_contains(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("CONTAINS (1)", mesg_ObjectID_local(descr, player, what, perms, argv[0], mesgtyp), func(obj1 ObjectID) {
 		obj := player
 		if len(argv) > 1 {
-			obj = mesg_dbref_raw(descr, player, what, perms, argv[1])
+			obj = mesg_ObjectID_raw(descr, player, what, perms, argv[1])
 		}
-		with_useful_object("CONTAINS (2)", obj, func(obj2 dbref) {
+		with_useful_object("CONTAINS (2)", obj, func(obj2 ObjectID) {
 			for obj2 != NOTHING && obj2 != obj1 {
-				obj2 = db.Fetch(obj2).Location
+				obj2 = DB.Fetch(obj2).Location
 			}
 			if obj1 == obj2 {
 				r = "1"
@@ -613,14 +613,14 @@ func mfn_contains(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return
 }
 
-func mfn_holds(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("HOLDS (1)", mesg_dbref_raw(descr, player, what, perms, argv[0]), func(obj1 dbref) {
+func mfn_holds(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("HOLDS (1)", mesg_ObjectID_raw(descr, player, what, perms, argv[0]), func(obj1 ObjectID) {
 		obj := player
 		if len(argv) > 1 {
-			obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
+			obj = mesg_ObjectID_local(descr, player, what, perms, argv[1], mesgtyp)
 		}
-		with_useful_object("HOLDS (2)", obj, func(obj2 dbref) {
-			if obj2 == db.Fetch(obj1).Location {
+		with_useful_object("HOLDS (2)", obj, func(obj2 ObjectID) {
+			if obj2 == DB.Fetch(obj1).Location {
 				r = "1"
 			} else {
 				r = "0"
@@ -630,9 +630,9 @@ func mfn_holds(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_dbeq(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	obj1 := mesg_dbref_raw(descr, player, what, perms, argv[0])
-	obj2 := mesg_dbref_raw(descr, player, what, perms, argv[1])
+func mfn_dbeq(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	obj1 := mesg_ObjectID_raw(descr, player, what, perms, argv[0])
+	obj2 := mesg_ObjectID_raw(descr, player, what, perms, argv[1])
 	switch {
 	case obj1 == UNKNOWN || obj1 == PERMDENIED:
 		ABORT_MPI("DBEQ", "Match failed (1).")
@@ -647,7 +647,7 @@ func mfn_dbeq(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_ne(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_ne(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) == 0 {
 		r = "0"
 	} else {
@@ -656,7 +656,7 @@ func mfn_ne(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_eq(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_eq(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) == 0 {
 		r = "1"
 	} else {
@@ -665,7 +665,7 @@ func mfn_eq(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_gt(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_gt(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) > 0 {
 		r = "1"
 	} else {
@@ -674,7 +674,7 @@ func mfn_gt(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_lt(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_lt(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) < 0 {
 		r = "1"
 	} else {
@@ -683,7 +683,7 @@ func mfn_lt(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_ge(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_ge(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) >= 0 {
 		r = "1"
 	} else {
@@ -692,7 +692,7 @@ func mfn_ge(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_le(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_le(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) <= 0 {
 		r = "1"
 	} else {
@@ -701,7 +701,7 @@ func mfn_le(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r 
 	return
 }
 
-func mfn_min(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_min(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) <= 0 {
 		r = argv[0]
 	} else {
@@ -710,7 +710,7 @@ func mfn_min(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r
 	return
 }
 
-func mfn_max(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_max(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if msg_compare(argv[0], argv[1]) >= 0 {
 		r = argv[0]
 	} else {
@@ -719,7 +719,7 @@ func mfn_max(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r
 	return
 }
 
-func mfn_isnum(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_isnum(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	if argv[0] != nil && unicode.IsNumber(argv[0]) {
 		r = "1"
 	} else {
@@ -728,23 +728,23 @@ func mfn_isnum(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_isdbref(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_isObjectID(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	buf := strings.TrimLeftFunc(argv[0], unicode.IsSpace)
 	r = "0"
 	if buf[0] == NUMBER_TOKEN && unicode.IsNumber(buf[1]) {
-		r = MUFBool(valid_reference(strconv.Atoi(ptr)))
+		r = MUFBool(strconv.Atoi(ptr).IsValid())
 	}
 	return
 }
 
-func mfn_inc(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_inc(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	mpi_use_variable(argv, func(i, v int) {
 		r = fmt.Sprint(i + x)
 	})
 	return
 }
 
-func mfn_dec(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_dec(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	mpi_use_variable(argv, func(i, v int) {
 		r = fmt.Sprint(i - x)
 	})
@@ -759,25 +759,25 @@ func mfn_do_int_maths(argv MPIArgs, f func(i, v int) int) string {
 	return fmt.Sprint(i)
 }
 
-func mfn_add(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_add(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return mfn_do_int_maths(argv, func(i, v int) int {
 		return i + v
 	})
 }
 
-func mfn_subt(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_subt(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return mfn_do_int_maths(argv, func(i, v int) int {
 		return i - v
 	})
 }
 
-func mfn_mult(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_mult(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return mfn_do_int_maths(argv, func(i, v int) int {
 		return i * v
 	})
 }
 
-func mfn_div(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_div(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return mfn_do_int_maths(argv, func(i, v int) (r int) {
 		if v == 0 {
 			r = 0
@@ -788,7 +788,7 @@ func mfn_div(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) st
 	})
 }
 
-func mfn_mod(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_mod(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return mfn_do_int_maths(argv, func(i, v int) (r int) {
 		if v == 0 {
 			r = 0
@@ -799,7 +799,7 @@ func mfn_mod(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) st
 	})
 }
 
-func mfn_abs(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_abs(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	val := strconv.Atoi(argv[0])
 	if val < 0 {
 		val = -val;
@@ -807,7 +807,7 @@ func mfn_abs(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) st
 	return fmt.Sprint(val)
 }
 
-func mfn_sign(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_sign(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	switch val := strconv.Atoi(argv[0]) {
 	case val < 0:
 		return "-1"
@@ -817,7 +817,7 @@ func mfn_sign(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 	return "0"
 }
 
-func mfn_dist(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_dist(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	int a, b, c;
 	int a2, b2, c2;
 	double result;
@@ -847,7 +847,7 @@ func mfn_dist(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 	return fmt.Sprintf("%.0f", floor(result + 0.5))
 }
 
-func mfn_not(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_not(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	if truestr(argv[0]) {
 		return "0"
 	} else {
@@ -855,7 +855,7 @@ func mfn_not(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) st
 	}
 }
 
-func mfn_or(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_or(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	for i, v := range argv {
 		buf := mesg_parse(descr, player, what, perms, argv[i], mesgtyp)
 		CHECKRETURN(buf, "OR", fmt.Sprintf("arg %d", i + 1))
@@ -866,7 +866,7 @@ func mfn_or(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) str
 	return "0"
 }
 
-func mfn_xor(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_xor(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	switch {
 	case truestr(argv[0]) && !truestr(argv[1]), !truestr(argv[0]) && truestr(argv[1]):
 		return "1"
@@ -874,7 +874,7 @@ func mfn_xor(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r
 	return "0"
 }
 
-func mfn_and(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
+func mfn_and(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	for i, v := range argv {
 		r = mesg_parse(descr, player, what, perms, v, mesgtyp)
 		CHECKRETURN(r, "AND", fmt.Sprintf("arg %d", i + 1))
@@ -885,7 +885,7 @@ func mfn_and(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r
 	return "1"
 }
 
-func mfn_dice(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_dice(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	var offset, total int
 	num := 1
 	sides := 1
@@ -909,7 +909,7 @@ func mfn_dice(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return fmt.Sprint(total + offset)
 }
 
-func mfn_default(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_default(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	buf = mesg_parse(descr, player, what, perms, argv[0], mesgtyp)
 	CHECKRETURN(buf, "DEFAULT", "arg 1")
 	if buf != "" && truestr(buf) {
@@ -920,7 +920,7 @@ func mfn_default(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return
 }
 
-func mfn_if(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_if(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	var fbr string
 	if len(argv) == 3 {
 		fbr = argv[2]
@@ -937,7 +937,7 @@ func mfn_if(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (bu
 	return
 }
 
-func mfn_while(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_while(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	for {
 		buf2 := mesg_parse(descr, player, what, perms, argv[0], mesgtyp)
 		CHECKRETURN(buf2, "WHILE", "arg 1");
@@ -950,15 +950,15 @@ func mfn_while(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_null(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_null(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return ""
 }
 
-func mfn_tzoffset(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_tzoffset(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	return fmt.Sprint(get_tz_offset())
 }
 
-func mfn_time(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_time(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	time_t lt;
 	struct tm *tm;
 
@@ -971,7 +971,7 @@ func mfn_time(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 	return format_time("%T", tm)
 }
 
-func mfn_date(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_date(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	time_t lt;
 	struct tm *tm;
 
@@ -984,7 +984,7 @@ func mfn_date(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 	return format_time("%D", tm)
 }
 
-func mfn_ftime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_ftime(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	time_t lt;
 	struct tm *tm;
 
@@ -1006,7 +1006,7 @@ func mfn_ftime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return format_time(argv[0], tm)
 }
 
-func mfn_convtime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_convtime(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	struct tm otm;
 	int mo, dy, yr, hr, mn, sc;
 
@@ -1037,7 +1037,7 @@ func mfn_convtime(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return buf;
 }
 
-func mfn_ltimestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_ltimestr(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	int tm = strconv.Atol(argv[0])
 	int yr, mm, wk, dy, hr, mn;
 	char buf2[BUFFER_LEN];
@@ -1117,7 +1117,7 @@ func mfn_ltimestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return buf;
 }
 
-func mfn_timestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_timestr(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	int tm = strconv.Atol(argv[0])
 	int dy, hr, mn;
 
@@ -1144,7 +1144,7 @@ func mfn_timestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int
 	return buf;
 }
 
-func mfn_stimestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_stimestr(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	int tm = strconv.Atol(argv[0])
 	int dy, hr, mn;
 
@@ -1179,45 +1179,45 @@ func mfn_stimestr(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp in
 	return buf;
 }
 
-func mfn_secs(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_secs(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	var lt time_t
 	time(&lt)
 	return fmt.Sprint(lt)
 }
 
-func mfn_convsecs(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_convsecs(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	var lt time_t
 	lt := atol(argv[0])
 	return fmt.Sprint(ctime(&lt))
 }
 
-func mfn_loc(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("LOC", mesg_dbref_local(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = ref2str(db.Fetch(obj).Location)
+func mfn_loc(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("LOC", mesg_ObjectID_local(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
+		r = ref2str(DB.Fetch(obj).Location)
 	})
 	return
 }
 
-func mfn_nearby(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	obj := mesg_dbref_raw(descr, player, what, perms, argv[0])
+func mfn_nearby(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	obj := mesg_ObjectID_raw(descr, player, what, perms, argv[0])
 	switch {
 	case obj == UNKNOWN || obj == AMBIGUOUS || obj == NOTHING:
 		ABORT_MPI("NEARBY", "Match failed (arg1).")
 	case obj == PERMDENIED:
 		ABORT_MPI("NEARBY", "Permission denied (arg1).")
 	case obj == HOME:
-		obj = db.FetchPlayer(player).home
+		obj = DB.FetchPlayer(player).home
 	}
-	var obj2 dbref
+	var obj2 ObjectID
 	if len(argv) > 1 {
-		obj2 = mesg_dbref_raw(descr, player, what, perms, argv[1])
+		obj2 = mesg_ObjectID_raw(descr, player, what, perms, argv[1])
 		switch {
 		case obj2 == UNKNOWN || obj2 == AMBIGUOUS || obj2 == NOTHING:
 			ABORT_MPI("NEARBY", "Match failed (arg2).")
 		case obj2 == PERMDENIED:
 			ABORT_MPI("NEARBY", "Permission denied (arg2).")
 		case obj2 == HOME:
-			obj2 = db.FetchPlayer(player).home
+			obj2 = DB.FetchPlayer(player).home
 		}
 	} else {
 		obj2 = what
@@ -1233,8 +1233,8 @@ func mfn_nearby(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 	return
 }
 
-func mfn_money(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("MONEY", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
+func mfn_money(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("MONEY", mesg_ObjectID(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
 		switch TYPEOF(obj) {
 		case TYPE_THING, TYPE_PLAYER:
 			r = fmt.Sprint(get_property_value(obj, MESGPROP_VALUE))
@@ -1245,19 +1245,19 @@ func mfn_money(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_flags(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("FLAGS", mesg_dbref_local(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
+func mfn_flags(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("FLAGS", mesg_ObjectID_local(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
 		r = unparse_flags(obj)
 	})
 	return 
 }
 
-func mfn_tell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
+func mfn_tell(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
 	obj := player
 	if len(argv) > 1 {
-		obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID_local(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("TELL", obj, func(obj dbref) {
+	with_useful_object("TELL", obj, func(obj ObjectID) {
 		if mesgtyp & MPI_ISLISTENER != 0 && TYPEOF(what) != TYPE_ROOM {
 			ABORT_MPI("TELL", "Permission denied.")
 		} else {
@@ -1265,13 +1265,13 @@ func mfn_tell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 			items := strings.Split(argv[0], MPI_LISTSEP)
 			for _, v := range items {
 				var buf string
-				if obj != db.Fetch(perms).Owner && obj != player {
+				if obj != DB.Fetch(perms).Owner && obj != player {
 					buf = "> "
 				}
-				loc := db.Fetch(what).Location
-				name := db.Fetch(player).name
+				loc := DB.Fetch(what).Location
+				name := DB.Fetch(player).name
 				switch {
-				case Typeof(what) == TYPE_ROOM, db.Fetch(what).Owner == obj, player == obj, (Typeof(what) == TYPE_EXIT && Typeof(loc) == TYPE_ROOM), strings.Prefix(argv[0], name):
+				case Typeof(what) == TYPE_ROOM, DB.Fetch(what).Owner == obj, player == obj, (Typeof(what) == TYPE_EXIT && Typeof(loc) == TYPE_ROOM), strings.Prefix(argv[0], name):
 					buf += fmt.Sprintf("%.4093s", v)
 				} else {
 					buf += name
@@ -1287,33 +1287,33 @@ func mfn_tell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) s
 	return argv[0]
 }
 
-func mfn_otell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) string {
-	obj := db.Fetch(player).Location
+func mfn_otell(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) string {
+	obj := DB.Fetch(player).Location
 	if len(argv) > 1 {
-		obj = mesg_dbref_local(descr, player, what, perms, argv[1], mesgtyp)
+		obj = mesg_ObjectID_local(descr, player, what, perms, argv[1], mesgtyp)
 	}
-	with_useful_object("OTELL", obj, func(obj dbref) {
+	with_useful_object("OTELL", obj, func(obj ObjectID) {
 		if mesgtyp & MPI_ISLISTENER != 0 && TYPEOF(what) != TYPE_ROOM {
 			ABORT_MPI("OTELL", "Permission denied.")
 		} else {
 			eobj := player
 			if len(argv) > 2 {
-				eobj = mesg_dbref_raw(descr, player, what, perms, argv[2])
+				eobj = mesg_ObjectID_raw(descr, player, what, perms, argv[2])
 			}
 			items := strings.Split(argv[0], MPI_LISTSEP)
 			for _, v := range items {
-				loc := db.Fetch(what).Location
-				name := db.Fetch(player).name
+				loc := DB.Fetch(what).Location
+				name := DB.Fetch(player).name
 				var buf string
 				switch {
-				case ((db.Fetch(what).Owner == db.Fetch(obj).Owner || isancestor(what, obj)) && (TYPEOF(what) == TYPE_ROOM || (TYPEOF(what) == TYPE_EXIT && TYPEOF(loc) == TYPE_ROOM))) || strings.Prefix(argv[0], name):
+				case ((DB.Fetch(what).Owner == DB.Fetch(obj).Owner || isancestor(what, obj)) && (TYPEOF(what) == TYPE_ROOM || (TYPEOF(what) == TYPE_EXIT && TYPEOF(loc) == TYPE_ROOM))) || strings.Prefix(argv[0], name):
 					buf = v
 				case argv[0] == '\'' || unicode.IsSpace(argv[0]):
-					buf = fmt.Sprint(db.Fetch(player).name, v)
+					buf = fmt.Sprint(DB.Fetch(player).name, v)
 				default:
-					buf = fmt.Sprint(db.Fetch(player).name, " ", v)
+					buf = fmt.Sprint(DB.Fetch(player).name, " ", v)
 				}
-				for thing := db.Fetch(obj).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
+				for thing := DB.Fetch(obj).Contents; thing != NOTHING; thing = DB.Fetch(thing).next {
 					if thing != eobj {
 						notify_from_echo(player, thing, buf, 0)
 					}
@@ -1324,7 +1324,7 @@ func mfn_otell(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return argv[0]
 }
 
-func mfn_right(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_right(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	width := 78
 	if len(argv) > 1 {
 		width = strconv.Atoi(argv[1])
@@ -1343,7 +1343,7 @@ func mfn_right(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) 
 	return
 }
 
-func mfn_left(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_left(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	width := 78
 	if len(argv) > 1 {
 		width = strconv.Atoi(argv[1])
@@ -1361,7 +1361,7 @@ func mfn_left(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (
 	return
 }
 
-func mfn_center(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (buf string) {
+func mfn_center(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (buf string) {
 	width := 78
 	if len(argv) > 1 {
 		width = strconv.Atoi(argv[1])
@@ -1385,30 +1385,30 @@ func mfn_center(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int)
 	return
 }
 
-func mfn_created(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("CREATED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).Created)
+func mfn_created(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("CREATED", mesg_ObjectID(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
+		r = fmt.Sprint(DB.Fetch(obj).Created)
 	})
 	return
 }
 
-func mfn_lastused(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("LASTUSED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(onj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).LastUsed)
+func mfn_lastused(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("LASTUSED", mesg_ObjectID(descr, player, what, perms, argv[0], mesgtyp), func(onj ObjectID) {
+		r = fmt.Sprint(DB.Fetch(obj).LastUsed)
 	})
 	return
 }
 
-func mfn_modified(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("MODIFIED", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).Modified)
+func mfn_modified(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("MODIFIED", mesg_ObjectID(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
+		r = fmt.Sprint(DB.Fetch(obj).Modified)
 	})
 	return
 }
 
-func mfn_usecount(descr int, player, what, perms dbref, argv MPIArgs, mesgtyp int) (r string) {
-	with_useful_object("USECOUNT", mesg_dbref(descr, player, what, perms, argv[0], mesgtyp), func(obj dbref) {
-		r = fmt.Sprint(db.Fetch(obj).Uses)
+func mfn_usecount(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
+	with_useful_object("USECOUNT", mesg_ObjectID(descr, player, what, perms, argv[0], mesgtyp), func(obj ObjectID) {
+		r = fmt.Sprint(DB.Fetch(obj).Uses)
 	})
 	return
 }

@@ -67,8 +67,8 @@ fi
 /usr/share/fbmuck/man.txt
 /usr/share/fbmuck/mpihelp.txt
 /usr/share/fbmuck/restart-script
-#/usr/share/fbmuck/starter_dbs/basedb.tar.gz
-#/usr/share/fbmuck/starter_dbs/minimaldb.tar.gz
+#/usr/share/fbmuck/starter_dbs/baseDB.tar.gz
+#/usr/share/fbmuck/starter_dbs/minimalDB.tar.gz
 
 
 %changelog

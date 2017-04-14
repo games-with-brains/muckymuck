@@ -117,7 +117,7 @@ Turns string s into integer i.  If s is not a string, then 0 is pushed
 onto the stack.
 
 awake? ( s -- i )
-Takes a player dbref, and returns the number of connections that player
+Takes a player ObjectID, and returns the number of connections that player
 has to the server, or 0 if they are not online.
 
 begin ( -- )...until (i -- ), begin ( -- )...while (i -- )...repeat ( -- )
@@ -161,17 +161,17 @@ inherit the values of ME, LOC, TRIGGER, and all other variables.
 
 call ( d s -- ?? )
 Call is overloaded, such that if there is a string on top of the stack,
-it will call the public function of that name in teh preogram dbref given.
+it will call the public function of that name in teh preogram ObjectID given.
 Otherwise, this is like a regular call.
 
 caller ( -- d)
-returns the dbref of the program or trigger that started this program running.
+returns the ObjectID of the program or trigger that started this program running.
 This will contain a #-1 if run from a QUEUEd event.  If a program called
-this one, then it contains that program's dbref.  Otherwise, it will return
-the dbref of the original trigger.
+this one, then it contains that program's ObjectID.  Otherwise, it will return
+the ObjectID of the original trigger.
 
 contents ( d -- d' )
-Pushes the dbref of the first thing contained by d.  This dbref can
+Pushes the ObjectID of the first thing contained by d.  This ObjectID can
 then be referenced by `next' to cycle through all of the contents of
 d.  d may be a room or a player.
 
@@ -190,8 +190,8 @@ concount ( -- i)
 Returns the number of connections to the server.  A connection number is
 an integer between 1 and this number.
 
-condbref (i -- d)
-Takes a connection number and returns the dbref of the player connected to
+conObjectID (i -- d)
+Takes a connection number and returns the ObjectID of the player connected to
 it.
 
 conhost (i -- s)
@@ -216,7 +216,7 @@ dbcmp ( d1 d2 -- i )
 Performs comparison of database objects d1 and d2. If they are the
 same object, then i is 1, otherwise i is 0.
 
-dbref ( i -- d )
+ObjectID ( i -- d )
 Converts integer i to object reference d.
 
 desc ( d -- s )
@@ -298,7 +298,7 @@ int ( x -- i )
 Converts variable or object x to integer i.
 
 intostr ( x -- s )
-x must be an integer or a dbref. Converts x into string s.
+x must be an integer or a ObjectID. Converts x into string s.
 
 jmp ( a -- )
 Jumps to address a.  Used internally by the compiler for constructing
@@ -332,7 +332,7 @@ Takes object d and returns its name (@name) string field.
 
 newobject, newroom, newexit ( d s -- d )
 These three create an object of the appropriate type, with name s and
-located in object d, and return the dbref of the new item.  For rooms,
+located in object d, and return the ObjectID of the new item.  For rooms,
 the d parameter is their parent room.  For exits, it is where they are
 attached.  For Objects (Things), it is their location.  The new objects
 will be owned by the player running the program.  These are wizbit
@@ -367,7 +367,7 @@ ofail ( d -- s )
 Takes object d and returns its ofail (@ofail) string field.
 
 ok? ( x -- i )
-Takes x and returns 1 if x is a type dbref, as well as 0 or above,
+Takes x and returns 1 if x is a type ObjectID, as well as 0 or above,
 below the top of the database, and is not an object of type garbage.
 See also exit?, player?, program?, thing?.
 
@@ -537,7 +537,7 @@ Converts integer i to variable reference v. Of the pre-defined variables,
      me @
 and
      0 variable @
-will do the same thing (returning the user's dbref). User-defined variables
+will do the same thing (returning the user's ObjectID). User-defined variables
 are numbered sequentially starting at 3 by the compiler. Note that these
 variable numbers can be used even if variables have not been formally
 declared, making implementation of such things as arrays conveniently easy.
@@ -604,8 +604,8 @@ by the compiler, and do not count as part of the program.
 DBREF:
      This stands for "database reference". It refers directly to an
 object in the TinyMUCK database. An integer is not an acceptable
-substitute, but the primitive dbref (q.v. in the dictionary) will
-convert an integer on top of the stack into a dbref.
+substitute, but the primitive ObjectID (q.v. in the dictionary) will
+convert an integer on top of the stack into a ObjectID.
 
 EXECUTION:
      If a program has had an exit linked to it or had an object
@@ -632,7 +632,7 @@ LOCKING) an exit to a program, you may therefore have two programs
 executed per exit.
 
 HOME:
-     Dbref #-3 on the stack always refers to the dbref of the home
+     Dbref #-3 on the stack always refers to the ObjectID of the home
 of a thing or player object.
 
 ITERATION:
@@ -706,8 +706,8 @@ a program statement, its address is pushed on the stack. The program
 can then use the primitive `@' to retrieve is value, or `!'  to load a
 value into it.
      The variables ME, LOC and TRIGGER are pre-defined in MUF. ME
-stores the dbref of the program's user. LOC stores the dbref of his
-location.  TRIGGER stores the dbref of the exit/thing which caused the
+stores the ObjectID of the program's user. LOC stores the ObjectID of his
+location.  TRIGGER stores the ObjectID of the exit/thing which caused the
 program to be executed.  See USER, WORDS, and, in the dictionary, @,
 !, VAR and VARIABLE.
 
@@ -873,7 +873,7 @@ A random-number generator:
 
 
 
-        dbref?          ( ? -- i )         is top stack item is an dbref?
+        ObjectID?          ( ? -- i )         is top stack item is an ObjectID?
         dbtop           ( -- d )           top of database + 1 item.
         depth           ( -- i )           stack depth
         force           ( d s -- )         player, force string
@@ -882,7 +882,7 @@ A random-number generator:
         locked?         ( d d -- i )       player, object -- is object locked?
         nextprop        ( d s -- s )       object, propname -- next propname
         online          ( -- dN ... d1 N ) all connected players w/ count
-        prog            ( -- d )           this program's dbref
+        prog            ( -- d )           this program's ObjectID
         propdir?        ( d s -- i )       object, propname -- is it a propdir?
         queue           ( i d s -- ??? )   queue event to run prog d after i seconds with s on the stack.
         recycle         ( d -- )           item to recycle

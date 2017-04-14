@@ -291,7 +291,7 @@ SECTION V: "And just how do I refer to objects?"</h3></center>
 Okay, you can reference objects in basically the same ways that you can
 in user typed commands such as @desc, or @lock. You can refer to obj- ects
 by name, if they are in the same room as you, or in your inventory. You
-can refer to objects by dbref or registered name, if you need to be able
+can refer to objects by ObjectID or registered name, if you need to be able
 to refer to the object if it is not in your vicinity. And you can refer
 to players by name, with a * in front, no matter where they are.
 <p>The following are examples of the accepted ways to refer to objects.
@@ -305,7 +305,7 @@ to players by name, with a * in front, no matter where they are.
 <tr>
 <td>#1234</td>
 
-<td>Referencing by dbref.</td>
+<td>Referencing by ObjectID.</td>
 </tr>
 
 <tr NOSAVE>
@@ -323,7 +323,7 @@ to players by name, with a * in front, no matter where they are.
 
 <p>When an MPI command returns a reference to an object, (we'll discuss
 some of these commands in the intermediate guide) it will refer to nonplayers
-by dbref, and to players by starred name. ("*playername")
+by ObjectID, and to players by starred name. ("*playername")
 <p>
 <hr>
 <center>
@@ -405,7 +405,7 @@ GLOSSARY: "What does that mean, again?"</h3></center>
 
 <dd>
 A popular MUF program written by Lynx, for making long or somewhat elaborate
-descriptions. It gets its name from its dbref, #6800, and its invocation
+descriptions. It gets its name from its ObjectID, #6800, and its invocation
 via the string "@6800" at the beginning of an @desc. This is the same program
 as $desc, but is not related to $wf-desc, except in concept and function.</dd>
 

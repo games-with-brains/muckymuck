@@ -297,19 +297,19 @@ for each hour of the day.
 Okay, you can reference objects in basically the same ways that you can
 in user typed commands such as @desc, or @lock.  You can refer to obj-
 ects by name, if they are in the same room as you, or in your inventory.
-You can refer to objects by dbref or registered name, if you need to be
+You can refer to objects by ObjectID or registered name, if you need to be
 able to refer to the object if it is not in your vicinity.  And you can
 refer to players by name, with a * in front, no matter where they are.
   
 The following are examples of the accepted ways to refer to objects.
     object               Referencing by name.
-    #1234                Referencing by dbref.
+    #1234                Referencing by ObjectID.
     $regname             Referencing by registered name.
     *playername          Referencing by player name.
   
 When an MPI command returns a reference to an object, (we'll discuss
 some of these commands in the intermediate guide) it will refer to
-nonplayers by dbref, and to players by starred name.  ("*playername")
+nonplayers by ObjectID, and to players by starred name.  ("*playername")
   
   
   
@@ -407,7 +407,7 @@ player looking at the room.  Otherwise, the @fail is shown to the looker.
   
   
 @6800: A popular MUF program written by Lynx, for making long or somewhat
-  elaborate descriptions. It gets its name from its dbref, #6800, and its
+  elaborate descriptions. It gets its name from its ObjectID, #6800, and its
   invocation via the string "@6800" at the beginning of an @desc.  This is
   the same program as $desc, but is not related to $wf-desc, except in 
   concept and function.

@@ -51,7 +51,7 @@ Features added:
   Program registration added:  If you refer to a program in @link, @open,
     @prog, @edit, or @set, with the syntax "$progname" then it will look
     for a property named "_progreg/progname" in #0 containing an integer
-    value (not a string) that represents the dbref of the program.  If it
+    value (not a string) that represents the ObjectID of the program.  If it
     exists, then the command will match the program.  Also, if you @desc,
     @succ, @drop, or @fail an object to start with "@$progname" then it
     will run that program, similar to an "@1234" @desc/@succ/etc.
@@ -63,7 +63,7 @@ Features added:
       @set $puzzle-reset = DEBUG
     Programs and macros can easily be made to manage the registered programs
     list.  A useful macro would be:
-      def progmatch "_progreg/" swap strcat getpropval dbref
+      def progmatch "_progreg/" swap strcat getpropval ObjectID
     That would be used in good coding style like:
       lvar stringlib (the local variable for the string library)
       : init ( -- ) "lib-strings" .progmatch stringlib ! ;
@@ -112,7 +112,7 @@ If a program has the HAVEN flag set on it (HARDUID) then it runs with
   
 Added _connect and _disconnect:
   A room or player may have a "_connect" property set that contains the
-  dbref of a progran to run when a player connects.  The program must be
+  ObjectID of a progran to run when a player connects.  The program must be
   either link_ok or must be owned by the player connecting.  When the
   program is run, the string on the stack will be "Connect", the "loc @"
   will be the location of the connecting player, the "me @" will be the
@@ -125,7 +125,7 @@ Added _connect and _disconnect:
   
   @dequeue will now let you remove all events run by a specific player
   or of a specific program with the syntax:  @dequeue #xxx   Where xxx
-  is the dbref of the program or player.
+  is the ObjectID of the program or player.
   
   All the timequeue events of a program are now dequeued when the program
   is recompiled or @recycled.  This prevents the bug which would otherwise
@@ -168,7 +168,7 @@ Added _connect and _disconnect:
 2.2fb2.1
 Added Listeners:
   A room or object may have a "_listen" property set that contains the
-  dbref of a program to run whenever a notify_except is done in that
+  ObjectID of a program to run whenever a notify_except is done in that
   room or in the room that contains the object.  The program must
   either be link_ok or must be owned by the owner of the object
   containing the "_listen" property.  When the program is run, the
@@ -187,7 +187,7 @@ Added Listeners:
 New primitives:
   PUBLIC <functionname>  Declares a function to be public for execution by
     other programs.  This is a compile-time directive, not a run-time
-    primitive.  To call a public function, put the dbref of the program on the
+    primitive.  To call a public function, put the ObjectID of the program on the
     stack, then put a string, containing the function name, on the stack, then
     use CALL.  ie:  #888 "functionname" CALL
   

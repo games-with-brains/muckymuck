@@ -148,7 +148,7 @@ Added:
   
   @find, @owned, and @entrances also now accept a third argument.  Thi arg
    is a work that specifies what type of output you want.  The default is
-   to just show the name and dbref of the matched object.  If you specify
+   to just show the name and ObjectID of the matched object.  If you specify
    'owners' (or an abbreviation of that), then it will also show the name
    of the owner for each object, beside the object name.  If you specify
    'links' (also abbreviateable), then it will show either *UNLINKED*, the
@@ -200,9 +200,9 @@ Primitives:
   DESCRCON (i -- i)  Takes a descriptor and returns the associated connection
                       number, or 0 if no match was found.
   
-  DESCRIPTORS (d -- ix...i1 i) Takes a player dbref, or #-1, and returns the
+  DESCRIPTORS (d -- ix...i1 i) Takes a player ObjectID, or #-1, and returns the
                                 range of descriptor numbers associated with
-                                that dbref (or all for #-1) with their count
+                                that ObjectID (or all for #-1) with their count
                                 on top.
   
   ISPID?  (i -- i)  Takes a process id and checks to see if an event with that
@@ -236,9 +236,9 @@ Added:
    by the _depart properties in all the rooms down the environment from
    the room left, and when you enter a room, it QUEUEs up all the programs
    referred to by all the _arrive properties down the environment from the
-   room entered.  These properties can refer to either dbrefs of programs,
+   room entered.  These properties can refer to either ObjectIDs of programs,
    or registered objects, similarly to _connect and _disconnect.  The
-   loc @ for a _depart run program is the dbref of the room left, and will
+   loc @ for a _depart run program is the ObjectID of the room left, and will
    not match the value of 'me @ location' which will be the room they went
    to.
   
@@ -264,7 +264,7 @@ Changed:
     of functions pointed to by an array of function pointers.  This makes for
     a slight increase in speed, and also for easier addition of primitives.
   
-  You can now connect to a player via dbref.  Just give the dbref where you
+  You can now connect to a player via ObjectID.  Just give the ObjectID where you
     would normally put your name in the connection request.  For example:
           connect #1234 craZypassWord
   
@@ -331,7 +331,7 @@ Changed:
     it is Mucker Level 0, it is upgraded to Mucker Level 2.
   
   When a program crashes, now even the errors within interp_loop() will tell
-    what MUF program dbref and line number it occurred at.
+    what MUF program ObjectID and line number it occurred at.
   
   
 Added:
@@ -367,12 +367,12 @@ New Primitives:
                    muf process on the time queue. (Requires Mucker Level 3)
                    FORK returns a -1 if the timequeue was full.
   
-  STATS (d -- 7 ints)  Takes a dbref and returns 7 integers, giving, in order,
-                        The total number of objects owned by the given dbref,
+  STATS (d -- 7 ints)  Takes a ObjectID and returns 7 integers, giving, in order,
+                        The total number of objects owned by the given ObjectID,
                         the number of rooms owned, the number of exits owned,
                         the number of things owned, number of programs owned,
                         number of players, and number of garbage items owned.
-                        If the given dbref was #-1, then the stats are the
+                        If the given ObjectID was #-1, then the stats are the
                         totals for the entire database. (Needs Mucker Level 3)
   
   

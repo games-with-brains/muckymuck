@@ -70,7 +70,7 @@ Compiler directives for MUF:
       are nestable also.  Some examples:
       $ifndef __version>Muck2.2fb3.5 $define envprop .envprop $enddef $endif
       $define ploc $ifdef proplocs .proploc $else $endif $enddef
-    $include <dbref|progreg>
+    $include <ObjectID|progreg>
       Sets a bunch of $defines from the properties in the /_defs/ propdir.
       For example, if object #345 had the following properties:
         /_defs/desc: "_/de" getpropstr
@@ -115,7 +115,7 @@ New primitives:
   PUBLIC <functionname>  Declares a function to be public for execution by
                           other programs.  This is a compile-time directive,
                           not a run-time primitive.  To call a public
-                          function, put the dbref of the program on the
+                          function, put the ObjectID of the program on the
                           stack, then put a string, containing the function
                           name, on the stack, then use CALL.  For example:
                           #888 "functionname" CALL
@@ -132,22 +132,22 @@ New primitives:
 
   ABORT    (s -- )  Halts the interpreter with an error of the string given.
 
-  SETLINK   (d d -- )   Takes an exit dbref and a destination dbref and sets
+  SETLINK   (d d -- )   Takes an exit ObjectID and a destination ObjectID and sets
                          the exit link to that destination.  Note that if the
                          exit is already linked, it must be unlinked by doing
                          a setlink with #-1 as a destination.
   
   SETOWN    (d d -- )   Sets the ownership of the first object to the player
-                         given in the second dbref. (wizbit only)
+                         given in the second ObjectID. (wizbit only)
   
-  NEWROOM   (d s -- d)  Takes dbref of the location, and the name in a string.
-                          Returns the dbref of the room created.  Owner is
+  NEWROOM   (d s -- d)  Takes ObjectID of the location, and the name in a string.
+                          Returns the ObjectID of the room created.  Owner is
                           runner of the program. (Mucker Level 3)
   
-  NEWOBJECT (d s -- d)  Takes location and name and returns new thing's dbref.
+  NEWOBJECT (d s -- d)  Takes location and name and returns new thing's ObjectID.
                           (Mucker Level 3)
   
-  NEWEXIT   (d s -- d)  Takes location and name and returns new exit's dbref.
+  NEWEXIT   (d s -- d)  Takes location and name and returns new exit's ObjectID.
                           (Requires Mucker Level 3)
   
   RECYCLE   (d -- )    Recycles the given object d.  Will not recycle
@@ -157,27 +157,27 @@ New primitives:
                         Mucker Level 3 permissions.  Can recycle other
                         people's items with wizbit)
 
-  STATS (d -- 7 ints)  Takes a dbref and returns 7 integers, giving, in order,
-                        The total number of objects owned by the given dbref,
+  STATS (d -- 7 ints)  Takes a ObjectID and returns 7 integers, giving, in order,
+                        The total number of objects owned by the given ObjectID,
                         the number of rooms owned, the number of exits owned,
                         the number of things owned, number of programs owned,
                         number of players, and number of garbage items owned.
-                        If the given dbref was #-1, then the stats are the
+                        If the given ObjectID was #-1, then the stats are the
                         totals for the entire database. (Needs Mucker Level 3)
 
 
 
-  AWAKE?    (d -- i)    Returns whether the given player (dbref) is connected.
+  AWAKE?    (d -- i)    Returns whether the given player (ObjectID) is connected.
                          It returns how many times they are connected.
   
-  ONLINE    ( -- d d..d i)  Returns the dbrefs of all the players logged in,
+  ONLINE    ( -- d d..d i)  Returns the ObjectIDs of all the players logged in,
                          with the count of them on the top of the stack.
                          (Requires Mucker Level 3)
   
   CONCOUNT  ( -- i)     Returns how many connections to the server there are.
                          (Requires Mucker Level 3)
   
-  CONDBREF  (i -- d)    Returns the dbref of the player connected to this
+  CONDBREF  (i -- d)    Returns the ObjectID of the player connected to this
                          connection.  (Requires Mucker Level 3)
   
   CONTIME   (i -- i)    Returns how many seconds the given connection has been
@@ -192,9 +192,9 @@ New primitives:
   DESCRCON (i -- i)  Takes a descriptor and returns the associated connection
                       number, or 0 if no match was found.
 
-  DESCRIPTORS (d -- ix...i1 i) Takes a player dbref, or #-1, and returns the
+  DESCRIPTORS (d -- ix...i1 i) Takes a player ObjectID, or #-1, and returns the
                                 range of descriptor numbers associated with
-                                that dbref (or all for #-1) with their count
+                                that ObjectID (or all for #-1) with their count
                                 on top.
 
   CONHOST   (i -- s)    Returns the hostname of the connection. (wizbit only)
@@ -212,13 +212,13 @@ New primitives:
   
   STRING?   (? -- i)    Tells whether the top stack item is a string.
   
-  DBREF?    (? -- i)    Tells whether the top stack item is a dbref.
+  DBREF?    (? -- i)    Tells whether the top stack item is a ObjectID.
   
 
 
-  NEXTPROP  (d s -- s)  This takes a dbref and a string that is the name of a
+  NEXTPROP  (d s -- s)  This takes a ObjectID and a string that is the name of a
                          property and returns the next property name on that
-                         dbref, or returns a null string if that was the last.
+                         ObjectID, or returns a null string if that was the last.
                          To *start* the search, give it a propdir, or a blank
                          string. For example, '#10 "/" NEXTPROP'  or 
                          '#28 "/letters/" NEXTPROP'   A blank string is the
@@ -230,16 +230,16 @@ New primitives:
     props that are not readable by the uid the program is running under.
 
 
-  PROPDIR?  (d s -- i)  Takes a dbref and a property name, and returns whether
+  PROPDIR?  (d s -- i)  Takes a ObjectID and a property name, and returns whether
                          that property is a propdir that contains other props.
                          (Requires Mucker Level 3)
 
-  ENVPROPSTR (s d -- s d )  Takes a starting object dbref and a property name
+  ENVPROPSTR (s d -- s d )  Takes a starting object ObjectID and a property name
                              and searches down the environment tree from that
                              object for a property with the given name.
                              If the property isn't found, it returns #-1 and
                              a null string.  If the property is found, it will
-                             return the dbref of the object it was found on,
+                             return the ObjectID of the object it was found on,
                              and the string value it contained.
   
 
@@ -302,7 +302,7 @@ New primitives:
                          dayofweek, and dayofyear.  1 == sunday for dayofweek.
                          Dayofyear is a number from 1 to 366.
   
-  TIMESTAMPS ( d -- i i i i )   Takes the dbref of an object, and returns
+  TIMESTAMPS ( d -- i i i i )   Takes the ObjectID of an object, and returns
                                  the four timestamp ints in the order of
                                  Created, Modified, Lastused, and Usecount
                                  where the three times are in systime
@@ -310,7 +310,7 @@ New primitives:
   
   SLEEP   (i -- )     makes the program pause here for 'i' seconds.
 
-  QUEUE     (i d s -- i) Takes a time in seconds, a program's dbref, and a
+  QUEUE     (i d s -- i) Takes a time in seconds, a program's ObjectID, and a
                           parameter string.  It will execute the given program
                           with the given string as the only string on the
                           stack, after a delay of the given number of second.
@@ -383,8 +383,8 @@ New primitives:
                           in the form of a string.  Returns "*UNLOCKED*" if
                           the object doesn't have a lock set.
   
-  LOCKED? (d d -- i)  Takes, in order, the dbref of the object to test the
-                        lock on, and the dbref of the player to test the lock
+  LOCKED? (d d -- i)  Takes, in order, the ObjectID of the object to test the
+                        lock on, and the ObjectID of the player to test the lock
                         against.  It tests the lock, running programs as
                         necessary, and returns a integer of 0 if it is not
                         locked against them, or 1 if it is.
@@ -394,7 +394,7 @@ New primitives:
   
 
 
-  DBTOP     ( -- d)     Returns the dbref of the first object beyond the top
+  DBTOP     ( -- d)     Returns the ObjectID of the first object beyond the top
                           object of the database.
   
   DEPTH     ( -- i)     Returns how many items are on the stack.
@@ -402,12 +402,12 @@ New primitives:
   VERSION   ( -- s)     Returns the version of this code in a string.
                           "Muck2.2fb4.0" is the current version.
   
-  PROG      ( -- d)     Returns the dbref of the currently running program.
+  PROG      ( -- d)     Returns the ObjectID of the currently running program.
   
-  TRIG      ( -- d)     Returns the dbref of the original trigger.
+  TRIG      ( -- d)     Returns the ObjectID of the original trigger.
   
-  CALLER    ( -- d)     Returns the dbref of the program that called this one,
-                          or the dbref of the trigger, if this wasn't called
+  CALLER    ( -- d)     Returns the ObjectID of the program that called this one,
+                          or the ObjectID of the trigger, if this wasn't called
                           by a program.
   
 
@@ -576,7 +576,7 @@ If a program has the HAVEN flag set on it (HARDUID) then it runs with
   will run with the permissions and uid of the program owner as in SETUID.
   
 A room or player may have a "_connect" property set that contains the
-  dbref of a progran to run when a player connects.  The program must be
+  ObjectID of a progran to run when a player connects.  The program must be
   either link_ok or must be owned by the player connecting.  When the
   program is run, the string on the stack will be "Connect", the "loc @"
   will be the location of the connecting player, the "me @" will be the

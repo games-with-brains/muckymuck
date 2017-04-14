@@ -2,44 +2,44 @@
 #define _SPEECH_H_
 
 void
-do_say(dbref player, const char *message)
+do_say(ObjectID player, const char *message)
 ;
 
 void
-do_whisper(int descr, dbref player, const char *arg1, const char *arg2)
+do_whisper(int descr, ObjectID player, const char *arg1, const char *arg2)
 ;
 
 void
-do_pose(dbref player, const char *message)
+do_pose(ObjectID player, const char *message)
 ;
 
 void
-do_wall(dbref player, const char *message)
+do_wall(ObjectID player, const char *message)
 ;
 
 void
-do_gripe(dbref player, const char *message)
+do_gripe(ObjectID player, const char *message)
 ;
 
 void
-do_page(dbref player, const char *arg1, const char *arg2)
+do_page(ObjectID player, const char *arg1, const char *arg2)
 ;
 
 void
-notify_listeners(dbref who, dbref xprog, dbref obj, dbref room, const char *msg, int isprivate)
+notify_listeners(ObjectID who, ObjectID xprog, ObjectID obj, ObjectID room, const char *msg, int isprivate)
 ;
 
 void
-notify_except(dbref first, dbref exception, const char *msg, dbref who)
+notify_except(ObjectID first, ObjectID exception, const char *msg, ObjectID who)
 ;
 
 void
-parse_oprop(int descr, dbref player, dbref dest, dbref exit, const char *propname,
+parse_oprop(int descr, ObjectID player, ObjectID dest, ObjectID exit, const char *propname,
 			   const char *prefix, const char *whatcalled)
 ;
 
 void
-parse_omessage(int descr, dbref player, dbref dest, dbref exit, const char *msg,
+parse_omessage(int descr, ObjectID player, ObjectID dest, ObjectID exit, const char *msg,
 			   const char *prefix, const char *whatcalled, int mpiflags)
 ;
 

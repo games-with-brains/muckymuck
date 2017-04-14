@@ -1,13 +1,13 @@
 /* $Header: /cvsroot/fbmuck/fbmuck/src/player.c,v 1.13 2006/04/19 02:58:54 premchai21 Exp $ */
 
 
-var player_list map[string] dbref
+var player_list map[string] ObjectID
 
 func init() {
-	player_list = make(map[string] dbref)
+	player_list = make(map[string] ObjectID)
 }
 
-func lookup_player(name string) (r dbref) {
+func lookup_player(name string) (r ObjectID) {
 	var ok bool
 	if r, ok = player_list[name]; !ok {
 		r = NOTHING
@@ -15,10 +15,10 @@ func lookup_player(name string) (r dbref) {
 	return
 }
 
-func check_password(player dbref, password string) (ok bool) {
+func check_password(player ObjectID, password string) (ok bool) {
 	var md5buf string
 	processed := password
-	password := db.FetchPlayer(player).password
+	password := DB.FetchPlayer(player).password
 	if password == "" {
 		MD5base64(md5buf, "", 0)
 		processed = md5buf
@@ -36,13 +36,13 @@ func check_password(player dbref, password string) (ok bool) {
 	return
 }
 
-func set_password_raw(player dbref, password string) {
-	p := db.FetchPlayer(player)
+func set_password_raw(player ObjectID, password string) {
+	p := DB.FetchPlayer(player)
 	p.password = password
 	p.flags |= OBJECT_CHANGED
 }
 
-func set_password(player dbref, password string) {
+func set_password(player ObjectID, password string) {
 	var md5buf string
 	processed := password
 	if password != "" {
@@ -52,10 +52,10 @@ func set_password(player dbref, password string) {
 	set_password_raw(player, processed)
 }
 
-func connect_player(name, password string) (r dbref) {
+func connect_player(name, password string) (r ObjectID) {
 	if name[0] == NUMBER_TOKEN && unicode.IsNumber(name[1]) && strconv.Atoi(name[1:]) {
-		r = dbref(strconv.Atoi(name[1:]))
-		if !valid_reference(r) || !IsPlayer(r) {
+		r = ObjectID(strconv.Atoi(name[1:]))
+		if !r.IsValid() || !IsPlayer(r) {
 			r = NOTHING
 		}
 	} else {
@@ -69,11 +69,11 @@ func connect_player(name, password string) (r dbref) {
 	return
 }
 
-func create_player(name, password string) (r dbref) {
+func create_player(name, password string) (r ObjectID) {
 	if ok_player_name(name) && ok_password(password) {
 		r = new_object()
-		start := db.Fetch(tp_player_start)
-		db.Store(r, &Player{
+		start := DB.Fetch(tp_player_start)
+		DB.Store(r, &Player{
 			name: name,
 			home: tp_player_start,
 			curr_prog: NOTHING,
@@ -89,7 +89,7 @@ func create_player(name, password string) (r dbref) {
 		set_password(r, password)
 		start.Contents = r
 		add_player(r)
-		db.Fetch(r).flags |= OBJECT_CHANGED
+		DB.Fetch(r).flags |= OBJECT_CHANGED
 		start.flags |= OBJECT_CHANGED
 		set_flags_from_tunestr(r, tp_pcreate_flags)		
 	} else {
@@ -98,9 +98,9 @@ func create_player(name, password string) (r dbref) {
 	return
 }
 
-func do_password(player dbref, old, newobj string) {
+func do_password(player ObjectID, old, newobj string) {
 	NoGuest("@password", player, func() {
-		switch p := db.FetchPlayer(player); {
+		switch p := DB.FetchPlayer(player); {
 		case p.password == "", !check_password(player, old):
 			notify(player, "Sorry, old password did not match current password.")
 		case !ok_password(newobj):
@@ -113,10 +113,10 @@ func do_password(player dbref, old, newobj string) {
 	})
 }
 
-func add_player(who dbref) {
-	player_list[db.Fetch(who).name] = who
+func add_player(who ObjectID) {
+	player_list[DB.Fetch(who).name] = who
 }
 
-func delete_player(who dbref) {
-	delete(player_list, db.Fetch(who).name)
+func delete_player(who ObjectID) {
+	delete(player_list, DB.Fetch(who).name)
 }

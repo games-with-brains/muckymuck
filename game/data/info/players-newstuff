@@ -90,7 +90,7 @@ Another big change, the addition of Registration. In a nut shell, this allows
     if player Riss types '@dig Bedroom=$myenv=mybedroom' then it will create
     the room "Bedroom" and set it's parent to the room referred to by $myenv
     then registers it on the player as $mybedroom by setting the _reg/mybedroom
-    property to the dbref of the room object created.  If the <registername>
+    property to the ObjectID of the room object created.  If the <registername>
     parameter is excluded, then the object isn't registered.  If you want
     to, for example, @create an object, but not set it's value, but you DO
     want to register it, then you just exclude That parameter, but remember
@@ -99,31 +99,31 @@ Another big change, the addition of Registration. In a nut shell, this allows
   Ok, perhaps the above example of @digging the bedroom jumps the gun a little.
     It uses a registered name reference ($myenv) in its own example of making a
     registered name. Lets step through the process the old way -- Assume I have
-    an environment room set up that has a #dbref of #57983, and I want to @dig
+    an environment room set up that has a #ObjectID of #57983, and I want to @dig
     my bedroom and use that environment for it. I would:
-          @dig Bedroom=#57983     (Bedroom created with #dbref #72921)
+          @dig Bedroom=#57983     (Bedroom created with #ObjectID #72921)
     Then I would need the exit in to the room:
           @open bedroom;in=#72921
-    Then go in to the bedroom and to get an exit out into the hall whose #dbref
+    Then go in to the bedroom and to get an exit out into the hall whose #ObjectID
     was #69455 I would:
           @open out;exit=#69455
-  Now assuming you had all those #dbrefs listed somewhere, it's still a pain to
+  Now assuming you had all those #ObjectIDs listed somewhere, it's still a pain to
     use them. So now see how having registration helps -- Assume I have created
     an environment room and registered it as $myenv, and the hall as
     $mymainhall. I need only now do:
           @dig Bedroom=$myenv=mybedroom  (creates the bedroom and registers its
-                                          #dbref for you as $mybedroom)
+                                          #ObjectID for you as $mybedroom)
     Then the exit in:
           @open bedroom;in=$mybedroom
     And once in the bedroom:
           @open out;exit=$mymainhall
-    No need to remember the #dbrefs at all!
+    No need to remember the #ObjectIDs at all!
 
   Note that I did not register the last 2 @open exits, but I just as well could
     have. One of the reasons for registering exits is now the fact that you can
     link and unlink or lock and unlock exits from a distant location. You do not
     have to be standing in a room with the exit to link or unlink it, you need
-    simply to know the registered name (or #dbref) of the exit and the location
+    simply to know the registered name (or #ObjectID) of the exit and the location
     to link it to. Of course you still need all the correct permissions to link
     to places. I did not need to enter the bedroom at all to create and link its
     exit out. I could have:
@@ -132,13 +132,13 @@ Another big change, the addition of Registration. In a nut shell, this allows
           @link $mybedexit=$mymainhall
 
   Commands like @desc, @lock, @succ, @osucc, etc. now will work at a distance
-    for the owner of the object, if the object is referred to by dbref or its
+    for the owner of the object, if the object is referred to by ObjectID or its
     $registered name.  This facilitates builder programs.
 
   Program registration added:  If you refer to a program in @link, @open,
     @prog, @edit, or @set, with the syntax "$progname" then it will look
     for a property named "_reg/progname" up the environment tree containing
-    a string value that represents the dbref of the program.  If it
+    a string value that represents the ObjectID of the program.  If it
     exists, then the command will match the program.  Also, if you @desc,
     @succ, @drop, or @fail an object to start with "@$progname" then it
     will run that program, similar to an "@1234" @desc/@succ/etc.
@@ -149,7 +149,7 @@ Another big change, the addition of Registration. In a nut shell, this allows
       @succ west = @$gen-exit-messages
       @set $puzzle-reset = DEBUG
 
-  You can now connect to a player via dbref.  Just give the dbref where you
+  You can now connect to a player via ObjectID.  Just give the ObjectID where you
     would normally put your name in the connection request.  For example:
           connect #1234 craZypassWord
 
@@ -183,7 +183,7 @@ Another big change, the addition of Registration. In a nut shell, this allows
     "gen" or "cmd" and have at least one character after that.  (see the
     description of the SMATCH primitive later in this document)  The flags
     string argument is rather different.  It is a string that consists of
-    the letters you would see in the flags field after a dbref in an examine,
+    the letters you would see in the flags field after a ObjectID in an examine,
     and negations.  ie: "FW!D" would match programs that are set Wizard and
     NOT set Debug.  A wizard could find all the MUCKER players in the data-
     base who were not wizards simply with a '@find =P!WM'.  The '!' means
@@ -248,7 +248,7 @@ Another big change, the addition of Registration. In a nut shell, this allows
 
   Added _connect and _disconnect:
     A room or player may have a "_connect" property set that contains the
-    dbref or registered name of a program to run when a player connects.
+    ObjectID or registered name of a program to run when a player connects.
     The program must be either link_ok or must be owned by the player
     connecting.  When the program is run, the string on the stack will be
     "Connect", the "loc @" will be the location of the connecting player, the
@@ -277,14 +277,14 @@ Another big change, the addition of Registration. In a nut shell, this allows
    by the _depart properties in all the rooms down the environment from
    the room left, and when you enter a room, it QUEUEs up all the programs
    referred to by all the _arrive properties down the environment from the
-   room entered.  These properties can refer to either dbrefs of programs,
+   room entered.  These properties can refer to either ObjectIDs of programs,
    or registered objects, similarly to _connect and _disconnect.  The
-   loc @ for a _depart run program is the dbref of the room left, and will
+   loc @ for a _depart run program is the ObjectID of the room left, and will
    not match the value of 'me @ location' which will be the room they went
    to.
 
   A room or object may have a "_listen" property set that contains the
-    dbref of a program to run whenever a notify_except is done in that
+    ObjectID of a program to run whenever a notify_except is done in that
     room or in the room that contains the object.  The program must
     either be link_ok or must be owned by the owner of the object
     containing the "_listen" property.  When the program is run, the
@@ -304,7 +304,7 @@ Another big change, the addition of Registration. In a nut shell, this allows
   Actions not on a room will only take you to the destination if, for both the
     destination and the source, you either own them, or they are set JUMP_OK.
 
-  A player can "@set me=STICKY" (SILENT), and not see all the dbrefs and dark
+  A player can "@set me=STICKY" (SILENT), and not see all the ObjectIDs and dark
     objects that they own.  They won't see objects in a dark room either.
     They still control the objects though.
 

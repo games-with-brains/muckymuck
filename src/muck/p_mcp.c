@@ -3,9 +3,9 @@ package fbmuck
 /* This allows using GUI if the player owns the MUF, which drops the
    requirement from an M3. This is not .top because .top will usually 
    be $lib/gui. This could be expanded to check the entire MUF chain. */
-func apply_mcp_primitive(p dbref, fr *frame, mlev, top *int, n int, f func(Array)) {
+func apply_mcp_primitive(p ObjectID, fr *frame, mlev, top *int, n int, f func(Array)) {
 	apply_primitive(n, top, func(op Array) {
-		if mlev < tp_mcp_muf_mlev && p != db.Fetch(fr.caller.st[1]).Owner {
+		if mlev < tp_mcp_muf_mlev && p != DB.Fetch(fr.caller.st[1]).Owner {
 			panic("Permission denied!!!")
 		}
 		f(op)
@@ -16,10 +16,10 @@ func muf_mcp_callback(mfr *McpFrame, mesg *McpMesg, version McpVer, context inte
 	descr := mfr.descriptor.descriptor
 	user := mfr.descriptor.player
 	var ptr *mcp_binding
-	for ptr = db.Fetch(context.(dbref)).(Program).mcp_binding; ptr != nil && (ptr.pkgname != mesg.pkgname || ptr.msgname != mesg.mesgname); ptr = ptr.next {}
+	for ptr = DB.Fetch(context.(ObjectID)).(Program).mcp_binding; ptr != nil && (ptr.pkgname != mesg.pkgname || ptr.msgname != mesg.mesgname); ptr = ptr.next {}
 	if ptr != nil {
 		var argarr *stk_array
-		if tmpfr := interp(descr, user, db.Fetch(user).Location, obj, -1, PREEMPT, STD_REGUID, 0); tmpfr != nil {
+		if tmpfr := interp(descr, user, DB.Fetch(user).Location, obj, -1, PREEMPT, STD_REGUID, 0); tmpfr != nil {
 			tmpfr.argument.top--
 			args := make(Dictionary)
 			for arg := mesg.args; arg != nil; arg = arg.next {
@@ -87,7 +87,7 @@ func stuff_dict_in_mesg(arr map[string] interface{}, msg *McpMesg) (r int) {
 					mcp_mesg_arg_append(msg, argname, v)
 				case int:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprint(v))
-				case dbref:
+				case ObjectID:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprintf("#%d", v))
 				case float64:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprintf("%.15g", v))
@@ -104,7 +104,7 @@ func stuff_dict_in_mesg(arr map[string] interface{}, msg *McpMesg) (r int) {
 					mcp_mesg_arg_append(msg, argname, v)
 				case int:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprint(v))
-				case dbref:
+				case ObjectID:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprintf("#%d", v))
 				case float64:
 					mcp_mesg_arg_append(msg, argname, fmt.Sprintf("%.15g", v))
@@ -119,7 +119,7 @@ func stuff_dict_in_mesg(arr map[string] interface{}, msg *McpMesg) (r int) {
 		case int:
 			mcp_mesg_arg_remove(msg, argname)
 			mcp_mesg_arg_append(msg, argname, fmt.Sprint(argval))
-		case dbref:
+		case ObjectID:
 			mcp_mesg_arg_remove(msg, argname)
 			mcp_mesg_arg_append(msg, argname, fmt.Sprintf("#%d", argval))
 		case float64:
@@ -132,7 +132,7 @@ func stuff_dict_in_mesg(arr map[string] interface{}, msg *McpMesg) (r int) {
 	return
 }
 
-func prim_mcp_register(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mcp_register(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
 		pkgname := op[0].(string);
 		vermin := McpVer{
@@ -147,7 +147,7 @@ func prim_mcp_register(player, program dbref, mlev int, pc, arg *inst, top *int,
 	})
 }
 
-func prim_mcp_register_event(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mcp_register_event(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
 		pkgname := op[0].(string)
 		vermin := McpVer{
@@ -162,7 +162,7 @@ func prim_mcp_register_event(player, program dbref, mlev int, pc, arg *inst, top
 	})
 }
 
-func prim_mcp_supports(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mcp_supports(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 2, func(op Array) {
 		descr := op[0].(int)
 		pkgname := op[1].(string)
@@ -175,7 +175,7 @@ func prim_mcp_supports(player, program dbref, mlev int, pc, arg *inst, top *int,
 	})
 }
 
-func prim_mcp_bind(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mcp_bind(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
 		pkgname := op[0].(string)
 		msgname := op[1].(string)
@@ -183,11 +183,11 @@ func prim_mcp_bind(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 		switch {
 		case program != address.progref:
 			panic("Destination address outside current program. (3)")
-		case !valid_reference(address.progref), !IsProgram(address.progref):
+		case !address.progref.IsValid(), !IsProgram(address.progref):
 			panic("Invalid address. (3)")
 		}
 
-		p := db.Fetch(program)
+		p := DB.Fetch(program)
 		ptr := p.(Program).mcp_binding
 		for ; ptr != nil && (ptr.pkgname == pkgname || ptr.msgname == msgname); ptr = ptr.next {}
 		if ptr == nil {
@@ -197,7 +197,7 @@ func prim_mcp_bind(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_mcp_send(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_mcp_send(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
 		pkgname := op[0].(string)
 		msgname := op[1].(string)
@@ -259,14 +259,14 @@ func fbgui_muf_error_cb(descr int, dlogid, id, errcode, errtext string, context 
 	}, 0)
 }
 
-func prim_gui_available(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_available(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
 		ver := GuiVersion(op[0].(int))
 		push(arg, top, ver.major + (ver.minor / 1000.0))
 	})
 }
 
-func prim_gui_dlog_create(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_dlog_create(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
 		mfr := descr_mcpframe(op[0].(int))
 		wintype := op[1].(string)
@@ -304,7 +304,7 @@ func prim_gui_dlog_create(player, program dbref, mlev int, pc, arg *inst, top *i
 	})
 }
 
-func prim_gui_dlog_show(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_dlog_show(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
 		dlogid := op[0].(string)
 		switch GuiShow(dlogid) {
@@ -316,7 +316,7 @@ func prim_gui_dlog_show(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_gui_dlog_close(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_dlog_close(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
 		dlogid := op[0].(string)
 		switch GuiClose(dlogid) {
@@ -329,7 +329,7 @@ func prim_gui_dlog_close(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_gui_ctrl_create(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_ctrl_create(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
 		dlogid := op[0].(string)
 		ctrltype := op[1].(string)
@@ -376,7 +376,7 @@ func prim_gui_ctrl_create(player, program dbref, mlev int, pc, arg *inst, top *i
 	})
 }
 
-func prim_gui_ctrl_command(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_ctrl_command(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 4, func(op Array) {
 		dlogid := op[0].(string)
 		ctrlid := op[1].(string)
@@ -412,7 +412,7 @@ func prim_gui_ctrl_command(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_gui_value_set(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_value_set(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 3, func(op Array) {
 		dlogid := op[0].(string)
 		ctrlid := op[1].(string)
@@ -428,7 +428,7 @@ func prim_gui_value_set(player, program dbref, mlev int, pc, arg *inst, top *int
 					value = v
 				case int:
 					value = fmt.Sprint(v)
-				case dbref:
+				case ObjectID:
 					value = fmt.Sprintf("#%d", v)
 				case float64:
 					value = fmt.Sprintf("%.15g", v)
@@ -444,7 +444,7 @@ func prim_gui_value_set(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_gui_values_get(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_values_get(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 1, func(op Array) {
 		dlogid := op[0].(string)
 		nu := make(Dictionary)
@@ -459,7 +459,7 @@ func prim_gui_values_get(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_gui_value_get(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gui_value_get(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_mcp_primitive(player, mlev, fr, top, 2, func(op Array) {
 		dlogid := op[0].(string)
 		ctrlid := op[1].(string)

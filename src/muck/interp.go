@@ -63,8 +63,8 @@ func apply_restricted_primitive(l, mlev, n int, top *int, f func(Array)) {
 	})
 }
 
-/* void    (*prim_func[]) (player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) = */
-var prim_func = []func(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+/* void    (*prim_func[]) (player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) = */
+var prim_func = []func(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	p_null, p_null, p_null, p_null, p_null,  p_null,
 	/* JMP, READ,   SLEEP,  CALL,   EXECUTE, RETURN, */
 	p_null,           p_null, p_null,
@@ -87,11 +87,11 @@ var prim_func = []func(player, program dbref, mlev int, pc, arg *inst, top *int,
 	NULL
 }
 
-func p_null(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func p_null(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	return
 }
 
-func localvars_get(struct frame *fr, dbref prog) (r *localvars) {
+func localvars_get(struct frame *fr, ObjectID prog) (r *localvars) {
 	if fr != nil {
 		for r = fr.lvars; r != nil && r.prog != prog; r = r.next {}
 		if r != nil {
@@ -256,8 +256,8 @@ purge_try_pool(void)
 	}
 }
 
-func interp(int descr, dbref player, dbref location, dbref program, dbref source, int nosleeps, int whichperms, int forced_pid) *frame {
-	if MLevel(program) == NON_MUCKER || MLevel(db.Fetch(program).Owner) == NON_MUCKER || (source != NOTHING && !TrueWizard(db.Fetch(source).Owner) && !can_link_to(db.Fetch(source).Owner, TYPE_EXIT, program)) {
+func interp(int descr, ObjectID player, ObjectID location, ObjectID program, ObjectID source, int nosleeps, int whichperms, int forced_pid) *frame {
+	if MLevel(program) == NON_MUCKER || MLevel(DB.Fetch(program).Owner) == NON_MUCKER || (source != NOTHING && !TrueWizard(DB.Fetch(source).Owner) && !can_link_to(DB.Fetch(source).Owner, TYPE_EXIT, program)) {
 		notify_nolisten(player, "Program call: Permission denied.", true)
 		return 0
 	}
@@ -286,8 +286,8 @@ func interp(int descr, dbref player, dbref location, dbref program, dbref source
 	fr.dlogids = nil
 
 	fr.argument.top = 0
-	fr.pc = db.Fetch(program).(Program).start
-	fr.writeonly = source == -1 || Typeof(source) == TYPE_ROOM || (Typeof(source) == TYPE_PLAYER && !online(source))) || db.Fetch(player).flags & READMODE != 0
+	fr.pc = DB.Fetch(program).(Program).start
+	fr.writeonly = source == -1 || Typeof(source) == TYPE_ROOM || (Typeof(source) == TYPE_PLAYER && !online(source))) || DB.Fetch(player).flags & READMODE != 0
 	fr.error.is_flags = 0
 
 	/* set basic local variables */
@@ -330,10 +330,10 @@ func interp(int descr, dbref player, dbref location, dbref program, dbref source
 	fr.variables[2].data = source
 	fr.variables[3].data = match_cmdname
 
-	if db.Fetch(program).(Program).code {
-		db.Fetch(program).(Program).profuses++
+	if DB.Fetch(program).(Program).code {
+		DB.Fetch(program).(Program).profuses++
 	}
-	db.Fetch(program).(Program).instances++
+	DB.Fetch(program).(Program).instances++
 	push(fr.argument.st, &(fr.argument.top), match_args)
 	return fr
 }
@@ -525,7 +525,7 @@ func prog_clean(fr *frame) {
 		DEBUGPRINT("prog_clean: fr.caller.top=%d\n", fr.caller.top, 0)
 		for i := 1; i <= fr.caller.top; i++ {
 			DEBUGPRINT("Decreasing instances of fr.caller.st[%d](#%d)\n", i, fr.caller.st[i])
-			db.Fetch(fr.caller.st[i]).(Program).instances--
+			DB.Fetch(fr.caller.st[i]).(Program).instances--
 		}
 
 		for i := 0; i < MAX_VAR; i++ {
@@ -603,7 +603,7 @@ func ValueIsFalse(v interface{}) (r bool) {
 		r = v.Len() == 0
 	case Lock:
 		r = v.IsTrue()
-	case dbref:
+	case ObjectID:
 		r = v == NOTHING
 	}
 	return
@@ -619,7 +619,7 @@ func (from *inst) Dup() (to *inst) {
 				copy(to.data.varnames, data.varnames)
 			}
 		case addr:
-			db.Fetch(from.data.(addr).progref).(Program).instances++
+			DB.Fetch(from.data.(addr).progref).(Program).instances++
 		case Lock:
 		    if !data.IsTrue() {
 				to.data = copy_bool(from.data)
@@ -635,15 +635,15 @@ func copyvars(from, to *vars) {
 	}
 }
 
-func calc_profile_timing(prog dbref, fr *frame) {
+func calc_profile_timing(prog ObjectID, fr *frame) {
 	tv := time.Now() - fr.proftime
-	db.Fetch(prog).(Program).proftime += tv
+	DB.Fetch(prog).(Program).proftime += tv
 	fr.totaltime += tv
 }
 
 var interp_depth int
 
-func do_abort_loop(player, program dbref, msg string, fr *frame, pc *inst, atop int, stop bool, clinst1, clinst2 *inst) {
+func do_abort_loop(player, program ObjectID, msg string, fr *frame, pc *inst, atop int, stop bool, clinst1, clinst2 *inst) {
 	if !fr {
 		panic("localvars_get(): NULL frame passed !");
 	}
@@ -678,11 +678,11 @@ func do_abort_loop(player, program dbref, msg string, fr *frame, pc *inst, atop 
 		}
 		interp_depth--
 		prog_clean(fr)
-		db.Fetch(player).(Player).block = false
+		DB.FetchPlayer(player).block = false
 	}
 }
 
-func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
+func interp_loop(player, program ObjectID, fr *frame, has_return bool) (r *inst) {
 	register struct inst *temp1;
 	register struct inst *temp2;
 	int i = 0, tmp, mlev;
@@ -703,16 +703,16 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 	fr.brkpt.isread = false
 
 	if pc == nil {
-		tmpline := db.Fetch(program).(Program).first
-		db.Fetch(program).(Program).first = (line*)(read_program(program))
-		do_compile(-1, db.Fetch(program).Owner, program, 0)
-		db.Fetch(program).(Program).first = tmpline
-		fr.pc = db.Fetch(program).(Program).start
+		tmpline := DB.Fetch(program).(Program).first
+		DB.Fetch(program).(Program).first = (line*)(read_program(program))
+		do_compile(-1, DB.Fetch(program).Owner, program, 0)
+		DB.Fetch(program).(Program).first = tmpline
+		fr.pc = DB.Fetch(program).(Program).start
 		if pc = fr.pc; pc == nil {
 			abort_loop_hard("Program not compilable. Cannot run.", nil, nil)
 		}
-		db.Fetch(program).(Program).profuses++
-		db.Fetch(program).(Program).instances++
+		DB.Fetch(program).(Program).profuses++
+		DB.Fetch(program).(Program).instances++
 	}
 	ts_useobject(program)
 	err = 0
@@ -724,7 +724,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 	/* This is the 'natural' way to exit a function */
 	for stop != nil {
 		/* Abort program if player/thing running it is recycled */
-		if !valid_reference(player) || (!IsProgram(player) && !IsThing(player)) {
+		if !player.IsValid() || (!IsProgram(player) && !IsThing(player)) {
 			reload(fr, atop, stop)
 			prog_clean(fr)
 			interp_depth--
@@ -734,7 +734,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 		fr.instcnt++
 		instr_count++
 
-		if fr.multitask == PREEMPT || db.Fetch(program).flags & BUILDER != 0 {
+		if fr.multitask == PREEMPT || DB.Fetch(program).flags & BUILDER != 0 {
 			if mlev >= WIZBIT {
 				if tp_max_ml4_preempt_count {
 					if instr_count >= tp_max_ml4_preempt_count {
@@ -754,7 +754,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			if (fr.instcnt > tp_instr_slice * 4) && (instr_count >= tp_instr_slice) {
 				fr.pc = pc
 				reload(fr, atop, stop)
-				db.Fetch(player).(Player).block = !fr.been_background
+				DB.FetchPlayer(player).block = !fr.been_background
 				if fr.multitask == FOREGROUND {
 					add_muf_delay_event(0, fr.descr, player, NOTHING, NOTHING, program, fr, "FOREGROUND")
 				} else {
@@ -765,8 +765,8 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 				return nil
 			}
 		}
-		fr.brkpt.debugging = (db.Fetch(program).flags) & ZOMBIE != 0 || fr.brkpt.force_debugging) && !fr.been_background && controls(player, program)
-		if db.Fetch(program).flags & DARK != 0 || (fr.brkpt.debugging && fr.brkpt.showstack && !fr.brkpt.bypass) {
+		fr.brkpt.debugging = (DB.Fetch(program).flags) & ZOMBIE != 0 || fr.brkpt.force_debugging) && !fr.been_background && controls(player, program)
+		if DB.Fetch(program).flags & DARK != 0 || (fr.brkpt.debugging && fr.brkpt.showstack && !fr.brkpt.bypass) {
 			if pc.(type) != PROG_PRIMITIVE || pc.data.(int) != instno_debug_line {
 				notify_nolisten(player, debug_inst(fr, 0, pc, fr.pid, arg, dbuf, sizeof(dbuf), atop, program), true)
 			}
@@ -817,14 +817,15 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 				fr.brkpt.lastlisted = 0
 				fr.brkpt.bypass = false
 				fr.brkpt.dosyspop = false
-				db.Fetch(player).(Player).curr_prog = program
-				db.Fetch(player).(Player).block = false
+				p := DB.Fetch(player)
+				p.curr_prog = program
+				p.block = false
 				interp_depth--
 				if !fr.brkpt.showstack {
 					m = debug_inst(fr, 0, pc, fr.pid, arg, dbuf, sizeof(dbuf), atop, program)
 					notify_nolisten(player, m, true)
 				}
-				if pc <= &(db.Fetch(program).(Program).code[0]) || (pc - 1).line != pc.line {
+				if pc <= &(DB.Fetch(program).(Program).code[0]) || (pc - 1).line != pc.line {
 					list_proglines(player, program, fr, pc.line, 0)
 				} else {
 					m = show_line_prims(fr, program, pc, 15, 1)
@@ -849,7 +850,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			}
 		}
 		switch pc.data.(type) {
-		case int, float64, Address, dbref, PROG_VAR, PROG_LVAR, PROG_SVAR, string, Lock, Mark, stk_array:
+		case int, float64, Address, ObjectID, PROG_VAR, PROG_LVAR, PROG_SVAR, string, Lock, Mark, stk_array:
 			if atop >= STACK_SIZE {
 				abort_loop("Stack overflow.", NULL, NULL)
 			}
@@ -1025,7 +1026,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 					atop--
 					addr := (arg + atop).data.(Address)
 					switch {
-					case !valid_reference(addr.progref), !IsProgram(addr.progref):
+					case !addr.progref.IsValid(), !IsProgram(addr.progref):
 						abort_loop_hard("Internal error.  Invalid address.", temp1, NULL)
 					case program != addr.progref:
 						abort_loop("Destination outside current program.", temp1, NULL)
@@ -1046,7 +1047,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 					atop--
 					addr := (arg + atop).data.(Address)
 					switch {
-					case !valid_reference(addr.progref), !IsProgram(addr.progref):
+					case !addr.progref.IsValid(), !IsProgram(addr.progref):
 						abort_loop_hard("Internal error.  Invalid address.", temp1, NULL)
 					case stop >= STACK_SIZE:
 						abort_loop("System Stack Overflow", temp1, NULL)
@@ -1059,7 +1060,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 							fr.caller.top++
 							fr.caller.st[fr.caller.top] = program
 							mlev = ProgMLevel(program)
-							db.Fetch(program).(Program).instances++
+							DB.Fetch(program).(Program).instances++
 						}
 						pc = addr.data
 					}
@@ -1067,18 +1068,18 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			case IN_CALL:
 				switch {
 				case atop < 1:
-					abort_loop("Stack Underflow. Missing dbref argument.", NULL, NULL)
+					abort_loop("Stack Underflow. Missing ObjectID argument.", NULL, NULL)
 				case fr.trys.top && atop - fr.trys.st.depth < 1:
 					abort_loop("Stack protection fault.", NULL, NULL)
 				default:
 					atop--
 					temp1 = arg + atop
 					temp2 = ""
-					if _, ok := temp1.(dbref); !ok {
+					if _, ok := temp1.(ObjectID); !ok {
 						temp2 = temp1.data.(string)
 						switch {
 						case atop < 1:
-							abort_loop("Stack Underflow. Missing dbref of func.", temp1, NULL)
+							abort_loop("Stack Underflow. Missing ObjectID of func.", temp1, NULL)
 						case fr.trys.top && atop - fr.trys.st.depth < 1:
 							abort_loop("Stack protection fault.", NULL, NULL)
 						}
@@ -1088,24 +1089,24 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 							abort_loop("Null string not allowed. (2)", temp1, temp2)
 						}
 					}
-					obj := valid_object(temp1)
+					obj := temp1.(ObjectID).ValidObject()
 					switch {
 					case Typeof(obj) != TYPE_PROGRAM:
 						abort_loop("Invalid object.", obj, temp2)
 					}
-					if db.Fetch(obj).(Program).code == nil {
-						tmpline := db.Fetch(obj).(Program).first
-						db.Fetch(obj).(Program).first = read_program(obj)
-						do_compile(-1, db.Fetch(obj).Owner, obj, 0)
-						db.Fetch(obj).(Program).first = tmpline
-						if db.Fetch(obj).(Program).code == nil {
+					if DB.Fetch(obj).(Program).code == nil {
+						tmpline := DB.Fetch(obj).(Program).first
+						DB.Fetch(obj).(Program).first = read_program(obj)
+						do_compile(-1, DB.Fetch(obj).Owner, obj, 0)
+						DB.Fetch(obj).(Program).first = tmpline
+						if DB.Fetch(obj).(Program).code == nil {
 							abort_loop("Program not compilable.", obj, temp2)
 						}
 					}
 					switch {
 					case ProgMLevel(obj) == NON_MUCKER:
 						abort_loop("Permission denied", obj, temp2)
-					case mlev < WIZBIT && db.Fetch(obj).Owner != ProgUID && !Linkable(obj):
+					case mlev < WIZBIT && DB.Fetch(obj).Owner != ProgUID && !Linkable(obj):
 						abort_loop("Permission denied", obj, temp2)
 					case stop >= STACK_SIZE:
 						abort_loop("System Stack Overflow", obj, temp2)
@@ -1113,9 +1114,9 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 					sys[stop].progref = program
 					sys[stop].offset = pc + 1
 					if temp2 == nil {
-						pc = db.Fetch(obj).(Program).start
+						pc = DB.Fetch(obj).(Program).start
 					} else {
-						for pbs := db.Fetch(obj).(Program).PublicAPI; pbs != nil && temp2.data.(string) != pbs.subname; pbs = pbs.next {}
+						for pbs := DB.Fetch(obj).(Program).PublicAPI; pbs != nil && temp2.data.(string) != pbs.subname; pbs = pbs.next {}
 						switch {
 						case pbs == nil:
 							abort_loop("PUBLIC or WIZCALL function not found. (2)", temp2, temp2)
@@ -1131,20 +1132,20 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 						program = obj
 						fr.caller.top++
 						fr.caller.st[fr.caller.top] = program
-						db.Fetch(program).(Program).instances++
+						DB.Fetch(program).(Program).instances++
 						mlev = ProgMLevel(program)
 					}
-					db.Fetch(program).(Program).profuses++
+					DB.Fetch(program).(Program).profuses++
 					ts_useobject(program)
 				}
 			case IN_RET:
 				if stop > 1 && program != sys[stop - 1].progref {
-					if !valid_reference(sys[stop - 1].progref) || !IsProgram(sys[stop - 1].progref) {
+					if !sys[stop - 1].progref.IsValid() || !IsProgram(sys[stop - 1].progref) {
 						abort_loop_hard("Internal error.  Invalid address.", nil, nil)
 					}
 					calc_profile_timing(program, fr)
 					fr.proftime = time.Now()
-					db.Fetch(program).(Program).instances--
+					DB.Fetch(program).(Program).instances--
 					program = sys[stop - 1].progref
 					mlev = ProgMLevel(program)
 					fr.caller.top--
@@ -1233,7 +1234,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 						}
 					}
 					muf_event_register_specific(player, program, fr, events...)
-					db.Fetch(player).(Player).block = !fr.been_background
+					DB.FetchPlayer(player).block = !fr.been_background
 					interp_depth--
 					calc_profile_timing(program, fr)
 				}
@@ -1248,8 +1249,9 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 					reload(fr, atop, stop)
 					fr.brkpt.isread = true
 					fr.pc = pc + 1
-					db.Fetch(player).(Player).curr_prog = program
-					db.Fetch(player).(Player).block = false
+					p := DB.FetchPlayer(player)
+					p.curr_prog = program
+					p.block = false
 					add_muf_read_event(fr.descr, player, program, fr)
 					interp_depth--
 					calc_profile_timing(program, fr)
@@ -1270,7 +1272,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 						abort_loop("Timetravel beyond scope of muf.", temp1, NULL)
 					}
 					add_muf_delay_event(temp1, fr.descr, player, NOTHING, NOTHING, program, fr, "SLEEPING")
-					db.Fetch(player).(Player).block = !fr.been_background
+					DB.FetchPlayer(player).block = !fr.been_background
 					interp_depth--
 					calc_profile_timing(program, fr)
 				}
@@ -1291,19 +1293,19 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			case err == ERROR_DIE_NOW, fr.trys.top == nil:
 				reload(fr, atop, stop)
 				prog_clean(fr)
-				db.Fetch(player).(Player).block = false
+				DB.FetchPlayer(player).block = false
 				interp_depth--
 				calc_profile_timing(program, fr)
 				return nil
 			default:
 				for fr.trys.st.call_level < stop {
 					if stop > 1 && program != sys[stop - 1].progref {
-						if !valid_reference(sys[stop - 1].progref) || !IsProgram(sys[stop - 1].progref) {
+						if !sys[stop - 1].progref.IsValid() || !IsProgram(sys[stop - 1].progref) {
 							abort_loop_hard("Internal error.  Invalid address.", nil, nil)
 						}
 						calc_profile_timing(program, fr)
 						fr.proftime = time.Now()
-						db.Fetch(program).(Program).instances--
+						DB.Fetch(program).(Program).instances--
 						program = sys[stop - 1].progref
 						mlev = ProgMLevel(program)
 						fr.caller.top--
@@ -1318,7 +1320,7 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 			}
 		}
 	}
-	db.Fetch(player).(Player).block = false
+	DB.FetchPlayer(player).block = false
 	if atop == 0 {
 		reload(fr, atop, stop)
 		prog_clean(fr)
@@ -1343,21 +1345,21 @@ func interp_loop(player, program dbref, fr *frame, has_return bool) (r *inst) {
 	return
 }
 
-func interp_err(player, program dbref, pc, arg *inst, atop int, origprog dbref, msg1, msg2 string) {
+func interp_err(player, program ObjectID, pc, arg *inst, atop int, origprog ObjectID, msg1, msg2 string) {
 	err++
 	var buf string
-	if db.Fetch(origprog).Owner == db.Fetch(player).Owner {
+	if DB.Fetch(origprog).Owner == DB.Fetch(player).Owner {
 		buf = "Program Error.  Your program just got the following error."
 		notify_nolisten(player, buf, true)
 	} else {
-		buf = fmt.Sprintf("Programmer Error.  Please tell %s what you typed, and the following message.", db.Fetch(db.Fetch(origprog).Owner).name)
+		buf = fmt.Sprintf("Programmer Error.  Please tell %s what you typed, and the following message.", DB.Fetch(DB.Fetch(origprog).Owner).name)
 		notify_nolisten(player, buf, true)
 	}
 	if pc != nil {
-		buf = fmt.Sprintf("%s(#%d), line %d; %s: %s", db.Fetch(program).name, program, pc.line, msg1, msg2)
+		buf = fmt.Sprintf("%s(#%d), line %d; %s: %s", DB.Fetch(program).name, program, pc.line, msg1, msg2)
 		notify_nolisten(player, buf, true)
 	} else {
-		buf = fmt.Sprintf("%s(#%d), line %d; %s: %s", db.Fetch(program).name, program, -1, msg1, msg2)
+		buf = fmt.Sprintf("%s(#%d), line %d; %s: %s", DB.Fetch(program).name, program, -1, msg1, msg2)
 		notify_nolisten(player, buf, true)
 	}
 	lt := time(nil)
@@ -1384,13 +1386,13 @@ func push(stack *inst, top *int, res interface{}) {
 }
 
 func is_home(oper *inst) (r bool) {
-	if v, ok := oper.data.(dbref); ok {
+	if v, ok := oper.data.(ObjectID); ok {
 		r = v == HOME
 	}
 	return
 }
 
-func permissions(player, thing dbref) bool {
+func permissions(player, thing ObjectID) bool {
 	if thing == player || thing == HOME {
 		return true
 	}
@@ -1398,48 +1400,48 @@ func permissions(player, thing dbref) bool {
 	case TYPE_PLAYER:
 		return false
 	case TYPE_EXIT:
-		return db.Fetch(thing).Owner == db.Fetch(player).Owner || db.Fetch(thing).Owner == NOTHING
+		return DB.Fetch(thing).Owner == DB.Fetch(player).Owner || DB.Fetch(thing).Owner == NOTHING
 	case TYPE_ROOM, TYPE_THING, TYPE_PROGRAM:
-		return db.Fetch(thing).Owner == db.Fetch(player).Owner
+		return DB.Fetch(thing).Owner == DB.Fetch(player).Owner
 	}
 	return false
 }
 
-func find_mlev(prog dbref, fr *frame, st int) dbref {
-	if db.Fetch(prog).flags & STICKY != 0 && db.Fetch(prog).flags & HAVEN != 0 {
-		if st > 1 && TrueWizard(db.Fetch(prog).Owner) {
+func find_mlev(prog ObjectID, fr *frame, st int) ObjectID {
+	if DB.Fetch(prog).flags & STICKY != 0 && DB.Fetch(prog).flags & HAVEN != 0 {
+		if st > 1 && TrueWizard(DB.Fetch(prog).Owner) {
 			return find_mlev(fr.caller.st[st - 1], fr, st - 1)
 		}
 	}
-	if MLevel(prog) < MLevel(db.Fetch(prog).Owner) {
+	if MLevel(prog) < MLevel(DB.Fetch(prog).Owner) {
 		return MLevel(prog)
 	}
-	return MLevel(db.Fetch(prog).Owner)
+	return MLevel(DB.Fetch(prog).Owner)
 }
 
-func find_uid(player dbref, fr *frame, st int, program dbref) dbref {
-	if db.Fetch(program).flags & STICKY != 0 || fr.perms == STD_SETUID {
-		if db.Fetch(program).flags & HAVEN != 0 {
-			if st > 1 && TrueWizard(db.Fetch(program).Owner) {
+func find_uid(player ObjectID, fr *frame, st int, program ObjectID) ObjectID {
+	if DB.Fetch(program).flags & STICKY != 0 || fr.perms == STD_SETUID {
+		if DB.Fetch(program).flags & HAVEN != 0 {
+			if st > 1 && TrueWizard(DB.Fetch(program).Owner) {
 				return find_uid(player, fr, st - 1, fr.caller.st[st - 1])
 			}
-			return db.Fetch(program).Owner
+			return DB.Fetch(program).Owner
 		}
-		return db.Fetch(program).Owner
+		return DB.Fetch(program).Owner
 	}
 	if ProgMLevel(program) < JOURNEYMAN {
-		return db.Fetch(program).Owner
+		return DB.Fetch(program).Owner
 	}
-	if db.Fetch(program).flags & HAVEN != 0 || fr.perms == STD_HARDUID {
+	if DB.Fetch(program).flags & HAVEN != 0 || fr.perms == STD_HARDUID {
 		if fr.trig == NOTHING {
-			return db.Fetch(program).Owner
+			return DB.Fetch(program).Owner
 		}
-		return db.Fetch(fr.trig).Owner
+		return DB.Fetch(fr.trig).Owner
 	}
-	return db.Fetch(player).Owner
+	return DB.Fetch(player).Owner
 }
 
-func do_abort_interp(player dbref, msg string, pc, arg *inst, atop int, fr *frame, program dbref, file string, line int) {
+func do_abort_interp(player ObjectID, msg string, pc, arg *inst, atop int, fr *frame, program ObjectID, file string, line int) {
 	if fr.trys.top {
 		fr.errorstr = msg
 		if pc != nil {

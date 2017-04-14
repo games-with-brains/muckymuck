@@ -2,14 +2,14 @@ package fbmuck
 
 /* Commands which involve speaking */
 
-func do_say(dbref player, const char *message) {
-	if loc := db.Fetch(player).Location; loc != NOTHING {
+func do_say(ObjectID player, const char *message) {
+	if loc := DB.Fetch(player).Location; loc != NOTHING {
 		notify(player, fmt.Sprintf("You say, \"%s\"", message))
-		notify_except(db.Fetch(loc).Contents, player, fmt.Sprintf("%s says, \"%s\"", db.Fetch(player).name, message), player)
+		notify_except(DB.Fetch(loc).Contents, player, fmt.Sprintf("%s says, \"%s\"", DB.Fetch(player).name, message), player)
 	}
 }
 
-func do_whisper(int descr, dbref player, const char *arg1, const char *arg2) {
+func do_whisper(int descr, ObjectID player, const char *arg1, const char *arg2) {
 	md := NewMatch(descr, player, arg1, IsPlayer).
 		MatchNeighbor().
 		MatchMe()
@@ -22,26 +22,26 @@ func do_whisper(int descr, dbref player, const char *arg1, const char *arg2) {
 	case AMBIGUOUS:
 		notify(player, "I don't know who you mean!");
 	default:
-		if notify_from(player, who, fmt.Sprintf("%s whispers, \"%s\"", db.Fetch(player).name, arg2)) {
-			notify(player, fmt.Sprintf("You whisper, \"%s\" to %s.", arg2, db.Fetch(who).name))
+		if notify_from(player, who, fmt.Sprintf("%s whispers, \"%s\"", DB.Fetch(player).name, arg2)) {
+			notify(player, fmt.Sprintf("You whisper, \"%s\" to %s.", arg2, DB.Fetch(who).name))
 		} else {
-			notify(player, fmt.Sprintf("%s is not connected.", db.Fetch(who).name))
+			notify(player, fmt.Sprintf("%s is not connected.", DB.Fetch(who).name))
 		}
 	}
 }
 
-func do_pose(player dbref, message string) {
+func do_pose(player ObjectID, message string) {
 	if loc := df.Fetch(player).Location; loc != NOTHING {
-		notify_except(db.Fetch(loc).Contents, NOTHING, fmt.Sprintf(db.Fetch(player).name, " ", message), player)
+		notify_except(DB.Fetch(loc).Contents, NOTHING, fmt.Sprintf(DB.Fetch(player).name, " ", message), player)
 	}
 }
 
-func do_wall(player dbref, message string) {
+func do_wall(player ObjectID, message string) {
 	if Wizard(player) && IsPlayer(player) {
-		p := db.Fetch(player)
+		p := DB.Fetch(player)
 		log_status("WALL from %s(%d): %s", p.name, player, message)
 		message = fmt.Sprintf("%s shouts, \"%s\"", p.name, message)
-		EachObject(func(obj dbref) {
+		EachObject(func(obj ObjectID) {
 			if IsPlayer(obj) {
 				notify_from(player, i, message)
 			}
@@ -51,7 +51,7 @@ func do_wall(player dbref, message string) {
 	}
 }
 
-func do_gripe(player dbref, message string) {
+func do_gripe(player ObjectID, message string) {
 	if message == "" {
 		if Wizard(player) {
 			spit_file(player, LOG_GRIPE)
@@ -59,38 +59,38 @@ func do_gripe(player dbref, message string) {
 			notify(player, "If you wish to gripe, use 'gripe <message>'.")
 		}
 	} else {
-		loc := db.Fetch(player).Location
-		log_gripe("GRIPE from %s(%d) in %s(%d): %s", db.Fetch(player).name, player, db.Fetch(loc).name, loc, message)
+		loc := DB.Fetch(player).Location
+		log_gripe("GRIPE from %s(%d) in %s(%d): %s", DB.Fetch(player).name, player, DB.Fetch(loc).name, loc, message)
 		notify(player, "Your complaint has been duly noted.")
-		wall_wizards(fmt.Sprintf("## GRIPE from %s: %s", db.Fetch(player).name, message))
+		wall_wizards(fmt.Sprintf("## GRIPE from %s: %s", DB.Fetch(player).name, message))
 	}
 }
 
 /* doesn't really belong here, but I couldn't figure out where else */
-func do_page(player dbref, arg1, arg2 string) {
+func do_page(player ObjectID, arg1, arg2 string) {
 	switch target := lookup_player(arg1); {
 	case !payfor(player, tp_lookup_cost) {
 		notify_fmt(player, "You don't have enough %s.", tp_pennies)
 	case target == NOTHING:
 		notify(player, "I don't recognize that name.")
-	case db.Fetch(target).flags & HAVEN != 0:
+	case DB.Fetch(target).flags & HAVEN != 0:
 		notify(player, "That player does not wish to be disturbed.")
 	default:
 		var buf string
 		if blank(arg2) {
-			buf = fmt.Sprintf("You sense that %s is looking for you in %s.", db.Fetch(player).name, db.Fetch(db.Fetch(player).Location).name)
+			buf = fmt.Sprintf("You sense that %s is looking for you in %s.", DB.Fetch(player).name, DB.Fetch(DB.Fetch(player).Location).name)
 		else
-			buf = fmt.Sprintf("%s pages from %s: \"%s\"", db.Fetch(player).name, db.Fetch(db.Fetch(player).Location).name, arg2)
+			buf = fmt.Sprintf("%s pages from %s: \"%s\"", DB.Fetch(player).name, DB.Fetch(DB.Fetch(player).Location).name, arg2)
 		}
 		if notify_from(player, target, buf) {
 			notify(player, "Your message has been sent.")
 		} else {
-			notify(player, fmt.Sprintf("%s is not connected.", db.Fetch(target).name))
+			notify(player, fmt.Sprintf("%s is not connected.", DB.Fetch(target).name))
 		}
 	}
 }
 
-func notify_listeners(who, xprog, obj, room dbref, msg string, isprivate bool) {
+func notify_listeners(who, xprog, obj, room ObjectID, msg string, isprivate bool) {
 	if obj != NOTHING {
 		if tp_listeners && (tp_listeners_obj || Typeof(obj) == TYPE_ROOM) {
 			listenqueue(-1, who, room, obj, obj, xprog, "_listen", msg, tp_listen_mlev, 1, 0)
@@ -99,13 +99,13 @@ func notify_listeners(who, xprog, obj, room dbref, msg string, isprivate bool) {
 		}
 
 		if tp_zombies && Typeof(obj) == TYPE_THING && !isprivate {
-			if db.Fetch(obj).flags & VEHICLE != 0 && df.Fetch(who).Location == df.Fetch(obj).Location {
+			if DB.Fetch(obj).flags & VEHICLE != 0 && df.Fetch(who).Location == df.Fetch(obj).Location {
 				prefix := do_parse_prop(-1, who, obj, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
 				if prefix = "" {
 					prefix = "Outside>"
 				}
 				buf := fmt.Sprint(prefix, " ", msg)
-				for ref := db.Fetch(obj).Contents; ref != NOTHING; ref = db.Fetch(ref).next {
+				for ref := DB.Fetch(obj).Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
 					notify_filtered(who, ref, buf, isprivate)
 				}
 			}
@@ -118,19 +118,19 @@ func notify_listeners(who, xprog, obj, room dbref, msg string, isprivate bool) {
 }
 
 void
-notify_except(dbref first, dbref exception, const char *msg, dbref who)
+notify_except(ObjectID first, ObjectID exception, const char *msg, ObjectID who)
 {
-	dbref room, srch;
+	ObjectID room, srch;
 
 	if (first != NOTHING) {
 
-		srch = room = db.Fetch(first).Location
+		srch = room = DB.Fetch(first).Location
 
 		if (tp_listeners) {
 			notify_from_echo(who, srch, msg, 0);
 
 			if (tp_listeners_env) {
-				srch = db.Fetch(srch).Location
+				srch = DB.Fetch(srch).Location
 				while (srch != NOTHING) {
 					notify_from_echo(who, srch, msg, 0);
 					srch = getparent(srch);
@@ -138,7 +138,7 @@ notify_except(dbref first, dbref exception, const char *msg, dbref who)
 			}
 		}
 
-		for ; first != NOTHING; first = db.Fetch(var).next {
+		for ; first != NOTHING; first = DB.Fetch(var).next {
 			if ((Typeof(first) != TYPE_ROOM) && (first != exception)) {
 				/* don't want excepted player or child rooms to hear */
 				notify_from_echo(who, first, msg, 0);
@@ -147,7 +147,7 @@ notify_except(dbref first, dbref exception, const char *msg, dbref who)
 	}
 }
 
-func parse_oprop(descr int, player, dest, exit dbref, propname, prefix, whatcalled string) {
+func parse_oprop(descr int, player, dest, exit ObjectID, propname, prefix, whatcalled string) {
 	msg := get_property_class(exit, propname)
 	int ival = 0;
 	if (Prop_Blessed(exit, propname))
@@ -157,15 +157,15 @@ func parse_oprop(descr int, player, dest, exit dbref, propname, prefix, whatcall
 		parse_omessage(descr, player, dest, exit, msg, prefix, whatcalled, ival);
 }
 
-func parse_omessage(descr int, player, dest, exit dbref, msg, prefix, whatcalled string, mpiflags int) {
+func parse_omessage(descr int, player, dest, exit ObjectID, msg, prefix, whatcalled string, mpiflags int) {
 	buf := do_parse_mesg(descr, player, exit, msg, whatcalled, MPI_ISPUBLIC | mpiflags)
 	if ptr := pronoun_substitute(descr, player, buf); ptr != "" {
 		/*
-			TODO: Find out if this should be prefixing with db.Fetch(player).name,
+			TODO: Find out if this should be prefixing with DB.Fetch(player).name,
 			or if it should use the prefix argument...  The original code just ignored
 			the prefix argument...
 		*/
-		notify_except(db.Fetch(dest).Contents, player, prefix_message(ptr, prefix), player)
+		notify_except(DB.Fetch(dest).Contents, player, prefix_message(ptr, prefix), player)
 	}
 }
 

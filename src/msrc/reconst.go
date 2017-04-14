@@ -1,72 +1,72 @@
 var nexted []int
 
-func readd_contents(obj dbref) {
-	var what dbref
-	where := db.Fetch(obj).Location
+func readd_contents(obj ObjectID) {
+	var what ObjectID
+	where := DB.Fetch(obj).Location
 	switch {
 	case IsRoom(obj), IsThing(obj), IsProgram(obj), IsPlayer(obj):
-		if db.Fetch(obj).Contents == NOTHING {
-			db.Fetch(obj).Contents = obj
+		if DB.Fetch(obj).Contents == NOTHING {
+			DB.Fetch(obj).Contents = obj
 			return
 		}
-		for what = db.Fetch(where).Contents; db.Fetch(what).next != NOTHING; what = db.Fetch(what).next {}
-		db.Fetch(what).next = obj
+		for what = DB.Fetch(where).Contents; DB.Fetch(what).next != NOTHING; what = DB.Fetch(what).next {}
+		DB.Fetch(what).next = obj
 	case IsExit(obj):
 		switch {
 		case IsRoom(where), IsThing(where), IsPlayer(where):
-			if db.Fetch(where).Exits == NOTHING {
-				db.Fetch(where).Exits = obj
+			if DB.Fetch(where).Exits == NOTHING {
+				DB.Fetch(where).Exits = obj
 				return
 			}
-			what = db.Fetch(where).Exits
+			what = DB.Fetch(where).Exits
 		}
-		for db.Fetch(what).next != NOTHING {
-			what = db.Fetch(what).next
+		for DB.Fetch(what).next != NOTHING {
+			what = DB.Fetch(what).next
 		}
-		db.Fetch(what).next = obj
+		DB.Fetch(what).next = obj
 	}
 }
 
-func check_contents(obj dbref) {
+func check_contents(obj ObjectID) {
 	switch {
 	case IsProgram(obj), IsExit(obj):
 	default:
-		if db.Fetch(obj).Contents != NOTHING {
-			for db.Fetch(obj).Contents != NOTHING && db.Fetch(db.Fetch(obj).Contents).Location != obj {
+		if DB.Fetch(obj).Contents != NOTHING {
+			for DB.Fetch(obj).Contents != NOTHING && DB.Fetch(DB.Fetch(obj).Contents).Location != obj {
 				lastwhere := o.Contents
-				db.Fetch(obj).Contents = db.Fetch(lastwhere).next
-				db.Fetch(lastwhere).next = NOTHING
+				DB.Fetch(obj).Contents = DB.Fetch(lastwhere).next
+				DB.Fetch(lastwhere).next = NOTHING
 				readd_contents(lastwhere)
 			}
-			if where := db.Fetch(obj).Contents; where != NOTHING {
-				for db.Fetch(where).next != NOTHING {
-					if db.Fetch(db.Fetch(where).next).Location != obj {
-						lastwhere := db.Fetch(where).next
-						db.Fetch(where).next = db.Fetch(lastwhere).next
-						db.Fetch(lastwhere).next = NOTHING
+			if where := DB.Fetch(obj).Contents; where != NOTHING {
+				for DB.Fetch(where).next != NOTHING {
+					if DB.Fetch(DB.Fetch(where).next).Location != obj {
+						lastwhere := DB.Fetch(where).next
+						DB.Fetch(where).next = DB.Fetch(lastwhere).next
+						DB.Fetch(lastwhere).next = NOTHING
 						readd_contents(lastwhere)
 					} else {
-						where = db.Fetch(where).next
+						where = DB.Fetch(where).next
 					}
 				}
 			}
 		}
-		if db.Fetch(obj).Exits != NOTHING {
-			for db.Fetch(obj).Exits != NOTHING && db.Fetch(db.Fetch(obj).Exits).Location != obj {
-				lastwhere := db.Fetch(obj).Exits
-				db.Fetch(obj).Exits = db.Fetch(lastwhere).next
-				db.Fetch(lastwhere).next = NOTHING
+		if DB.Fetch(obj).Exits != NOTHING {
+			for DB.Fetch(obj).Exits != NOTHING && DB.Fetch(DB.Fetch(obj).Exits).Location != obj {
+				lastwhere := DB.Fetch(obj).Exits
+				DB.Fetch(obj).Exits = DB.Fetch(lastwhere).next
+				DB.Fetch(lastwhere).next = NOTHING
 				readd_contents(lastwhere)
 			}
-			if where := db.Fetch(obj).Exits; where != NOTHING {
-				for db.Fetch(where).next != NOTHING {
-					if db.Fetch(db.Fetch(where).next).Location != obj {
-						lastwhere := db.Fetch(where).next
-						db.Fetch(where).next = db.Fetch(lastwhere).next
-						db.Fetch(lastwhere).next = NOTHING
+			if where := DB.Fetch(obj).Exits; where != NOTHING {
+				for DB.Fetch(where).next != NOTHING {
+					if DB.Fetch(DB.Fetch(where).next).Location != obj {
+						lastwhere := DB.Fetch(where).next
+						DB.Fetch(where).next = DB.Fetch(lastwhere).next
+						DB.Fetch(lastwhere).next = NOTHING
 						readd_contents(lastwhere)
 					} else {
-						where = db.Fetch(where).next
+						where = DB.Fetch(where).next
 					}
 				}
 			}
@@ -74,8 +74,8 @@ func check_contents(obj dbref) {
 	}
 }
 
-func check_common(id dbref) {
-	o := db.Fetch(id)
+func check_common(id ObjectID) {
+	o := DB.Fetch(id)
 	if !o.name {
 		o.name = fmt.Sprintf("Unknown%d", id)
 	}
@@ -94,38 +94,38 @@ func check_common(id dbref) {
 	}
 }
 
-func check_room(obj dbref) {
-	if db.Fetch(obj).(dbref) >= db_top || (db.Fetch(db.Fetch(obj).(dbref)).flags & TYPE_MASK != TYPE_ROOM && db.Fetch(obj).sp != NOTHING && db.Fetch(obj).sp != HOME) {
-		db.Fetch(obj).sp = NOTHING
+func check_room(obj ObjectID) {
+	if DB.Fetch(obj).(ObjectID) >= db_top || (DB.Fetch(DB.Fetch(obj).(ObjectID)).flags & TYPE_MASK != TYPE_ROOM && DB.Fetch(obj).sp != NOTHING && DB.Fetch(obj).sp != HOME) {
+		DB.Fetch(obj).sp = NOTHING
 	}
 
-	if db.Fetch(obj).Exits < db_top {
-		nexted[db.Fetch(obj).Exits] = obj
+	if DB.Fetch(obj).Exits < db_top {
+		nexted[DB.Fetch(obj).Exits] = obj
 	} else {
-		db.Fetch(obj).Exits = NOTHING
+		DB.Fetch(obj).Exits = NOTHING
 	}
 
-	if db.Fetch(obj).Owner >= db_top || (db.Fetch(db.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
-		db.Fetch(obj).Owner = GOD
+	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+		DB.Fetch(obj).Owner = GOD
 	}
 }
 
-func check_exit(ref dbref) {
-	obj := db.Fetch(ref)
+func check_exit(ref ObjectID) {
+	obj := DB.Fetch(ref)
 	for i, v := range obj.(Exit).Destinations {
 		if v >= db_top {
 			obj.(Exit).Destinations[i] = NOTHING
 		}
 	}
-	if obj.Owner >= db_top || (db.Fetch(obj.Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+	if obj.Owner >= db_top || (DB.Fetch(obj.Owner).flags & TYPE_MASK != TYPE_PLAYER) {
 		obj.Owner = GOD
 	}
 }
 
-func check_player(ref dbref) {
-	obj := db.Fetch(ref)
+func check_player(ref ObjectID) {
+	obj := DB.Fetch(ref)
 	player := obj.(Player)
-	if player.home >= db_top || (db.Fetch(player.home).flags & TYPE_MASK != TYPE_ROOM) {
+	if player.home >= db_top || (DB.Fetch(player.home).flags & TYPE_MASK != TYPE_ROOM) {
 		player.home = tp_player_start
 	}
 
@@ -136,9 +136,9 @@ func check_player(ref dbref) {
 	}
 }
 
-func check_program(obj dbref) {
-	if db.Fetch(obj).Owner >= db_top || (db.Fetch(db.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
-		db.Fetch(obj).Owner = GOD
+func check_program(obj ObjectID) {
+	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+		DB.Fetch(obj).Owner = GOD
 	}
 }
 
@@ -172,7 +172,7 @@ func main() {
 				db_read(input_file)
 
 				nexted := make([]int, db_top + 1)
-				EachObject(func(obj dbref, o *Object) {
+				EachObject(func(obj ObjectID, o *Object) {
 					nexted[obj] = NOTHING
 					check_common(obj)
 					switch {
@@ -199,20 +199,20 @@ func main() {
 }
 
 /* dummy compiler */
-func do_compile(int descr, dbref p, dbref pr, int force_err_disp) {}
+func do_compile(int descr, ObjectID p, ObjectID pr, int force_err_disp) {}
 
-func new_macro(name, definition string, player dbref) *macrotable {
+func new_macro(name, definition string, player ObjectID) *macrotable {
 	return nil
 }
 
-func log_status(format, p1, p2, p3, p4, p5, p6, p7, p8 string) {}
+func log_status(format, v ...string) {}
 
-func add_event(descr int, player, loc, trig dbref, dtime int, program dbref, fr *frame, strdata string) {}
+func add_event(descr int, player, loc, trig ObjectID, dtime int, program ObjectID, fr *frame, strdata string) {}
 
 func init_primitives() {}
 
-func add_player(who dbref) {}
+func add_player(who ObjectID) {}
 
-func do_parse_mesg(descr int, player, what dbref, inbuf, abuf, outbuf string, outbuflen int, mesgtyp int) string {
+func do_parse_mesg(descr int, player, what ObjectID, inbuf, abuf, outbuf string, outbuflen int, mesgtyp int) string {
 	return ""
 }

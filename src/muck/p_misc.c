@@ -1,6 +1,6 @@
 package fbmuck
 
-func prim_time(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_time(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(3)
 		t := time.Now().Local()
@@ -10,7 +10,7 @@ func prim_time(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_date(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_date(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(3)
 		t := time.Now().Local()
@@ -20,28 +20,28 @@ func prim_date(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_gmtoffset(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_gmtoffset(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, get_tz_offset())
 	})
 }
 
-func prim_systime(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_systime(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, time.Now().Local())
 	})
 }
 
-func prim_systime_precise(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_systime_precise(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, time.Now())
 	})
 }
 
-func prim_timesplit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_timesplit(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		t := op[0].(time.Time).Local()
 		CHECKOFLOW(8)
@@ -56,7 +56,7 @@ func prim_timesplit(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_timefmt(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_timefmt(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		format := op[0].(string)
 		time := op[1].(int)
@@ -66,32 +66,32 @@ func prim_timefmt(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_userlog(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_userlog(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(tp_userlog_mlev, mlev, 1, top, func(op Array) {
 		log_user(player, program, fmt.Sprint(op[0].(string)))
 	})
 }
 
-func prim_queue(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_queue(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 3, top, func(op Array) {
 		delay := op[0].(int)
-		obj := valid_object(op[1])
+		obj := op[1].(ObjectID).ValidObject()
 		if Typeof(obj) != TYPE_PROGRAM {
 			panic("Object must be a program. (2)")
 		}
 		command := op[2].(string)
 
-		var temproom dbref
-		if v, ok := (fr.variables + 1).data.(dbref); ok {
+		var temproom ObjectID
+		if v, ok := (fr.variables + 1).data.(ObjectID); ok {
 			temproom = v
 		} else {
-			temproom = db.Fetch(player).Location
+			temproom = DB.Fetch(player).Location
 		}
 		push(arg, top, add_muf_delayq_event(delay, fr.descr, player, temproom, NOTHING, obj, command, "Queued Event.", 0))
 	})
 }
 
-func prim_kill(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_kill(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		pid := op[0].(int)
 		if pid == fr.pid {
@@ -108,25 +108,25 @@ func prim_kill(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_force(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_force(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(WIZBIT, mlev, 2, top, func(op Array) {
 		if fr.level > 8 {
 			panic("Interp call loops not allowed.")
 		}
-		obj := op[0].(dbref)
+		obj := op[0].(ObjectID)
 		command := op[1].(string)
 		switch {
-		case !valid_reference(obj):
+		case !obj.IsValid():
 			panic("Invalid object to force. (1)")
 		case Typeof(obj) != TYPE_PLAYER && Typeof(obj) != TYPE_THING {
 			panic("Object to force not a thing or player. (1)")
 		case strings.Index(command, '\r') != -1:
 			panic("Carriage returns not allowed in command string. (2).")
-		case obj == GOD && db.Fetch(program).Owner != GOD:
+		case obj == GOD && DB.Fetch(program).Owner != GOD:
 			panic("Cannot force god (1).")
 		}
 		ForceAction(program, func() {
-			process_command(dbref_first_descr(obj), obj, command)
+			process_command(ObjectID_first_descr(obj), obj, command)
 		})
 		for i := 1; i <= fr.caller.top; i++ {
 			if Typeof(fr.caller.st[i]) != TYPE_PROGRAM {
@@ -139,14 +139,14 @@ func prim_force(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	})
 }
 
-func prim_timestamps(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_timestamps(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0])
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		CHECKOFLOW(4)
-		push(arg, top, db.Fetch(obj).Created)
-		push(arg, top, db.Fetch(obj).Modified)
-		push(arg, top, db.Fetch(obj).LastUsed)
-		push(arg, top, db.Fetch(obj).Uses)
+		push(arg, top, DB.Fetch(obj).Created)
+		push(arg, top, DB.Fetch(obj).Modified)
+		push(arg, top, DB.Fetch(obj).LastUsed)
+		push(arg, top, DB.Fetch(obj).Uses)
 	})
 }
 
@@ -154,7 +154,7 @@ extern int top_pid;
 struct forvars *copy_fors(struct forvars *);
 struct tryvars *copy_trys(struct tryvars *);
 
-func prim_fork(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_fork(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 0, top, func(op Array) {
 		CHECKOFLOW(1)
 		fr.pc = pc
@@ -171,7 +171,7 @@ func prim_fork(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 		for i := 0; i <= fr.caller.top; i++ {
 			tmpfr.caller.st[i] = fr.caller.st[i]
 			if i > 0 {
-				db.Fetch(fr.caller.st[i]).(Program).instances++
+				DB.Fetch(fr.caller.st[i]).(Program).instances++
 			}
 		}
 
@@ -234,18 +234,18 @@ func prim_fork(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_pid(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_pid(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, fr.pid)
 	})
 }
 
-func prim_stats(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_stats(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 1, top, func(op Array) {
-		obj := valid_player(op[0])
+		obj := op[0].(ObjectID).ValidPlayer()
 		var rooms, exits, things, players, programs int
-		EachObject(func(obj dbref, o *Object) {
+		EachObject(func(obj ObjectID, o *Object) {
 			if obj == NOTHING || o.Owner == obj {
 				switch i.(type) {
 				case TYPE_ROOM:
@@ -271,13 +271,13 @@ func prim_stats(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	}
 }
 
-func prim_abort(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_abort(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		abort_interp(op[0].(string))
 	})
 }
 
-func prim_ispidp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ispidp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		pid := op[0].(int)
 		if pid == fr.pid {
@@ -292,7 +292,7 @@ func prim_ispidp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_parselock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_parselock(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		CHECKOFLOW(1)
 		if lock := op[0].(string); lock == "" {
@@ -303,7 +303,7 @@ func prim_parselock(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_unparselock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_unparselock(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if l := op[0].(Lock); l.IsTrue() {
 			push(arg, top, "")
@@ -313,16 +313,16 @@ func prim_unparselock(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_prettylock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_prettylock(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, op[0].(Lock).Unparse(ProgUID, true))
 	})
 }
 
-func prim_testlock(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_testlock(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_remote_object(player, mlev, op[0].data)
+		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		switch {
 		case fr.level > 8:
 			panic("Interp call loops not allowed.")
@@ -333,7 +333,7 @@ func prim_testlock(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_sysparm(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_sysparm(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		CHECKOFLOW(1)
 		if parm := op[0].(string); parm != "" {
@@ -346,15 +346,15 @@ func prim_sysparm(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_cancallp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_cancallp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		obj := valid_object(op[0])
+		obj := op[0].(ObjectID).ValidObject()
 		funcname := op[1].(string)
 		if Typeof(obj) != TYPE_PROGRAM {
 			panic("Object is not a MUF Program. (1)")
 		}
 
-		p := db.Fetch(obj)
+		p := DB.Fetch(obj)
 		if p.(Program).code == nil {
 			tmpline := p.(Program).first
 			p.(Program).first = read_program(obj)
@@ -375,7 +375,7 @@ func prim_cancallp(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_setsysparm(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_setsysparm(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(WIZBIT, mlev, 2, top, func(op Array) {
 		if force_level != 0 {
 			panic("Cannot be forced.")
@@ -386,7 +386,7 @@ func prim_setsysparm(player, program dbref, mlev int, pc, arg *inst, top *int, f
 		newvalue := op[1].(string)
 		switch result := tune_setparm(parm, newvalue, security); result {
 		case TUNESET_SUCCESS:
-			log_status("TUNED (MUF): %s(%d) tuned %s from '%s' to '%s'", db.Fetch(player).name, player, parm, oldvalue, newvalue)
+			log_status("TUNED (MUF): %s(%d) tuned %s from '%s' to '%s'", DB.Fetch(player).name, player, parm, oldvalue, newvalue)
 		case TUNESET_UNKNOWN:
 			panic("Unknown parameter. (1)")
 		case TUNESET_SYNTAX:
@@ -399,7 +399,7 @@ func prim_setsysparm(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_sysparm_array(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_sysparm_array(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if player == GOD {
 			push(arg, top, tune_parms_array(op[0].(string), MLEV_GOD))
@@ -409,7 +409,7 @@ func prim_sysparm_array(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_timer_start(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_timer_start(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		if fr.timercount > tp_process_timer_limit {
 			panic("Too many timers!")
@@ -420,26 +420,26 @@ func prim_timer_start(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_timer_stop(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_timer_stop(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 	    dequeue_timers(fr.pid, op[0].(string))
 	})
 }
 
-func prim_event_exists(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_event_exists(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, muf_event_exists(fr, op[0].(string)))
 	})
 }
 
-func prim_event_count(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_event_count(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
 		push(arg, top, muf_event_count(fr))
 	})
 }
 
-func prim_event_send(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_event_send(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 3, top, func(op Array) {
 		pid := op[0].(int)
 		eventid := op[1].(string)
@@ -465,7 +465,7 @@ func prim_event_send(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_pname_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_pname_okp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if ok_player_name(op[0].(string)) {
 			push(arg, top, 1)
@@ -475,7 +475,7 @@ func prim_pname_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_name_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_name_okp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		name := op[0].(string)
 		if ok_ascii_other(name) && ok_name(name) {
@@ -486,7 +486,7 @@ func prim_name_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_ext_name_okp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ext_name_okp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		var ok1, ok2 func(string) bool
 		switch v := op[0].(type) {
@@ -503,15 +503,15 @@ func prim_ext_name_okp(player, program dbref, mlev int, pc, arg *inst, top *int,
 			default:
 				panic("String must be a valid object type (2)." )
 			}
-		case dbref:
-			switch valid_object(v).(type) {
-			case TYPE_EXIT, TYPE_ROOM, TYPE_PROGRAM:
+		case ObjectID:
+			switch v.(ObjectID).ValidObject().(type) {
+			case Exit, Room, Program:
 				ok1 = ok_ascii_other
 				ok2 = ok_name
-			case TYPE_THING:
+			case Object:
 				ok1 = ok_ascii_thing
 				ok2 = ok_name
-			case TYPE_PLAYER:
+			case Player:
 				ok1 = ok_player_name
 			}
 		default:
@@ -529,12 +529,12 @@ func prim_ext_name_okp(player, program dbref, mlev int, pc, arg *inst, top *int,
 	})
 }
 
-func prim_force_level(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_force_level(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	CHECKOFLOW(1)
 	push(arg, top, force_level)
 }
 
-func prim_watchpid(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_watchpid(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 1, top, func(op Array) {
 		pid := op[0].(int)
 		if pid == fr.pid {
@@ -565,11 +565,11 @@ func prim_watchpid(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_read_wants_blanks(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_read_wants_blanks(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	fr.wantsblanks = true
 }
 
-func prim_debugger_break(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_debugger_break(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		b := fr.brkpt
 		if b.count >= MAX_BREAKS {
@@ -592,36 +592,36 @@ func prim_debugger_break(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_ignoringp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ignoringp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		push(arg, top, ignore_is_ignoring(valid_object(op[0]), valid_object(op[1])))
+		push(arg, top, ignore_is_ignoring(op[0].(ObjectID).ValidObject(), op[1].(ObjectID).ValidObject()))
 	})
 }
 
-func prim_ignore_add(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ignore_add(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		ignore_add_player(valid_object(op[0]), valid_object(op[1]))
+		ignore_add_player(op[0].(ObjectID).ValidObject(), op[1].(ObjectID).ValidObject())
 	})
 }
 
-func prim_ignore_del(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ignore_del(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_restricted_primitive(MASTER, mlev, 2, top, func(op Array) {
-		ignore_remove_player(valid_object(op[0]), valid_object(op[1]))
+		ignore_remove_player(op[0].(ObjectID).ValidObject(), op[1].(ObjectID).ValidObject())
 	})
 }
 
-func prim_debug_on(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	db.Fetch(program).flags |= DARK
-	db.Fetch(program).flags |= OBJECT_CHANGED
+func prim_debug_on(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
+	DB.Fetch(program).flags |= DARK
+	DB.Fetch(program).flags |= OBJECT_CHANGED
 }
 
-func prim_debug_off(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	db.Fetch(program).flags &= ~DARK
-	db.Fetch(program).flags |= OBJECT_CHANGED
+func prim_debug_off(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
+	DB.Fetch(program).flags &= ~DARK
+	DB.Fetch(program).flags |= OBJECT_CHANGED
 }
 
-func prim_debug_line(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
-	if db.Fetch(program).flags & DARK == 0 && controls(player, program) {
+func prim_debug_line(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
+	if DB.Fetch(program).flags & DARK == 0 && controls(player, program) {
 		notify_nolisten(player, debug_inst(fr, 0, pc, fr.pid, arg, buf, sizeof(buf), *top, program), true)
 	}
 }

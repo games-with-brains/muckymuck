@@ -17,7 +17,7 @@ Changed:
     of functions pointed to by an array of function pointers.  This makes for
     a slight increase in speed, and also for easier addition of primitives.
 
-  You can now connect to a player via dbref.  Just give the dbref where you
+  You can now connect to a player via ObjectID.  Just give the ObjectID where you
     would normally put your name in the connection request.  For example:
           connect #1234 craZypassWord
 
@@ -29,7 +29,7 @@ Changed:
     is not defined, then exits work like in standard MUCK2.2.
 
   When a program crashes, now even the errors within interp_loop() will tell
-    what MUF program dbref and line number it occurred at.
+    what MUF program ObjectID and line number it occurred at.
 
 
 Added:
@@ -97,7 +97,7 @@ Changed:
     owner of the objects it is linked to.
   
   Commands like @desc, @lock, @succ, @osucc, etc. now will work at a distance
-    for the owner of the object, if the object is referred to by dbref.  This
+    for the owner of the object, if the object is referred to by ObjectID.  This
     facilitates builder programs.
   
   @dig, @action, @open, and @create can now take a third parameter in the form:
@@ -111,7 +111,7 @@ Changed:
     if Joe_blow types '@dig Bedroom=$myenv=mybedroom' then it will create
     the room "Bedroom" and set it's parent to the room referred to by $myenv
     then registers it on the player as $mybedroom by setting the _reg/mybedroom
-    property to the dbref of the room object created.  If the <registername>
+    property to the ObjectID of the room object created.  If the <registername>
     parameter is excluded, then the object isn't registered.  If you want
     to, for example, @create an object, but not set it's value, but you DO
     want to register it, then you just exclude That parameter, but remember
@@ -147,7 +147,7 @@ Changed:
     "gen" or "cmd" and have at least one character after that.  (see the
     description of the SMATCH primitive later in this document)  The flags
     string argument is rather different.  It is a string that consists of
-    the letters you would see in the flags field after a dbref in an examine,
+    the letters you would see in the flags field after a ObjectID in an examine,
     and negations.  ie: "FW!D" would match programs that are set Wizard and
     NOT set Debug.  A wizard could find all the MUCKER players in the data-
     base who were not wizards simply with a '@find =P!WM'.  The '!' means
@@ -169,7 +169,7 @@ Changed:
   
   The matching routines no longer look for _progreg/xxxx, as I decided that
     this is too useful a mod to keep for programs alone.  It now looks for
-    $registered names in _reg/ for a STRING that contains the dbref of the
+    $registered names in _reg/ for a STRING that contains the ObjectID of the
     program to reference.  The string can simply be a number like "1234" or
     prepended by a # like "#1234".
   
@@ -248,7 +248,7 @@ Features added:
   Program registration added:  If you refer to a program in @link, @open,
     @prog, @edit, or @set, with the syntax "$progname" then it will look
     for a property named "_progreg/progname" in #0 containing an integer
-    value (not a string) that represents the dbref of the program.  If it
+    value (not a string) that represents the ObjectID of the program.  If it
     exists, then the command will match the program.  Also, if you @desc,
     @succ, @drop, or @fail an object to start with "@$progname" then it
     will run that program, similar to an "@1234" @desc/@succ/etc.
@@ -279,7 +279,7 @@ If a program has the HAVEN flag set on it (HARDUID) then it runs with
   
 Added _connect and _disconnect:
   A room or player may have a "_connect" property set that contains the
-  dbref of a progran to run when a player connects.  The program must be
+  ObjectID of a progran to run when a player connects.  The program must be
   either link_ok or must be owned by the player connecting.  When the
   program is run, the string on the stack will be "Connect", the "loc @"
   will be the location of the connecting player, the "me @" will be the
@@ -292,7 +292,7 @@ Added _connect and _disconnect:
   
   @dequeue will now let you remove all events run by a specific player
   or of a specific program with the syntax:  @dequeue #xxx   Where xxx
-  is the dbref of the program or player.
+  is the ObjectID of the program or player.
   
   All the timequeue events of a program are now dequeued when the program
   is recompiled or @recycled.  This prevents the bug which would otherwise
@@ -325,7 +325,7 @@ Added _connect and _disconnect:
 
 Added Listeners:
   A room or object may have a "_listen" property set that contains the
-  dbref of a program to run whenever a notify_except is done in that
+  ObjectID of a program to run whenever a notify_except is done in that
   room or in the room that contains the object.  The program must
   either be link_ok or must be owned by the owner of the object
   containing the "_listen" property.  When the program is run, the
@@ -362,7 +362,7 @@ A wizard set QUELL is effectively a normal player with no wizardly powers.
   Programs that test to see if a player is wizard will get a false response
   from '"wizard" flag?' when the player is QUELLed.  Wiz-bitted programs
   will still act wizbitted whether or not the owner is QUELLED.
-A player can set themselves "SILENT" and not see all the dbrefs and dark
+A player can set themselves "SILENT" and not see all the ObjectIDs and dark
   objects that they own.  They won't see objects in a dark room either.
   They still control the objects though.
 If no parent is given for a room when it is @dig'ed it will default to the

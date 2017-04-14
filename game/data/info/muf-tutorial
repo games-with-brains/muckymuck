@@ -399,16 +399,16 @@ probably use two of them a lot: "me @" will return the object number
 of the player who is using this MUF program, while "loc @" will return
 the object number of the room he is in.
 
-(Object numbers, also known as database references or dbrefs, are the
+(Object numbers, also known as database references or ObjectIDs, are the
 third kind of constant value after integers and strings.  The value
-#123 is a dbref.  You can convert integers to dbrefs with the "dbref
-(i -- d)" operator; saying "123 dbref" is the same thing as saying
+#123 is a ObjectID.  You can convert integers to ObjectIDs with the "ObjectID
+(i -- d)" operator; saying "123 ObjectID" is the same thing as saying
 "#123".)
 
 Another useful word to know is:
 
 name (d -- s)
-Where d is a db reference and s is a string, "name" returns the name
+Where d is a ObjectID and s is a string, "name" returns the name
 of item d.  Thus "me @ name" puts my name on top of the stack in case
 I forget it.  (On a Fuzzball MUCK (2.2fb), if you only have Mucker
 level 1 permission, you can only get the name of someone or something
@@ -419,11 +419,11 @@ And now that you know all about "me @", another MUF function becomes
 useful.  Its synopsis is:
 
 notify (d s --)
-When d is the dbref of a player, "notify" shows him string d.  If I were
+When d is the ObjectID of a player, "notify" shows him string d.  If I were
 a character named "Joe", then running
 
     : whoami
-        me @  (my dbref)
+        me @  (my ObjectID)
         "Your name is "
         me @ name  (my name as a string)
         strcat  (concatenate "Your name is" and my name into one string)
@@ -560,27 +560,27 @@ want to use this stuff to do something interesting.  The following
 program fits the bill.  It uses the new functions:
 
 location (d -- d')
-Takes db reference d and returns d', the db reference for its location.
+Takes ObjectID d and returns d', the ObjectID for its location.
 
 owner (d -- d')
-Returns the dbref of the character that owns object d.
+Returns the ObjectID of the character that owns object d.
 
 dbcmp (d1 d2 -- )
-Works just like =, except operates on db references instead of integers.
+Works just like =, except operates on ObjectIDs instead of integers.
 
 "find" will tell you where an object of your choosing is (and who owns
 the room it's in) whenever you use the program.
 
     : find
         #123  (Substitute here the number of whatever object you want to find.)
-        dup   (Make a copy of the dbref; we're about to use the copy.)
+        dup   (Make a copy of the ObjectID; we're about to use the copy.)
         name  (Fetch the object's name -- better than hardcoding it here!)
         " is currently in: " strcat
 
         (If #123 is "foo", we now have the stack:)
         (#123 "foo is currently in: ")
 
-        swap      (Bring the dbref back to the top of the stack.)
+        swap      (Bring the ObjectID back to the top of the stack.)
         location  (Where is it?)
         dup name  (Make two copies of that room number,)
                   (and turn one into the name of the room.)
@@ -605,7 +605,7 @@ the room it's in) whenever you use the program.
         strcat strcat strcat strcat  (Turn it all into one string.)
 
         me @  (We're going to tell me where it is...)
-        swap  (... but "notify" wants my dbref to come before the string.)
+        swap  (... but "notify" wants my ObjectID to come before the string.)
         notify  (And there it is!)
     ;
 

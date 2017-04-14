@@ -66,7 +66,7 @@ type descriptor_data struct {
 	booted int
 	block_writes int
 	is_starttls int
-	player dbref
+	player ObjectID
 	output_prefix string
 	output_suffix string
 	output_size int
@@ -348,7 +348,7 @@ func main() {
 			close_sockets("\r\nServer shutting down normally.\r\n");
 		}
 
-		do_dequeue(-1, (dbref) 1, "all");
+		do_dequeue(-1, (ObjectID) 1, "all");
 
 	}
 
@@ -397,12 +397,12 @@ func queue_msg(d *descriptor_data, msg string) {
 
 int notify_nolisten_level = 0;
 
-func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
+func notify_nolisten(player ObjectID, msg string, isprivate bool) (r int) {
 	char buf[BUFFER_LEN + 2];
 	char buf2[BUFFER_LEN + 2];
 	char *ptr1;
 	const char *ptr2;
-	dbref ref;
+	ObjectID ref;
     int di;
     int* darr;
     int dcount;
@@ -426,10 +426,10 @@ func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
         }
 
 		if tp_zombies {
-			if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & ZOMBIE != 0 && db.Fetch(db.Fetch(player).Owner).flags & ZOMBIE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).Owner)) {
-				ref = db.Fetch(player).Location
-				if Wizard(db.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & ZOMBIE == 0 {
-					if isprivate || db.Fetch(player).Location != db.Fetch(db.Fetch(player).Owner).Location {
+			if TYPEOF(player) == TYPE_THING && DB.Fetch(player).flags & ZOMBIE != 0 && DB.Fetch(DB.Fetch(player).Owner).flags & ZOMBIE == 0 && (DB.Fetch(player).flags & DARK == 0 || Wizard(DB.Fetch(player).Owner)) {
+				ref = DB.Fetch(player).Location
+				if Wizard(DB.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || DB.Fetch(ref).flags & ZOMBIE == 0 {
+					if isprivate || DB.Fetch(player).Location != DB.Fetch(DB.Fetch(player).Owner).Location {
 						ch := match_args[0]
 						match_args[0] = ""
 						var prefix string
@@ -440,12 +440,12 @@ func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
 						}
 						match_args[0] = ch
 						if prefix == "" {
-							buf2 = fmt.Sprint(db.Fetch(player).name, "> ", buf)
+							buf2 = fmt.Sprint(DB.Fetch(player).name, "> ", buf)
 						} else {
 							buf2 = fmt.Sprint(prefix. " ", buf)
 						}
 
-						for _, v := range get_player_descrs(db.Fetch(player).Owner) {
+						for _, v := range get_player_descrs(DB.Fetch(player).Owner) {
                             queue_msg(lookup_descriptor(v), buf2)
                             if firstpass {
 								r++
@@ -460,27 +460,27 @@ func notify_nolisten(player dbref, msg string, isprivate bool) (r int) {
 	return
 }
 
-func notify_filtered(from, player dbref, msg string, isprivate bool) (r int) {
+func notify_filtered(from, player ObjectID, msg string, isprivate bool) (r int) {
 	if msg != "" && !ignore_is_ignoring(player, from) {
 		r = notify_nolisten(player, msg, isprivate)
 	}
 	return
 }
 
-func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
+func notify_from_echo(from, player ObjectID, msg string, isprivate bool) int {
 	ptr := msg
 	if tp_listeners {
 		if tp_listeners_obj || TYPEOF(player) == TYPE_ROOM {
-			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
-			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
-			listenqueue(-1, from, db.Fetch(from).Location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
+			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
+			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
+			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
 		}
 	}
 
-	if TYPEOF(player) == TYPE_THING && db.Fetch(player).flags & VEHICLE == 0 && (db.Fetch(player).flags & DARK == 0 || Wizard(db.Fetch(player).Owner)) {
-		ref := db.Fetch(player).Location
-		if Wizard(db.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || db.Fetch(ref).flags & VEHICLE == 0 {
-			if !isprivate && db.Fetch(from).Location == db.Fetch(player).Location {
+	if TYPEOF(player) == TYPE_THING && DB.Fetch(player).flags & VEHICLE == 0 && (DB.Fetch(player).flags & DARK == 0 || Wizard(DB.Fetch(player).Owner)) {
+		ref := DB.Fetch(player).Location
+		if Wizard(DB.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || DB.Fetch(ref).flags & VEHICLE == 0 {
+			if !isprivate && DB.Fetch(from).Location == DB.Fetch(player).Location {
 				ch := match_args[0]
 				match_args[0] = '\0'
 				prefix := do_parse_prop(-1, from, player, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
@@ -490,7 +490,7 @@ func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
 					prefix = "Outside>"
 				}
 				buf := fmt.Sprint(prefix, " ", msg)
-				for ref = db.Fetch(player).Contents; ref != NOTHING; ref = db.Fetch(ref).next {
+				for ref = DB.Fetch(player).Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
 					notify_filtered(from, ref, buf, isprivate);
 				}
 			}
@@ -499,11 +499,11 @@ func notify_from_echo(from, player dbref, msg string, isprivate bool) int {
 	return notify_filtered(from, player, msg, isprivate)
 }
 
-func notify_from(from, player dbref, msg string) int {
+func notify_from(from, player ObjectID, msg string) int {
 	return notify_from_echo(from, player, msg, 1)
 }
 
-func notify(player dbref, msg string) int {
+func notify(player ObjectID, msg string) int {
 	return notify_from_echo(player, player, msg, 1)
 }
 
@@ -511,7 +511,7 @@ func update_quotas(last, current time.Duration) time.Duration {
 	if nslices := (current - last) / (tp_command_time_msec * time.Millisecond); nslices > 0 {
 		for d := descriptor_list; d != nil; d = d.next {
 			var cmds_per_time int
-			if d.connected && db.Fetch(d.player).flags & INTERACTIVE != 0 {
+			if d.connected && DB.Fetch(d.player).flags & INTERACTIVE != 0 {
 				cmds_per_time = tp_commands_per_time * 8
 			} else {										
 				cmds_per_time = tp_commands_per_time
@@ -741,7 +741,7 @@ func shovechars() {
 				}
 			}
 			if (cnt > con_players_max) {
-				add_property((dbref) 0, "_sys/max_connects", NULL, cnt);
+				add_property((ObjectID) 0, "_sys/max_connects", NULL, cnt);
 				con_players_max = cnt;
 			}
 			con_players_curr = cnt;
@@ -771,8 +771,8 @@ func wall_and_flush(msg string) {
 }
 
 
-func flush_user_output(dbref player) {
-	for _, v := range get_player_descrs(db.Fetch(player).Owner) {
+func flush_user_output(ObjectID player) {
+	for _, v := range get_player_descrs(DB.Fetch(player).Owner) {
 		if d := lookup_descriptor(v); d != nil && !process_output(d) {
             d.booted = 1
         }
@@ -865,7 +865,7 @@ func addrout(int lport, long a, unsigned short prt) string {
 func shutdownsock(d *descriptor_data) {
 	if d != nil {
 		if d.connected {
-			log_status("DISCONNECT: descriptor %d player %s(%d) from %s(%s)", d.descriptor, db.Fetch(d.player).name, d.player, d.hostname, d.username)
+			log_status("DISCONNECT: descriptor %d player %s(%d) from %s(%s)", d.descriptor, DB.Fetch(d.player).name, d.player, d.hostname, d.username)
 			announce_disconnect(d)
 		} else {
 			log_status("DISCONNECT: descriptor %d from %s(%s) never connected.", d.descriptor, d.hostname, d.username)
@@ -1243,7 +1243,7 @@ func process_commands() {
 		nprocessed := 0
 		for d := descriptor_list; d != nil; {
 			if t := d.input.head; d.quota > 0 && t != nil {
-				if d.connected && db.Fetch(d.player).(Player).block != nil && !is_interface_command(t.start)) {
+				if d.connected && DB.FetchPlayer(d.player).block != nil && !is_interface_command(t.start)) {
 					tmp := t.start
 					if strings.HasPrefix(tmp, "#$\"") {
 						/* Un-escape MCP escaped lines */
@@ -1334,7 +1334,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 						d.QueueWrite("\r\n")
 					}
 					queue_msg(d, "Foreground program aborted.\r\n")
-					if db.Fetch(d.player).flags & INTERACTIVE != 0 && db.Fetch(d.player).flags & READMODE != 0 {
+					if DB.Fetch(d.player).flags & INTERACTIVE != 0 && DB.Fetch(d.player).flags & READMODE != 0 {
 						process_command(d.descriptor, d.player, command)
 					}
 					if d.output_suffix {
@@ -1342,7 +1342,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 						d.QueueWrite("\r\n")
 					}
 				}
-				db.Fetch(d.player).(Player).block = false
+				DB.FetchPlayer(d.player).block = false
 			}
 		case command == QUIT_COMMAND:
 			r = false
@@ -1354,14 +1354,14 @@ func do_command(d *descriptor_data, command string) (r bool) {
 				d.QueueWrite("\r\n")
 			}
 			buf = fmt.Sprintf("@%v %v", WHO_COMMAND, command[len(WHO_COMMAND):]
-			if !d.connected || db.Fetch(d.player).flags & INTERACTIVE != 0 {
+			if !d.connected || DB.Fetch(d.player).flags & INTERACTIVE != 0 {
 				if tp_secure_who {
 					queue_msg(d, "Sorry, WHO is unavailable at this point.\r\n")
 				} else {
 					dump_users(d, command[len(WHO_COMMAND):])
 				}
 			} else {
-				if (!(TrueWizard(db.Fetch(d.player).Owner) && (*command == OVERIDE_TOKEN))) && can_move(d.descriptor, d.player, buf, 2) {
+				if (!(TrueWizard(DB.Fetch(d.player).Owner) && (*command == OVERIDE_TOKEN))) && can_move(d.descriptor, d.player, buf, 2) {
 					do_move(d.descriptor, d.player, buf, 2)
 				} else {
 					dump_users(d, command + sizeof(WHO_COMMAND) - ((*command == OVERIDE_TOKEN) ? 0 : 1))
@@ -1398,12 +1398,12 @@ func do_command(d *descriptor_data, command string) (r bool) {
 	return
 }
 
-func interact_warn(player dbref) {
+func interact_warn(player ObjectID) {
 	switch {
-	case db.Fetch(player).flags & INTERACTIVE == 0:
-	case db.Fetch(player).flags & READMODE != 0:
+	case DB.Fetch(player).flags & INTERACTIVE == 0:
+	case DB.Fetch(player).flags & READMODE != 0:
 		notify(player, "*** You are currently using a program.  Use \"@Q\" to return to a more reasonable state of control. ***")
-	case db.Fetch(player).(Player).insert_mode:
+	case DB.FetchPlayer(player).insert_mode:
 		notify(player, "*** You are currently inserting MUF program text.  Use \".\" to return to the editor, then \"quit\" if you wish to return to your regularly scheduled Muck universe. ***")
 	default:
 		notify(player, "*** You are currently using the MUF program editor. ***")
@@ -1428,14 +1428,14 @@ func check_connect(d *descriptor_data, msg string) {
 				d.QueueWrite("\r\n")
 				d.booted = 1
 			} else {
-				log_status("CONNECTED: %s(%d) on descriptor %d", db.Fetch(player).name, player, d.descriptor)
+				log_status("CONNECTED: %s(%d) on descriptor %d", DB.Fetch(player).name, player, d.descriptor)
 				d.connected = true
 				d.connected_at = time(nil)
 				d.player = player
 				update_desc_count_table()
 				remember_player_descr(player, d.descriptor)
 				/* cks: someone has to initialize this somewhere. */
-				db.Fetch(d.player).(Player).block = false
+				DB.FetchPlayer(d.player).block = false
 				spit_file(player, MOTD_FILE)
 				announce_connect(d.descriptor, player)
 				interact_warn(player)
@@ -1462,14 +1462,14 @@ func check_connect(d *descriptor_data, msg string) {
 					queue_msg(d, CREATION_FAILED)
 					log_status("FAILED CREATE %s on descriptor %d", user, d.descriptor)
 				} else {
-					log_status("CREATED %s(%d) on descriptor %d", db.Fetch(player).name, player, d.descriptor)
+					log_status("CREATED %s(%d) on descriptor %d", DB.Fetch(player).name, player, d.descriptor)
 					d.connected = true
 					d.connected_at = time(nil)
 					d.player = player
 					update_desc_count_table()
 					remember_player_descr(player, d.descriptor)
 					/* cks: someone has to initialize this somewhere. */
-					db.Fetch(d.player).(Player).block = false
+					DB.FetchPlayer(d.player).block = false
 					spit_file(player, MOTD_FILE)
 					announce_connect(d.descriptor, player)
 					con_players_curr++
@@ -1505,7 +1505,7 @@ func parse_connect(msg string) (command, user, pass string) {
 }
 
 
-func boot_off(player dbref) (r bool) {
+func boot_off(player ObjectID) (r bool) {
 	if arr := get_player_descrs(player); arr != nil {
         if last := lookup_descriptor(arr[0]); last != nil {
 			process_output(last)
@@ -1516,7 +1516,7 @@ func boot_off(player dbref) (r bool) {
 	return
 }
 
-func boot_player_off(player dbref) {
+func boot_player_off(player ObjectID) {
 	for _, v := get_player_descrs(player) {
         if d := lookup_descriptor(v); d != nil {
             d.booted = 1
@@ -1556,15 +1556,15 @@ func close_sockets(msg string) {
 }
 
 
-func do_armageddon(player dbref, msg string) {
+func do_armageddon(player ObjectID, msg string) {
 	if !Wizard(player) {
 		notify(player, "Sorry, but you don't look like the god of War to me.")
 		log_status("ILLEGAL ARMAGEDDON: tried by %s", unparse_object(player, player))
 	} else {
-		buf := fmt.Sprintf("\r\nImmediate shutdown initiated by %s.\r\n", db.Fetch(player).name)
+		buf := fmt.Sprintf("\r\nImmediate shutdown initiated by %s.\r\n", DB.Fetch(player).name)
 		buf += msg
-		log_status("ARMAGEDDON initiated by %s(%d): %s", db.Fetch(player).name, player, msg)
-		fprintf(stderr, "ARMAGEDDON initiated by %s(%d): %s\n", db.Fetch(player).name, player, msg)
+		log_status("ARMAGEDDON initiated by %s(%d): %s", DB.Fetch(player).name, player, msg)
+		fprintf(stderr, "ARMAGEDDON initiated by %s(%d): %s\n", DB.Fetch(player).name, player, msg)
 		close_sockets(buf)
 		exit(1)
 	}
@@ -1594,7 +1594,7 @@ func dump_users(e *descriptor_data, user string) {
 
 	if wizard {
 		/* S/he is connected and not quelled. Okay; log it. */
-		log_command("WIZ: %s(%d) in %s(%d):  %s", db.Fetch(e.player).name, e.player, db.Fetch(db.Fetch(e.player).Location).name, db.Fetch(e.player).Location, "WHO")
+		log_command("WIZ: %s(%d) in %s(%d):  %s", DB.Fetch(e.player).name, e.player, DB.Fetch(DB.Fetch(e.player).Location).name, DB.Fetch(e.player).Location, "WHO")
 	}
 
 	(void) time(&now);
@@ -1611,18 +1611,18 @@ func dump_users(e *descriptor_data, user string) {
 	players = 0
 	for d := descriptor_list; d != nil; d = d.next {
 		players++
-		if d.connected && (!tp_who_hides_dark || wizard || db.Fetch(d.player).flags & DARK == 0) && players != 0 && (user == nil || strings.Prefix(db.Fetch(d.player).name, user)) {
+		if d.connected && (!tp_who_hides_dark || wizard || DB.Fetch(d.player).flags & DARK == 0) && players != 0 && (user == nil || strings.Prefix(DB.Fetch(d.player).name, user)) {
 			if wizard {
 				/* don't print flags, to save space */
-				pbuf = fmt.Sprintf("%s(#%d) [%6d]", db.Fetch(d.player).name, d.player, db.Fetch(d.player).Location)
+				pbuf = fmt.Sprintf("%s(#%d) [%6d]", DB.Fetch(d.player).name, d.player, DB.Fetch(d.player).Location)
 				if e.player != GOD {
-					if db.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
 						buf = fmt.Sprintf("%s %10s %4s*%c %s\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), secchar, d.hostname)
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s %c %s\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), secchar, d.hostname)
 					}
 				} else {
-					if db.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
 						buf = fmt.Sprintf("%s %10s %4s*  %s(%s)\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), d.hostname, d.username)
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s   %s(%s)\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), d.hostname, d.username)
@@ -1630,16 +1630,16 @@ func dump_users(e *descriptor_data, user string) {
 				}
 			} else {
 				if tp_who_doing {
-					if db.Fetch(d.player).flags & INTERACTIVE != 0 {
-						buf = fmt.Sprintf("%s %10s %4s*  %s\r\n", db.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
+					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+						buf = fmt.Sprintf("%s %10s %4s*  %s\r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
 					} else {
-						buf = fmt.Sprintf("%s %10s %4s   %s\r\n", db.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
+						buf = fmt.Sprintf("%s %10s %4s   %s\r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
 					}
 				} else {
-					if db.Fetch(d.player).flags & INTERACTIVE != 0 {
-						buf = fmt.Sprintf("%s %10s %4s* \r\n", db.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
+					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+						buf = fmt.Sprintf("%s %10s %4s* \r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
 					} else {
-						buf = fmt.Sprintf("%s %10s %4s  \r\n", db.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
+						buf = fmt.Sprintf("%s %10s %4s  \r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
 					}
 				}
 			}
@@ -1679,8 +1679,8 @@ func time_format_2(dt int) (r string) {
 	return
 }
 
-func announce_puppets(player dbref, msg, prop string) {
-	EachObject(func(what dbref, o *Object) {
+func announce_puppets(player ObjectID, msg, prop string) {
+	EachObject(func(what ObjectID, o *Object) {
 		if IsThing(what) && o.flags & ZOMBIE != 0 {
 			if o.Owner == player {
 				where := o.Location
@@ -1689,25 +1689,25 @@ func announce_puppets(player dbref, msg, prop string) {
 					if ptr := get_property_class(what, prop); ptr != "" {
 						msg2 = ptr
 					}
-					notify_except(db.Fetch(where).Contents, what, fmt.Sprintf("%.512s %.3000s", o.name, msg2), what)
+					notify_except(DB.Fetch(where).Contents, what, fmt.Sprintf("%.512s %.3000s", o.name, msg2), what)
 				}
 			}
 		}
 	})
 }
 
-func announce_connect(descr int, player dbref) {
-	dbref loc;
+func announce_connect(descr int, player ObjectID) {
+	ObjectID loc;
 	char buf[BUFFER_LEN];
-	dbref exit;
+	ObjectID exit;
 
-	if loc = db.Fetch(player).Location; loc == NOTHING {
+	if loc = DB.Fetch(player).Location; loc == NOTHING {
 		return
 	}
 
 	if !Dark(player) && !Dark(loc) {
-		buf = fmt.Sprintf("%s has connected.", db.Fetch(player).name)
-		notify_except(db.Fetch(loc).Contents, player, buf, player)
+		buf = fmt.Sprintf("%s has connected.", DB.Fetch(player).name)
+		notify_except(DB.Fetch(loc).Contents, player, buf, player)
 	}
 
 	exit = NOTHING;
@@ -1721,7 +1721,7 @@ func announce_connect(descr int, player dbref) {
 		}
 	}
 
-	if exit == NOTHING || db.Fetch(exit).flags & STICKY == 0 {
+	if exit == NOTHING || DB.Fetch(exit).flags & STICKY == 0 {
 		if can_move(descr, player, tp_autolook_cmd, 1) {
 			do_move(descr, player, tp_autolook_cmd, 1)
 		} else {
@@ -1744,8 +1744,8 @@ func announce_connect(descr int, player dbref) {
 	}
 
 	/* queue up all _connect programs referred to by properties */
-	envpropqueue(descr, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_connect", "Connect", 1, 1);
-	envpropqueue(descr, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_oconnect", "Oconnect", 1, 0);
+	envpropqueue(descr, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_connect", "Connect", 1, 1);
+	envpropqueue(descr, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_oconnect", "Oconnect", 1, 0);
 	ts_useobject(player);
 	return;
 }
@@ -1755,13 +1755,13 @@ func announce_disconnect(d *descriptor_data) {
 	char buf[BUFFER_LEN];
 	int dcount;
 
-	if loc := db.Fetch(player).Location; loc != NOTHING {
+	if loc := DB.Fetch(player).Location; loc != NOTHING {
 		if len(get_player_descrs(d.player)) < 2 && dequeue_prog(player, 2) {
 			notify(player, "Foreground program aborted.")
 		}
 
 		if !Dark(player) && !Dark(loc) {
-			notify_except(db.Fetch(loc).Contents, player, fmt.Sprintf("%s has disconnected.", db.Fetch(player).name), player)
+			notify_except(DB.Fetch(loc).Contents, player, fmt.Sprintf("%s has disconnected.", DB.Fetch(player).name), player)
 		}
 
 		/* trigger local disconnect action */
@@ -1780,10 +1780,10 @@ func announce_disconnect(d *descriptor_data) {
 	    update_desc_count_table()
 
 		/* queue up all _connect programs referred to by properties */
-		envpropqueue(d.descriptor, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_disconnect", "Disconnect", 1, 1)
-		envpropqueue(d.descriptor, player, db.Fetch(player).Location, NOTHING, player, NOTHING, "_odisconnect", "Odisconnect", 1, 0)
+		envpropqueue(d.descriptor, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_disconnect", "Disconnect", 1, 1)
+		envpropqueue(d.descriptor, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_odisconnect", "Odisconnect", 1, 0)
 		ts_lastuseobject(player)
-		db.Fetch(player).flags |= OBJECT_CHANGED
+		DB.Fetch(player).flags |= OBJECT_CHANGED
 	}
 }
 
@@ -1845,23 +1845,23 @@ func index_descr(index int) (r int) {
 	return
 }
 
-func get_player_descrs(player dbref) (r []int) {
+func get_player_descrs(player ObjectID) (r []int) {
 	if Typeof(player) == TYPE_PLAYER {
-		r = db.Fetch(player).(Player).descrs
+		r = DB.FetchPlayer(player).descrs
 	}
 	return
 }
 
-func remember_player_descr(player dbref, descr int) {
+func remember_player_descr(player ObjectID, descr int) {
 	if Typeof(player) == TYPE_PLAYER {
-		p := db.Fetch(player).(Player)
+		p := DB.FetchPlayer(player)
 		p.descrs = append(p.descrs, descr)
 	}
 }
 
-func forget_player_descr(player dbref, descr int) {
+func forget_player_descr(player ObjectID, descr int) {
 	if Typeof(player) == TYPE_PLAYER {
-		p := db.Fetch(player).(Player)
+		p := DB.FetchPlayer(player)
 		arr := p.descrs
 		if len(arr) > 1 {
 			var dest int
@@ -1886,8 +1886,8 @@ func lookup_descriptor(c int) (r *descriptor_data) {
 	return
 }
 
-func online(player dbref) int {
-	return db.Fetch(player).(Player).descrs
+func online(player ObjectID) int {
+	return DB.FetchPlayer(player).descrs
 }
 
 func pidle(c int) (r int) {
@@ -1899,7 +1899,7 @@ func pidle(c int) (r int) {
 	return
 }
 
-func pdbref(int c) (r dbref) {
+func pObjectID(int c) (r ObjectID) {
 	d := descrdata_by_count(c); d != nil {
 		r = d.player
 	} else {
@@ -1918,7 +1918,7 @@ func pontime(c int) (r int) {
 }
 
 /*** Foxen ***/
-func least_idle_player_descr(who dbref) (r int) {
+func least_idle_player_descr(who ObjectID) (r int) {
 	var best_time int
 	var best_d * descriptor_data
 	for _, v := range get_player_descrs(who) {
@@ -1933,7 +1933,7 @@ func least_idle_player_descr(who dbref) (r int) {
 	return
 }
 
-func most_idle_player_descr(who dbref) (r int) {
+func most_idle_player_descr(who ObjectID) (r int) {
 	var best_time int
 	var best_d *descriptor_data
 	for _, v := range get_player_descrs(who) {
@@ -1989,7 +1989,7 @@ func pdescrcon(c int) (r int) {
 	return
 }
 
-func dbref_first_descr(c dbref) (r int) {
+func ObjectID_first_descr(c ObjectID) (r int) {
 	if arr := get_player_descrs(c); len(arr) > 0 {
 		r = arr[len(arr) - 1]
 	} else {
@@ -2005,10 +2005,10 @@ func descr_mcpframe(c int) (r *McpFrame) {
 	return
 }
 
-func partial_pmatch(name string) (last dbref) {
+func partial_pmatch(name string) (last ObjectID) {
 	last = NOTHING
 	for d := descriptor_list; d != nil; d = d.next {
-		if d.connected && last != d.player && strings.Prefix(db.Fetch(d.player).name, name)) {
+		if d.connected && last != d.player && strings.Prefix(DB.Fetch(d.player).name, name)) {
 			if last != NOTHING {
 				last = AMBIGUOUS
 				break
@@ -2046,48 +2046,55 @@ func welcome_user(d *descriptor_data) {
 }
 
 func dump_status() {
-	var now time_t
-	time(&now)
-	log_status("STATUS REPORT:");
+	log_status("STATUS REPORT:")
 	for d := descriptor_list; d; d = d.next {
 		var buf string
 		if d.connected {
-			buf = fmt.Sprintf("PLAYING descriptor %d player %s(%d) from host %s(%s), %s.\n", d.descriptor, db.Fetch(d.player).name, d.player, d.hostname, d.username, d.last_time ? "idle %d seconds" : "never used")
+			if d.last_time != nil {
+				log_status("PLAYING descriptor %d player %s(%d) from host %s(%s), idle %d seconds.\n", d.descriptor, DB.Fetch(d.player).name, d.player, d.hostname, d.username, time.Now() - d.last_time)
+			} else {
+				log_status("PLAYING descriptor %d player %s(%d) from host %s(%s), never used.\n", d.descriptor, DB.Fetch(d.player).name, d.player, d.hostname, d.username)
+			}
 		} else {
-			buf = fmt.Sprintf("CONNECTING descriptor %d from host %s(%s), %s.\n", d.descriptor, d.hostname, d.username, d.last_time ? "idle %d seconds" : "never used")
+			if d.last_time != nil {
+				log_status("CONNECTING descriptor %d from host %s(%s), idle %d seconds.\n", d.descriptor, d.hostname, d.username, time.Now() - d.last_time)
+			} else {
+				log_status("CONNECTING descriptor %d from host %s(%s), never used.\n", d.descriptor, d.hostname, d.username)
+			}
 		}
-		log_status(buf, now - d.last_time)
 	}
 }
 
 /* Ignore support -- Could do with moving into its own file */
 
-func ignore_is_ignoring_sub(player, who dbref) bool {
+func ignore_is_ignoring_sub(player, who ObjectID) bool {
 	switch {
-	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
+	case !tp_ignore_support, !player.IsValid(), !who.IsValid():
 		return false
 	}
 
-	player = db.Fetch(player).Owner
-	who = db.Fetch(who).Owner
+	player = DB.Fetch(player).Owner
+	who = DB.Fetch(who).Owner
+
+	p := DB.FetchPlayer(player)
 
 	/* You can't ignore yourself, or an unquelled wizard, */
 	/* and unquelled wizards can ignore no one. */
 	switch {
 	case player == who, Wizard(player), Wizard(who):
 		return false
-	case db.Fetch(player).(Player).ignore_last == AMBIGUOUS:
+	case p.ignore_last == AMBIGUOUS:
 		return false
 	/* Ignore the last player ignored without bothering to look them up */
-	case db.Fetch(player).(Player).ignore_last == who:
+	case p.ignore_last == who:
 		return true
-	case db.Fetch(player).(Player).ignore_cache == nil && !ignore_prime_cache(player):
+	case p.ignore_cache == nil && !ignore_prime_cache(player):
 		return false
 	}
 
 	top := 0
-	bottom := len(db.Fetch(player).(Player).ignore_cache) - 1
-	list := db.Fetch(player).(Player).ignore_cache
+	bottom := len(p.ignore_cache) - 1
+	list := p.ignore_cache
 
 	for top < bottom {
 		middle := top + (bottom - top) / 2
@@ -2103,33 +2110,33 @@ func ignore_is_ignoring_sub(player, who dbref) bool {
 	if top >= bottom {
 		return false
 	}
-	db.Fetch(player).(Player).ignore_last = who
+	p.ignore_last = who
 	return true
 }
 
-int ignore_is_ignoring(dbref Player, dbref Who)
+int ignore_is_ignoring(ObjectID Player, ObjectID Who)
 {
 	return ignore_is_ignoring_sub(Player, Who) || (tp_ignore_bidirectional && ignore_is_ignoring_sub(Who, Player));
 }
 
-static int ignore_dbref_compare(const void* Lhs, const void* Rhs)
+static int ignore_ObjectID_compare(const void* Lhs, const void* Rhs)
 {
-	return *(dbref*)Lhs - *(dbref*)Rhs;
+	return *(ObjectID*)Lhs - *(ObjectID*)Rhs;
 }
 
-func ignore_prime_cache(player dbref) bool {
+func ignore_prime_cache(player ObjectID) bool {
 	switch {
-	case !tp_ignore_support, !valid_reference(player), !IsPlayer(player):
+	case !tp_ignore_support, !player.IsValid(), !IsPlayer(player):
 		return false
 	}
 
 	txt := strings.TrimLeftFunc(get_property_class(player, IGNORE_PROP), unicode.IsSpace)
 	if txt == "" {
-		db.Fetch(player).(Player).ignore_last = AMBIGUOUS
+		DB.FetchPlayer(player).ignore_last = AMBIGUOUS
 		return false
 	}
 
-	var list []dbref
+	var list []ObjectID
 	for ptr := txt; ptr != ""; ptr = strings.TrimLeftFunc(ptr, unicode.IsSpace) {
 		if ptr[0] == NUMBER_TOKEN {
 			ptr = ptr[1:]
@@ -2149,56 +2156,44 @@ func ignore_prime_cache(player dbref) bool {
 		}
 	}
 
-	qsort(list, len(list), sizeof(dbref), ignore_dbref_compare)
-	db.Fetch(player).(Player).ignore_cache = list
+	qsort(list, len(list), sizeof(ObjectID), ignore_ObjectID_compare)
+	DB.FetchPlayer(player).ignore_cache = list
 	return true
 }
 
-func ignore_flush_cache(player dbref) {
-	if valid_reference(player) && IsPlayer(player) {
-		db.Fetch(player).(Player).ignore_cache = nil
-		db.Fetch(player).(Player).ignore_last = NOTHING
+func ignore_flush_cache(player ObjectID) {
+	if player.IsValid() && IsPlayer(player) {
+		p := DB.FetchPlayer(player)
+		p.ignore_cache = nil
+		p.ignore_last = NOTHING
 	}
 }
 
-func ignore_flush_all_cache() {
-	/* Don't touch the database if it's not been loaded yet... */
-	if db != nil {
-		EachObject(func(obj dbref, o object) {
-			if IsPlayer(obj) {
-				p := o.(Player)
-				p.ignore_cache = nil
-				p.ignore_last = NOTHING
-			}
-		})
-	}
-}
-
-func ignore_add_player(player, who dbref) {
+func ignore_add_player(player, who ObjectID) {
 	switch {
-	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
+	case !tp_ignore_support, !player.IsValid(), !who.IsValid():
 	default:
-		reflist_add(db.Fetch(player).Owner, IGNORE_PROP, db.Fetch(who).Owner)
-		ignore_flush_cache(db.Fetch(player).Owner)
+		reflist_add(DB.Fetch(player).Owner, IGNORE_PROP, DB.Fetch(who).Owner)
+		ignore_flush_cache(DB.Fetch(player).Owner)
 	}
 }
 
-func ignore_remove_player(player, who dbref) {
+func ignore_remove_player(player, who ObjectID) {
 	switch {
-	case !tp_ignore_support, !valid_reference(player), !valid_reference(who):
+	case !tp_ignore_support, !player.IsValid(), !who.IsValid():
 	default:
-		reflist_del(db.Fetch(player).Owner, IGNORE_PROP, db.Fetch(who).Owner)
-		ignore_flush_cache(db.Fetch(player).Owner)
+		reflist_del(DB.Fetch(player).Owner, IGNORE_PROP, DB.Fetch(who).Owner)
+		ignore_flush_cache(DB.Fetch(player).Owner)
 	}
 }
 
-func ignore_remove_from_all_players(player dbref) {
+func ignore_remove_from_all_players(player ObjectID) {
 	if tp_ignore_support {
-		EachObject(func(obj dbref) {
+		EachObject(func(obj ObjectID) {
 			if IsPlayer(obj) {
 				reflist_del(obj, IGNORE_PROP, Player)
 			}
+			ignore_flush_cache(obj)
 		})
-		ignore_flush_all_cache()
 	}
 }

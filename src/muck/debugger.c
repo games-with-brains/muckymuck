@@ -1,4 +1,4 @@
-func list_proglines(player, program dbref, fr *frame, start, end int) {
+func list_proglines(player, program ObjectID, fr *frame, start, end int) {
 	var range []int
 	if start == end || end == 0 {
 		range += start
@@ -10,24 +10,24 @@ func list_proglines(player, program dbref, fr *frame, start, end int) {
 		fr.brkpt.proglines = read_program(program)
 		fr.brkpt.lastproglisted = program
 	}
-	struct line *tmpline = db.Fetch(program).(Program).first
-	db.Fetch(program).(Program).first = fr.brkpt.proglines
-	tmpflg := db.Fetch(player).flags & INTERNAL != 0
-	db.Fetch(player).flags |= INTERNAL
+	struct line *tmpline = DB.Fetch(program).(Program).first
+	DB.Fetch(program).(Program).first = fr.brkpt.proglines
+	tmpflg := DB.Fetch(player).flags & INTERNAL != 0
+	DB.Fetch(player).flags |= INTERNAL
 	do_list(player, program, range)
 	if !tmpflg {
-		db.Fetch(player).flags &= ~INTERNAL
+		DB.Fetch(player).flags &= ~INTERNAL
 	}
-	db.Fetch(program).(Program).first = tmpline
+	DB.Fetch(program).(Program).first = tmpline
 	return
 }
 
-func show_line_prims(fr *frame, program dbref, pc *inst, maxprims int, markpc bool) string {
+func show_line_prims(fr *frame, program ObjectID, pc *inst, maxprims int, markpc bool) string {
 	var maxback int
 	var linestart, lineend *inst
 
 	thisline := pc.line
-	code := db.Fetch(program).(Program).code
+	code := DB.Fetch(program).(Program).code
 	end := code + len(code)
 
 	for linestart, maxback = pc, maxprims; linestart > code && linestart.line == thisline && linestart.(type) != MUFProc && --maxback; --linestart {}
@@ -72,8 +72,8 @@ func show_line_prims(fr *frame, program dbref, pc *inst, maxprims int, markpc bo
 	return
 }
 
-func funcname_to_pc(dbref program, const char *name) (r *inst) {
-	for _, r = range db.Fetch(program).(Program).code {
+func funcname_to_pc(ObjectID program, const char *name) (r *inst) {
+	for _, r = range DB.Fetch(program).(Program).code {
 		if v, ok := r.data.(MUFProc); ok {
 			if v.name == name {
 				break
@@ -83,8 +83,8 @@ func funcname_to_pc(dbref program, const char *name) (r *inst) {
 	return
 }
 
-func linenum_to_pc(dbref program, int whatline) (r *inst) {
-	for _, r = range db.Fetch(program).(Program).code {
+func linenum_to_pc(ObjectID program, int whatline) (r *inst) {
+	for _, r = range DB.Fetch(program).(Program).code {
 		if r.line == whatline {
 			break
 		}
@@ -92,9 +92,9 @@ func linenum_to_pc(dbref program, int whatline) (r *inst) {
 	return
 }
 
-func unparse_sysreturn(program *dbref, pc *inst) string {
+func unparse_sysreturn(program *ObjectID, pc *inst) string {
 	var ptr *inst
-	for ptr = pc - 1; ptr >= db.Fetch(*program).(Program).code; ptr-- {
+	for ptr = pc - 1; ptr >= DB.Fetch(*program).(Program).code; ptr-- {
 		if _, ok := ptr.data.(MUFProc); ok {
 			break
 		}
@@ -111,7 +111,7 @@ func unparse_sysreturn(program *dbref, pc *inst) string {
 func unparse_breakpoint(fr *frame, brk int) string {
 	static char buf[BUFFER_LEN];
 	char buf2[BUFFER_LEN];
-	dbref ref;
+	ObjectID ref;
 
 	buf = fmt.Sprintf("%2d) break", brk + 1);
 	if (fr->brkpt.line[brk] != -1) {
@@ -132,7 +132,7 @@ func unparse_breakpoint(fr *frame, brk int) string {
 		strcatn(buf, sizeof(buf), buf2);
 	}
 	if (fr->brkpt.prog[brk] != NOTHING) {
-		buf2 = fmt.Sprintf(" in %s(#%d)", db.Fetch(fr.brkpt.prog[brk]).name, fr.brkpt.prog[brk]);
+		buf2 = fmt.Sprintf(" in %s(#%d)", DB.Fetch(fr.brkpt.prog[brk]).name, fr.brkpt.prog[brk]);
 		strcatn(buf, sizeof(buf), buf2);
 	}
 	if (fr->brkpt.level[brk] != -1) {
@@ -142,10 +142,10 @@ func unparse_breakpoint(fr *frame, brk int) string {
 	return buf;
 }
 
-func muf_backtrace(player, program dbref, count int, fr *frame) {
+func muf_backtrace(player, program ObjectID, count int, fr *frame) {
 	var buf, buf2, buf3 []string
 	var ptr string
-	ref dbref
+	ref ObjectID
 	var j, cnt, flag int
 	var pinst, lastinst *inst
 	var lev int
@@ -203,21 +203,21 @@ func muf_backtrace(player, program dbref, count int, fr *frame) {
 			ptr = append(buf2, "\033[1m)\033[0m")
 		}
 		if pinst != lastinst {
-			notify_nolisten(player, fmt.Sprintf("\033[1;33;40m%3d)\033[0m \033[1m%s(#%d)\033[0m %s:", lev, db.Fetch(ref).name, ref, ptr), true)
-			flag := db.Fetch(player).flags & INTERNAL != 0
-			db.Fetch(player).flags &= ~INTERNAL
+			notify_nolisten(player, fmt.Sprintf("\033[1;33;40m%3d)\033[0m \033[1m%s(#%d)\033[0m %s:", lev, DB.Fetch(ref).name, ref, ptr), true)
+			flag := DB.Fetch(player).flags & INTERNAL != 0
+			DB.Fetch(player).flags &= ~INTERNAL
 			list_proglines(player, ref, fr, pinst.line, 0)
 			if flag {
-				db.Fetch(player).flags |= INTERNAL
+				DB.Fetch(player).flags |= INTERNAL
 			}
 		}
 	}
 	notify_nolisten(player, "\033[1;33;40m*done*\033[0m", true)
 }
 
-func list_program_functions(player, program dbref, arg string) {
+func list_program_functions(player, program ObjectID, arg string) {
 	notify_nolisten(player, "*function words*", true)
-	for i, v := range db.Fetch(program).(Program).code {
+	for i, v := range DB.Fetch(program).(Program).code {
 		if data, ok := v.(MUFProc); ok {
 			if arg == "" || !smatch(arg, data.name) {
 				notify_nolisten(player, data.name, true)
@@ -227,7 +227,7 @@ func list_program_functions(player, program dbref, arg string) {
 	notify_nolisten(player, "*done*", true)
 }
 
-func debug_printvar(player, program dbref, fr *frame, arg string) {
+func debug_printvar(player, program ObjectID, fr *frame, arg string) {
 	int i;
 	char buf[BUFFER_LEN];
 
@@ -285,7 +285,7 @@ func debug_printvar(player, program dbref, fr *frame, arg string) {
 	}
 }
 
-func push_arg(player dbref, fr *frame, arg string) {
+func push_arg(player ObjectID, fr *frame, arg string) {
 	var num int
 	var inum float64
 
@@ -301,9 +301,9 @@ func push_arg(player dbref, fr *frame, arg string) {
 		push(fr.argument.st, &fr.argument.top, inum)
 		notify_nolisten(player, "Float pushed.", true)
 	case arg[0] == NUMBER_TOKEN:
-		/* push a dbref */
+		/* push a ObjectID */
 		if !unicode.IsNumber(arg[1]) {
-			notify_nolisten(player, "I don't understand that dbref.", true)
+			notify_nolisten(player, "I don't understand that ObjectID.", true)
 			return
 		}
 		num = strconv.Atoi(arg[1:])
@@ -368,7 +368,7 @@ static struct MUFProc temp_muf_proc_data = {
 	NULL
 };
 
-func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r bool) {
+func muf_debugger(descr int, player, program ObjectID, text string, fr *frame) (r bool) {
 	char buf2[BUFFER_LEN];
 	char *ptr2
 	struct inst *pinst;
@@ -682,7 +682,7 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 				endline = strconv.Atoi(ptr2)
 			}
 		}
-		p := db.Fetch(program).program
+		p := DB.Fetch(program).program
 		if i = (p.code + len(p.code) - 1).line; startline > i {
 			notify_nolisten(player, "Starting line is beyond end of program.", true)
 		} else {
@@ -768,7 +768,7 @@ func muf_debugger(descr int, player, program dbref, text string, fr *frame) (r b
 		notify_nolisten(player, "words PATTERN   lists all function word names that match PATTERN.", true)
 		notify_nolisten(player, "exec FUNCNAME   calls given function with the current stack data.", true)
 		notify_nolisten(player, "prim PRIMITIVE  executes given primitive with current stack data.", true)
-		notify_nolisten(player, "push DATA       pushes an int, dbref, var, or string onto the stack.", true)
+		notify_nolisten(player, "push DATA       pushes an int, ObjectID, var, or string onto the stack.", true)
 		notify_nolisten(player, "pop             pops top data item off the stack.", true)
 		notify_nolisten(player, "help            displays this help screen.", true)
 		notify_nolisten(player, "quit            stop execution here.", true)

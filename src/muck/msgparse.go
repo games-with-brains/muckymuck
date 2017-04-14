@@ -3,9 +3,9 @@
  *
  * Args:
  *   int descr             Descriptor that triggered this.
- *   dbref player          Player triggering this.
- *   dbref what            Object that mesg is on.
- *   dbref perms           Object permissions are checked from.
+ *   ObjectID player          Player triggering this.
+ *   ObjectID what            Object that mesg is on.
+ *   ObjectID perms           Object permissions are checked from.
  *   const char *inbuf     A pointer to the input raw mesg string.
  *   char *abuf            Argument string for {&how}.
  *   int mesgtyp           1 for personal messages, 0 for omessages.
@@ -15,7 +15,7 @@
 
 time_t mpi_prof_start_time;
 
-func safeblessprop(dbref obj, dbref perms, char *buf, int mesgtyp, int set_p) int {
+func safeblessprop(ObjectID obj, ObjectID perms, char *buf, int mesgtyp, int set_p) int {
 	char *ptr;
 
 	if (!buf)
@@ -42,7 +42,7 @@ func safeblessprop(dbref obj, dbref perms, char *buf, int mesgtyp, int set_p) in
 	return 1;
 }
 
-func safeputprop(dbref obj, dbref perms, char *buf, char *val, int mesgtyp) int {
+func safeputprop(ObjectID obj, ObjectID perms, char *buf, char *val, int mesgtyp) int {
 	char *ptr;
 
 	if (!buf)
@@ -74,7 +74,7 @@ func safeputprop(dbref obj, dbref perms, char *buf, char *val, int mesgtyp) int 
 	return 1;
 }
 
-func safegetprop_strict(player, what, perms dbref, inbuf string, mesgtyp int, int* blessed) (r string, blessed bool) {
+func safegetprop_strict(player, what, perms ObjectID, inbuf string, mesgtyp int, int* blessed) (r string, blessed bool) {
 	inbuf = strings.TrimLeft(inbuf, PROPDIR_DELIMITER)
 	switch {
 	case inbuf == "":
@@ -87,7 +87,7 @@ func safegetprop_strict(player, what, perms dbref, inbuf string, mesgtyp int, in
 				notify_nolisten(player, "PropFetch: Permission denied.", true)
 				return
 			}
-			if Prop_Private(inbuf) && db.Fetch(perms).Owner != db.Fetch(what).Owner {
+			if Prop_Private(inbuf) && DB.Fetch(perms).Owner != DB.Fetch(what).Owner {
 				notify_nolisten(player, "PropFetch: Permission denied.", true)
 				return
 			}
@@ -95,7 +95,7 @@ func safegetprop_strict(player, what, perms dbref, inbuf string, mesgtyp int, in
 
 		if r = get_property_class(what, inbuf); r == "" {
 			if i := get_property_value(what, inbuf); i == 0 {
-				if dd := get_property_dbref(what, inbuf); dd == NOTHING {
+				if dd := get_property_ObjectID(what, inbuf); dd == NOTHING {
 					return
 				} else {
 					r = fmt.Sprintf("#%d", dd)
@@ -114,17 +114,17 @@ func safegetprop_strict(player, what, perms dbref, inbuf string, mesgtyp int, in
 	return
 }
 
-func safegetprop_limited(player, what, whom, perms dbref, inbuf string, mesgtyp int) (r string, blessed bool) {
+func safegetprop_limited(player, what, whom, perms ObjectID, inbuf string, mesgtyp int) (r string, blessed bool) {
 	for ; what != NOTHING; what = getparent(what) {
 		r, blessed = safegetprop_strict(player, what, perms, inbuf, mesgtyp)
-		if db.Fetch(what).Owner == whom || blessed {
+		if DB.Fetch(what).Owner == whom || blessed {
 			break
 		}
 	}
 	return
 }
 
-func safegetprop(player, what, perms dbref, inbuf string, mesgtyp int) (r string, blessed bool) {
+func safegetprop(player, what, perms ObjectID, inbuf string, mesgtyp int) (r string, blessed bool) {
 	for ; what != NOTHING; what = getparent(what) {
 		r, blessed = safegetprop_strict(player, what, perms, inbuf, mesgtyp)
 		if r != "" {
@@ -178,7 +178,7 @@ string_substitute(const char *str, const char *oldstr, const char *newstr,
 	return buf;
 }
 
-func get_list_item(player, what, perms dbref, listname string, itemnum, mesgtyp int) (r string, blessed bool) {
+func get_list_item(player, what, perms ObjectID, listname string, itemnum, mesgtyp int) (r string, blessed bool) {
 	if l := len(listname); listname[l - 1] == NUMBER_TOKEN {
 		listname[l - 1] = 0
 	}
@@ -193,7 +193,7 @@ func get_list_item(player, what, perms dbref, listname string, itemnum, mesgtyp 
 	return
 }
 
-func get_list_count(dbref player, dbref obj, dbref perms, char *listname, int mesgtyp, int* blessed) (i int) {
+func get_list_count(ObjectID player, ObjectID obj, ObjectID perms, char *listname, int mesgtyp, int* blessed) (i int) {
 	char buf[BUFFER_LEN];
 	const char *ptr;
 	l := len(listname)
@@ -222,7 +222,7 @@ func get_list_count(dbref player, dbref obj, dbref perms, char *listname, int me
 	return
 }
 
-func get_concat_list(dbref player, dbref what, dbref perms, dbref obj, char *listname, char *buf, int maxchars, int mode, int mesgtyp, int* blessed) string {
+func get_concat_list(ObjectID player, ObjectID what, ObjectID perms, ObjectID obj, char *listname, char *buf, int maxchars, int mode, int mesgtyp, int* blessed) string {
 	int i, cnt, len;
 	const char *ptr;
 	char *pos = buf;
@@ -283,11 +283,11 @@ func get_concat_list(dbref player, dbref what, dbref perms, dbref obj, char *lis
 	return (buf);
 }
 
-func mesg_read_perms(dbref player, dbref perms, dbref obj, int mesgtyp) (r bool) {
+func mesg_read_perms(ObjectID player, ObjectID perms, ObjectID obj, int mesgtyp) (r bool) {
 	switch {
 	case obj == 0, obj == player, obj == perms:
 		r = true
-	case db.Fetch(perms).Owner == db.Fetch(obj).Owner:
+	case DB.Fetch(perms).Owner == DB.Fetch(obj).Owner:
 		r = true
 	case mesgtyp & MPI_ISBLESSED != 0:
 		r = true
@@ -295,30 +295,30 @@ func mesg_read_perms(dbref player, dbref perms, dbref obj, int mesgtyp) (r bool)
 	return
 }
 
-func isneighbor(d1, d2 dbref) (r bool) {
+func isneighbor(d1, d2 ObjectID) (r bool) {
 	if d1 == d2 {
 		return true
 	}
-	if TYPEOF(d1) != TYPE_ROOM && db.Fetch(d1).Location == d2 {
+	if TYPEOF(d1) != TYPE_ROOM && DB.Fetch(d1).Location == d2 {
 		return true
 	}
-	if TYPEOF(d2) != TYPE_ROOM && db.Fetch(d2).Location == d1 {
+	if TYPEOF(d2) != TYPE_ROOM && DB.Fetch(d2).Location == d1 {
 		return true
 	}
-	if Typeof(d1) != TYPE_ROOM && TYPEOF(d2) != TYPE_ROOM && db.Fetch(d1).Location == db.Fetch(d2).Location {
+	if Typeof(d1) != TYPE_ROOM && TYPEOF(d2) != TYPE_ROOM && DB.Fetch(d1).Location == DB.Fetch(d2).Location {
 		return 1
 	}
 	return
 }
 
-func mesg_local_perms(dbref player, dbref perms, dbref obj, int mesgtyp) (r bool) {
-	if r = db.Fetch(obj).Location != NOTHING && db.Fetch(perms).Owner == db.Fetch(db.Fetch(obj).Location).Owner; !r {
+func mesg_local_perms(ObjectID player, ObjectID perms, ObjectID obj, int mesgtyp) (r bool) {
+	if r = DB.Fetch(obj).Location != NOTHING && DB.Fetch(perms).Owner == DB.Fetch(DB.Fetch(obj).Location).Owner; !r {
 		r = isneighbor(perms, obj) || isneighbor(player, obj) || mesg_read_perms(player, perms, obj, mesgtyp) {
 	}
 	return
 }
 
-func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) (obj dbref) {
+func mesg_ObjectID_raw(descr int, player, what, perms ObjectID, buf string) (obj ObjectID) {
 	obj = UNKNOWN
 	switch buf {
 	case "":
@@ -327,7 +327,7 @@ func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) (obj dbref
 	case "me":
 		obj = player
 	case "here":
-		obj = db.Fetch(player).Location
+		obj = DB.Fetch(player).Location
 	case "home":
 		obj = HOME
 	default:
@@ -349,14 +349,14 @@ func mesg_dbref_raw(descr int, player, what, perms dbref, buf string) (obj dbref
 		}
 	}
 
-	if !valid_reference(obj) {
+	if !obj.IsValid() {
 		obj = UNKNOWN
 	}
 	return obj
 }
 
-func mesg_dbref(int descr, dbref player, dbref what, dbref perms, char *buf, int mesgtyp) (r dbref) {
-	if r = mesg_dbref_raw(descr, player, what, perms, buf); r != UNKNOWN {
+func mesg_ObjectID(int descr, ObjectID player, ObjectID what, ObjectID perms, char *buf, int mesgtyp) (r ObjectID) {
+	if r = mesg_ObjectID_raw(descr, player, what, perms, buf); r != UNKNOWN {
 		if !mesg_read_perms(player, perms, r, mesgtyp) {
 			r = PERMDENIED
 		}
@@ -364,17 +364,17 @@ func mesg_dbref(int descr, dbref player, dbref what, dbref perms, char *buf, int
 	return
 }
 
-func mesg_dbref_strict(int descr, dbref player, dbref what, dbref perms, char *buf, int mesgtyp) (r dbref) {
-	if r = mesg_dbref_raw(descr, player, what, perms, buf); r != UNKNOWN {
-		if !(mesgtyp & MPI_ISBLESSED) && db.Fetch(perms).Owner != db.Fetch(r).Owner {
+func mesg_ObjectID_strict(int descr, ObjectID player, ObjectID what, ObjectID perms, char *buf, int mesgtyp) (r ObjectID) {
+	if r = mesg_ObjectID_raw(descr, player, what, perms, buf); r != UNKNOWN {
+		if !(mesgtyp & MPI_ISBLESSED) && DB.Fetch(perms).Owner != DB.Fetch(r).Owner {
 			r = PERMDENIED
 		}
 	}
 	return
 }
 
-func mesg_dbref_local(int descr, dbref player, dbref what, dbref perms, char *buf, int mesgtyp) (r dbref) {
-	if r = mesg_dbref_raw(descr, player, what, perms, buf); r != UNKNOWN {
+func mesg_ObjectID_local(int descr, ObjectID player, ObjectID what, ObjectID perms, char *buf, int mesgtyp) (r ObjectID) {
+	if r = mesg_ObjectID_raw(descr, player, what, perms, buf); r != UNKNOWN {
 		if !mesg_local_perms(player, perms, r, mesgtyp) {
 			r = PERMDENIED
 		}
@@ -382,10 +382,10 @@ func mesg_dbref_local(int descr, dbref player, dbref what, dbref perms, char *bu
 	return
 }
 
-func ref2str(obj dbref) (r string) {
+func ref2str(obj ObjectID) (r string) {
 	switch {
-	case valid_reference(obj) && IsPlayer(obj):
-		r = fmt.Sprintf("*%s", db.Fetch(obj).name)
+	case obj.IsValid() && IsPlayer(obj):
+		r = fmt.Sprintf("*%s", DB.Fetch(obj).name)
 	case obj == NOTHING, obj == HOME, obj == AMBIGUOUS
 		r = fmt.Sprintf("#%d", obj)
 	default:
@@ -448,16 +448,16 @@ func free_mvalues(env *MPIValue, downto int) {
 	}
 }
 
-func msg_is_macro(player, what, perms dbref, name string, mesgtyp int) (r bool) {
+func msg_is_macro(player, what, perms ObjectID, name string, mesgtyp int) (r bool) {
 	if name != "" {
 		var blessed bool
 		buf := fmt.Sprintf("_msgmacs/%s", name)
 		f := get_mvalue(mpi_functions, name)
 		if f == "" {
-			f, blessed = safegetprop_strict(player, db.Fetch(what).Owner, perms, buf, mesgtyp)
+			f, blessed = safegetprop_strict(player, DB.Fetch(what).Owner, perms, buf, mesgtyp)
 		}
 		if f == "" {
-			f, blessed = safegetprop_limited(player, obj, db.Fetch(what).Owner, perms, buf, mesgtyp)
+			f, blessed = safegetprop_limited(player, obj, DB.Fetch(what).Owner, perms, buf, mesgtyp)
 		}
 		if f == "" {
 			f, blessed = safegetprop_strict(player, 0, perms, buf, mesgtyp)
@@ -467,10 +467,10 @@ func msg_is_macro(player, what, perms dbref, name string, mesgtyp int) (r bool) 
 	return
 }
 
-func msg_unparse_macro(player, what, perms dbref, name string, argv MPIArgs, rest string, mesgtyp int) (r string) {
+func msg_unparse_macro(player, what, perms ObjectID, name string, argv MPIArgs, rest string, mesgtyp int) (r string) {
 	const char *ptr;
 	char *ptr2;
-	dbref obj;
+	ObjectID obj;
 	int i, p = 0;
 
 	buf := rest
@@ -478,10 +478,10 @@ func msg_unparse_macro(player, what, perms dbref, name string, argv MPIArgs, res
 	f := get_mvalue(mpi_functions, name)
 	var blessed bool
 	if f == "" {
-		f, blessed = safegetprop_strict(player, db.Fetch(what).Owner, perms, buf2, mesgtyp)
+		f, blessed = safegetprop_strict(player, DB.Fetch(what).Owner, perms, buf2, mesgtyp)
 	}
 	if f == "" {
-		f, blessed = safegetprop_limited(player, what, db.Fetch(what).Owner, perms, buf2, mesgtyp)
+		f, blessed = safegetprop_limited(player, what, DB.Fetch(what).Owner, perms, buf2, mesgtyp)
 	}
 	if f == "" {
 		f, blessed = safegetprop_strict(player, 0, perms, buf2, mesgtyp)
@@ -625,7 +625,7 @@ static int mesg_instr_cnt = 0;
 
 
 /******** HOOK ********/
-func mesg_parse(descr int, player, what, perms dbref, inbuf string, mesgtyp int) (r string) {
+func mesg_parse(descr int, player, what, perms ObjectID, inbuf string, mesgtyp int) (r string) {
 	char buf[BUFFER_LEN]
 	char buf2[BUFFER_LEN]
 	char dbuf[BUFFER_LEN]
@@ -923,7 +923,7 @@ func mesg_parse(descr int, player, what, perms dbref, inbuf string, mesgtyp int)
 	return
 }
 
-func do_parse_mesg_2(descr int, player, what, perms dbref, inbuf, abuf string, mesgtyp int) (r string) {
+func do_parse_mesg_2(descr int, player, what, perms ObjectID, inbuf, abuf string, mesgtyp int) (r string) {
 	mfunccnt := len(mpi_functions)
 	tmprec_cnt := mesg_rec_cnt
 	tmpinst_cnt := mesg_instr_cnt
@@ -955,14 +955,14 @@ func do_parse_mesg_2(descr int, player, what, perms dbref, inbuf, abuf string, m
 }
 
 
-func do_parse_mesg(descr int, player, what dbref, inbuf, abuf, mesgtyp int) (r string) {
+func do_parse_mesg(descr int, player, what ObjectID, inbuf, abuf, mesgtyp int) (r string) {
 	if tp_do_mpi_parsing {
 		/* Quickie additions to do rough per-object MPI profiling */
 		st := time.Now()
 		tmp := do_parse_mesg_2(descr, player, what, what, inbuf, abuf, mesgtyp)
 		et := time.Now()
 		if tmp != inbuf {
-			if subject := db.Fetch(what); subject != nil {
+			if subject := DB.Fetch(what); subject != nil {
 				subject.time.Duration += et
 				subject.MPIUses++
 			}
@@ -974,7 +974,7 @@ func do_parse_mesg(descr int, player, what dbref, inbuf, abuf, mesgtyp int) (r s
 	return
 }
 
-func do_parse_prop(descr int, player, what dbref, propname string, abuf, mesgtyp int) (r string) {
+func do_parse_prop(descr int, player, what ObjectID, propname string, abuf, mesgtyp int) (r string) {
 	if propval := get_property_class(what, propname); propval != nil {
 		if Prop_Blessed(what, propname) {
 			mesgtyp |= MPI_ISBLESSED

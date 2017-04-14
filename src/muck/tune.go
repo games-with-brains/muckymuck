@@ -172,14 +172,14 @@ var tune_val_table[] = map[string] *tune_val_entry {
 }
 
 var (
-	tp_player_start dbref = PLAYER_START
-	tp_default_room_parent dbref = GLOBAL_ENVIRONMENT
+	tp_player_start ObjectID = PLAYER_START
+	tp_default_room_parent ObjectID = GLOBAL_ENVIRONMENT
 )
 
 struct tune_ref_entry {
 	tuning_parameter
 	typ int
-	ref *dbref
+	ref *ObjectID
 }
 
 var tune_ref_table = map[string] *tune_ref_entry {
@@ -321,7 +321,7 @@ func tune_count_parms() int {
 	return len(tune_str_table) + len(tune_time_table) + len(tune_val_table) + len(tune_ref_table) + len(tune_bool_table)
 }
 
-func tune_display_parms(player dbref, name string, security int) {
+func tune_display_parms(player ObjectID, name string, security int) {
 	for k, v := range tune_str_table {
 		switch {
 		case v.security > security:
@@ -449,7 +449,7 @@ func tune_parms_array(pattern string, mlev int) (r Array) {
 		if tref.security <= mlev {
 			if pattern == "" || !smatch(pattern, name) {
 				item := Dictionary{
-					"type": "dbref",
+					"type": "ObjectID",
 					"group": tref.group,
 					"name":  name,
 					"value": *(tref.ref),
@@ -649,7 +649,7 @@ func tune_setparm(parmname, val string, security int) (r int) {
 			case !unicode.IsNumber(parmval[1]):
 				r = TUNESET_SYNTAX
 			default:
-				if obj := strconv.Atoi(parmval[1:]); !valid_reference(obj) {
+				if obj := strconv.Atoi(parmval[1:]); !obj.IsValid() {
 					r = TUNESET_SYNTAX
 				} else {
 					switch tref.(type) {
@@ -685,7 +685,7 @@ func tune_setparm(parmname, val string, security int) (r int) {
 	return
 }
 
-func tune_load_parms_from_file(f *FILE, player dbref, cnt int) {
+func tune_load_parms_from_file(f *FILE, player ObjectID, cnt int) {
 	for result := 0; !feof(f) && (cnt < 0 || cnt != 0); cnt-- {
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
@@ -719,7 +719,7 @@ func tune_load_parms_from_file(f *FILE, player dbref, cnt int) {
 	}
 }
 
-func tune_load_parmsfile(player dbref) {
+func tune_load_parmsfile(player ObjectID) {
 	f := fopen(PARMFILE_NAME, "rb")
 	if (!f) {
 		log_status("Couldn't open file %s!", PARMFILE_NAME)
@@ -729,7 +729,7 @@ func tune_load_parmsfile(player dbref) {
 	fclose(f)
 }
 
-func do_tune(player dbref, parmname, parmval string, full_command_has_delimiter int) {
+func do_tune(player ObjectID, parmname, parmval string, full_command_has_delimiter int) {
 	if Wizard(player) {
 		var security int
 		if player == GOD {
@@ -746,7 +746,7 @@ func do_tune(player dbref, parmname, parmval string, full_command_has_delimiter 
 		 		oldvalue := tune_get_parmstring(parmname, security)
 				switch result := tune_setparm(parmname, parmval, security); result {
 				case TUNESET_SUCCESS:
-					log_status("TUNED: %s(%d) tuned %s from '%s' to '%s'", db.Fetch(player).name, player, parmname, oldvalue, parmval)
+					log_status("TUNED: %s(%d) tuned %s from '%s' to '%s'", DB.Fetch(player).name, player, parmname, oldvalue, parmval)
 					notify(player, "Parameter set.")
 					tune_display_parms(player, parmname, security)
 				case TUNESET_UNKNOWN:

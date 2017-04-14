@@ -1,7 +1,7 @@
 /* $Header: /cvsroot/fbmuck/fbmuck/src_docs/game.c.txt,v 1.5 2000/02/18 14:26:42 mcclure Exp $ */
 
 Function name:	do_dump	
-Arguments:	dbref		(player issuing command)
+Arguments:	ObjectID		(player issuing command)
 		const char * 	(destination file)
 Returns:	void
 Called from:	process_command	(game.c)
@@ -12,7 +12,7 @@ Does:		Does nothing if player is not a Wizard.  Updates dumpfile
 Notes:
 
 Function name:	do_delta
-Arguments:	dbref		(player issuing command)
+Arguments:	ObjectID		(player issuing command)
 Returns:	void
 Called from:	process_command	(game.c)
 Calls:		Wizard, notify, delta_dump_now
@@ -21,7 +21,7 @@ Does:		Calls delta_dump_now if player is a Wizard.
 Notes:
 
 Function name:	do_shutdown
-Arguments:	dbref		(player issuing command)
+Arguments:	ObjectID		(player issuing command)
 Returns:	void
 Called from:	process_command (game.c)
 Calls:		Wizard, log_status, unparse_object, notify
@@ -31,7 +31,7 @@ Does:		Sets the shutdown flag and resets the restart flag if
 Notes:		none
 
 Function name:	do_restart
-Arguments:	dbref		(player issuing command)
+Arguments:	ObjectID		(player issuing command)
 Returns:	void
 Called from:	process_command	(game.c)
 Calls:		Wizard, log_status, unparse_object, notify
@@ -46,7 +46,7 @@ Returns:	static void
 Called from:	dump_database	(game.c)
 		fork_and_dump	(game.c)		
 Calls:		wall_and_flush, sprintf, unlink, fopen, db_write, fclose,
-		rename, perror, free, macrodump, sync
+		rename, perror, free, sync
 Does:		Writes out the DB and macros, notifying at start and end if set.
 #ifdefs:	FLUSHCHANGED
 Notes:
@@ -108,7 +108,7 @@ Arguments:	const char *	(infile)
 		const char *	(outfile)
 Returns:	int		(boolean)
 Called from:	main		(interface.c)
-Calls:		fopen, log_status, macroload, fclose, db_free,
+Calls:		fopen, log_status, fclose, db_free,
 		init_primitives, mesg_init, SRANDOM, tune_load_parmsfile,
 		fprintf, db_read, free, add_property
 Does:		Loads macros, frees the DB, initializes MUF compiler and
@@ -118,7 +118,7 @@ Does:		Loads macros, frees the DB, initializes MUF compiler and
 Notes:
 
 Function name:	do_restrict
-Arguments:	dbref		(player issuing command)
+Arguments:	ObjectID		(player issuing command)
 		const char *	(argument)
 Returns:	void
 Called from:	process_command	(game.c)
@@ -129,7 +129,7 @@ Notes:
 
 Function name:	process_command
 Arguments:	int		(descriptor of player)
-		dbref		(player issuing command)
+		ObjectID		(player issuing command)
 		char *		(the command)
 Returns:	int		(boolean)
 Called from:	do_command	(interface.c)

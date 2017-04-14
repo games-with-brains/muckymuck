@@ -1,10 +1,10 @@
 type Match struct {
-	exact dbref					/* holds result of exact match */
+	exact ObjectID					/* holds result of exact match */
 	check_keys bool				/* if non-zero, check for keys */
-	last dbref					/* holds result of last match */
+	last ObjectID					/* holds result of last match */
 	count int				/* holds total number of inexact matches */
-	who dbref					/* player used for me, here, and messages */
-	from dbref					/* object which is being matched around */
+	who ObjectID					/* player used for me, here, and messages */
+	from ObjectID					/* object which is being matched around */
 	descr int					/* descriptor initiating the match */
 	name string					/* name to match */
 	preferred_type int			/* preferred type */
@@ -45,7 +45,7 @@ func IsProgram(v interface{}) (ok bool) {
 	return
 }
 
-func NewMatch(descr int, player dbref, name string, type_checker func(interface{}) bool) *Match {
+func NewMatch(descr int, player ObjectID, name string, type_checker func(interface{}) bool) *Match {
 	return &Match{
 		exact: NOTHING,
 		last: NOTHING,
@@ -58,19 +58,19 @@ func NewMatch(descr int, player dbref, name string, type_checker func(interface{
 	}
 }
 
-func NewMatchCheckKeys(descr int, player dbref, name string, type_checker func(interface{}) bool) (r *Match) {
+func NewMatchCheckKeys(descr int, player ObjectID, name string, type_checker func(interface{}) bool) (r *Match) {
 	r = NewMatch(descr, player, name, datatype)
 	r.check_keys = true
 	return
 }
 
-func NewMatchRemote(descr int, player, what dbref, name string, type_checker func(interface{}) bool) (r *Match) {
+func NewMatchRemote(descr int, player, what ObjectID, name string, type_checker func(interface{}) bool) (r *Match) {
 	r = NewMatch(descr, player, name, datatype)
 	r.from = what
 	return
 }
 
-func (m *Match) EitherOf(thing1, thing2 dbref) (r dbref) {
+func (m *Match) EitherOf(thing1, thing2 ObjectID) (r ObjectID) {
 	switch {
 	case thing1 == NOTHING:
 		r = thing2
@@ -106,7 +106,7 @@ func (m *Match) EitherOf(thing1, thing2 dbref) (r dbref) {
 }
 
 func (m *Match) MatchPlayer() *Match {
-	if m.name[0] == LOOKUP_TOKEN && payfor(db.Fetch(m.from).Owner, tp_lookup_cost) {
+	if m.name[0] == LOOKUP_TOKEN && payfor(DB.Fetch(m.from).Owner, tp_lookup_cost) {
 		var p string
 		if i := strings.IndexFunc(n.name[1:], unicode.IsSpace); i != -1 {
 			p = n.name[i + 1:]
@@ -118,8 +118,8 @@ func (m *Match) MatchPlayer() *Match {
 	return m
 }
 
-/* returns dbref if registered object found for name, else NOTHING */
-func find_registered_obj(player dbref, name string) (r dbref) {
+/* returns ObjectID if registered object found for name, else NOTHING */
+func find_registered_obj(player ObjectID, name string) (r ObjectID) {
 	if r = NOTHING; name[0] == REGISTERED_TOKEN {
 		if p := strings.TrimSpace(name[1:]); p != "" {
 			if _, p := envprop(player, fmt.Sprint("_reg/", p)); p != nil {
@@ -129,17 +129,17 @@ func find_registered_obj(player dbref, name string) (r dbref) {
 						v = v[1:]
 					}
 					if unicode.IsNumber(v[0]) {
-						if match = dbref(strconv.Atoi(v)); valid_reference(match) {
-							return match
+						if v := ObjectID(strconv.Atoi(v)); v.IsValid() {
+							return v
 						}
 					}
-				case dbref:
-					if match = v; valid_reference(match) {
-						return match
+				case ObjectID:
+					if v.IsValid() {
+						return v
 					}
 				case int:
-					if match = dbref(v); valid_reference(match) {
-						return match
+					if v := ObjectID(v); v.IsValid() {
+						return v
 					}
 				}
 			}
@@ -156,10 +156,10 @@ func (m *Match) MatchRegistered() *Match {
 }
 
 /* returns nnn if name = #nnn, else NOTHING */
-func (m *Match) AbsoluteName() (r dbref) {
+func (m *Match) AbsoluteName() (r ObjectID) {
 	if m.name[0] == NUMBER_TOKEN {
-		r = parse_dbref(m.name[1:])
-		if !valid_reference(match) {
+		r = parse_ObjectID(m.name[1:])
+		if !match.IsValid() {
 			r = NOTHING
 		}
 	} else {
@@ -183,8 +183,8 @@ func (m *Match) MatchMe() *Match {
 }
 
 func (m *Match) MatchHere() *Match {
-	if m.name == "here" && db.Fetch(m.who).Location != NOTHING {
-		m.exact = db.Fetch(m.who).Location
+	if m.name == "here" && DB.Fetch(m.who).Location != NOTHING {
+		m.exact = DB.Fetch(m.who).Location
 	}
 	return m
 }
@@ -196,20 +196,20 @@ func (m *Match) MatchHome() *Match {
 	return m
 }
 
-func (m *Match) MatchList(first dbref) *Match {
+func (m *Match) MatchList(first ObjectID) *Match {
 	absolute := m.AbsoluteName()
-	if !controls(db.Fetch(m.from).Owner, absolute) {
+	if !controls(DB.Fetch(m.from).Owner, absolute) {
 		absolute = NOTHING
 	}
-	for ; first != NOTHING; first = db.Fetch(first).next {
+	for ; first != NOTHING; first = DB.Fetch(first).next {
 		switch {
 		case first == absolute:
 			m.exact = first
 			break
-		case db.Fetch(first).name == m.name:
+		case DB.Fetch(first).name == m.name:
 			/* if there are multiple exact matches, randomly choose one */
 			m.exact = md.EitherOf(m.exact, first)
-		case string_match(db.Fetch(first).name, m.name):
+		case string_match(DB.Fetch(first).name, m.name):
 			m.last = first
 			m.count++
 		}
@@ -218,30 +218,30 @@ func (m *Match) MatchList(first dbref) *Match {
 }
 
 func (m *Match) MatchPossession() *Match {
-	m.MatchList(db.Fetch(m.from).Contents)
+	m.MatchList(DB.Fetch(m.from).Contents)
 	return m
 }
 
 func (m *Match) MatchNeighbor() *Match {
-	if loc := db.Fetch(m.from).Location); loc != NOTHING {
-		m.MatchList(db.Fetch(loc).Contents)
+	if loc := DB.Fetch(m.from).Location); loc != NOTHING {
+		m.MatchList(DB.Fetch(loc).Contents)
 	}
 	return m
 }
 
 //	MatchExits matches a list of exits, starting with 'first'.
 //	It will match exits of players, rooms, or things.
-func (m *Match) MatchExits(first dbref) *Match {
-	if first != NOTHING && db.Fetch(m.from).Location != NOTHING {
+func (m *Match) MatchExits(first ObjectID) *Match {
+	if first != NOTHING && DB.Fetch(m.from).Location != NOTHING {
 		absolute := m.AbsoluteName()
-		if !controls(db.Fetch(m.from).Owner, absolute) {
+		if !controls(DB.Fetch(m.from).Owner, absolute) {
 			absolute = NOTHING
 		}
 		for exitid := first; exitid != NOTHING; {
 			if exitid == absolute {
 				m.exact = exitid
 			} else {
-				exit := db.Fetch(exitid)
+				exit := DB.Fetch(exitid)
 				var exitprog bool
 				switch {
 				case exit.flags & HAVEN != 0:
@@ -254,7 +254,7 @@ func (m *Match) MatchExits(first dbref) *Match {
 						}
 					}
 				}
-				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && db.Fetch(exit.Owner).flags & WIZARD != 0
+				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && DB.Fetch(exit.Owner).flags & WIZARD != 0
 				for exitname := strings.TrimSpace(exit.name); exitname != ""; exitname = strings.TrimSpace(exitname) {
 					var notnull bool
 					var p string
@@ -271,7 +271,7 @@ func (m *Match) MatchExits(first dbref) *Match {
 							exitname = exitname[:i]
 						}
 						lev := PLevel(exitid)
-						if tp_compatible_priorities && lev == 1 && (exit.Location == NOTHING || TYPEOF(exit.Location) != TYPE_THING || controls(exit.Owner, db.Fetch(m.from).Location)) {
+						if tp_compatible_priorities && lev == 1 && (exit.Location == NOTHING || TYPEOF(exit.Location) != TYPE_THING || controls(exit.Owner, DB.Fetch(m.from).Location)) {
 							lev = 2
 						}
 						if exitname == "" || exitname[0] == EXIT_DELIMITER {
@@ -334,7 +334,7 @@ func (m *Match) MatchExits(first dbref) *Match {
 				}
 next_exit:
 			}
-			exitid = db.Fetch(exit).next
+			exitid = DB.Fetch(exit).next
 		}
 	}
 	return md
@@ -342,9 +342,9 @@ next_exit:
 
 //	matches actions attached to objects in inventory
 func (m *Match) MatchInvobjActions() *Match {
-	for thing := db.Fetch(m.from).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
-		if IsThing(thing) && db.Fetch(thing).Exits != NOTHING {
-			m.MatchExits(db.Fetch(thing).Exits)
+	for thing := DB.Fetch(m.from).Contents; thing != NOTHING; thing = DB.Fetch(thing).next {
+		if IsThing(thing) && DB.Fetch(thing).Exits != NOTHING {
+			m.MatchExits(DB.Fetch(thing).Exits)
 		}
 	}
 	return m
@@ -352,10 +352,10 @@ func (m *Match) MatchInvobjActions() *Match {
 
 //	matches actions attached to objects in the room
 func (m *Match) MatchRoomobjActions() *Match {
-	if loc := db.Fetch(m.from).Location) != NOTHING {
-		for thing := db.Fetch(loc).Contents; thing != NOTHING; thing = db.Fetch(thing).next {
-			if IsThing(thing) && db.Fetch(thing).Exits != NOTHING {
-				m.MatchExits(db.Fetch(thing).Exits)
+	if loc := DB.Fetch(m.from).Location) != NOTHING {
+		for thing := DB.Fetch(loc).Contents; thing != NOTHING; thing = DB.Fetch(thing).next {
+			if IsThing(thing) && DB.Fetch(thing).Exits != NOTHING {
+				m.MatchExits(DB.Fetch(thing).Exits)
 			}
 		}
 	}
@@ -366,17 +366,17 @@ func (m *Match) MatchRoomobjActions() *Match {
 func (m *Match) MatchPlayerActions() *Match {
 	switch m.from.(type) {
 	case TYPE_PLAYER:, TYPE_ROOM, TYPE_THING:
-		m.MatchExits(db.Fetch(m.from).Exits)
+		m.MatchExits(DB.Fetch(m.from).Exits)
 	}
 	return m
 }
 
 //	Matches exits and actions attached to player's current room.
 //	Formerly 'match_exit'.
-func (m *Match) MatchRoomExits(loc dbref) *Match {
+func (m *Match) MatchRoomExits(loc ObjectID) *Match {
 	switch loc.(type) {
 	case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-		m.MatchExits(db.Fetch(loc).Exits)
+		m.MatchExits(DB.Fetch(loc).Exits)
 	}
 	return m
 }
@@ -387,12 +387,12 @@ func (m *Match) MatchRoomExits(loc dbref) *Match {
  * and room actions/exits (in reverse order of priority order).
  */
 func (m *Match) MatchAllExits() *Match {
-	dbref loc;
+	ObjectID loc;
 	int limit = 88;
 	int blocking = 0;
 
 	var match_args, match_cmdname string
-	if loc = db.Fetch(m.from).Location; loc != NOTHING) {
+	if loc = DB.Fetch(m.from).Location; loc != NOTHING) {
 		md.MatchRoomExits(loc)
 	}
 
@@ -414,7 +414,7 @@ func (m *Match) MatchAllExits() *Match {
 	if loc != NOTHING {
 		/* if player is in a vehicle, use environment of vehicle's home */
 		if loc, ok := loc.(Object); ok {
-			if loc = db.FetchPlayer(loc).home; loc == NOTHING {
+			if loc = DB.FetchPlayer(loc).home; loc == NOTHING {
 				return
 			}
 			if m.exact != NOTHING {
@@ -425,10 +425,10 @@ func (m *Match) MatchAllExits() *Match {
 
         /* Walk the environment chain to #0, or until depth chain limit
            has been hit, looking for a match. */
-        for loc = db.Fetch(loc).Location; loc != NOTHING; loc = db.Fetch(loc).Location {
+        for loc = DB.Fetch(loc).Location; loc != NOTHING; loc = DB.Fetch(loc).Location {
 			/* If we're blocking (because of a yield), only match a room if
 			   and only if it has overt set on it. */
-			if (blocking && db.Fetch(loc).flags & OVERT != 0) || !blocking {
+			if (blocking && DB.Fetch(loc).flags & OVERT != 0) || !blocking {
 				if m.exact != NOTHING {
 					m.block_equals = true
 				}
@@ -438,7 +438,7 @@ func (m *Match) MatchAllExits() *Match {
 				break
 			}
 			/* Does this room have env-chain exit blocking enabled? */
-			if !blocking && tp_enable_match_yield && db.Fetch(loc).flags & YIELD != 0 {
+			if !blocking && tp_enable_match_yield && DB.Fetch(loc).flags & YIELD != 0 {
 				blocking = true
 			}
         }
@@ -453,13 +453,13 @@ func (m *Match) MatchEverything() *Match {
 		MatchMe().
 		MatchHere().
 		MatchRegistered()
-	if Wizard(db.Fetch(m.from).Owner) || Wizard(m.who) {
+	if Wizard(DB.Fetch(m.from).Owner) || Wizard(m.who) {
 		m.MatchAbsolute().MatchPlayer()
 	}
 	return m
 }
 
-func (m *Match) MatchResult() (r dbref) {
+func (m *Match) MatchResult() (r ObjectID) {
 	if md.exact != NOTHING {
 		r = m.exact
 	} else {
@@ -476,7 +476,7 @@ func (m *Match) MatchResult() (r dbref) {
 }
 
 /* use this if you don't care about ambiguity */
-func (m *Match) LastMatchResult() (r dbref) {
+func (m *Match) LastMatchResult() (r ObjectID) {
 	if m.exact != NOTHING {
 		r = m.exact
 	} else {
@@ -485,7 +485,7 @@ func (m *Match) LastMatchResult() (r dbref) {
 	return
 }
 
-func (m *Match) NoisyMatchResult() (r dbref) {
+func (m *Match) NoisyMatchResult() (r ObjectID) {
 	switch r = m.MatchResult(); {
 	case NOTHING:
 		notify(m.who, NOMATCH_MESSAGE)
@@ -499,12 +499,12 @@ func (m *Match) NoisyMatchResult() (r dbref) {
 	return
 }
 
-func (m *Match) RMatch(v dbref) {
+func (m *Match) RMatch(v ObjectID) {
 	if v != NOTHING {
 		switch v.(type) {
 		case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-			md.MatchList(db.Fetch(v).Contents)
-			md.MatchExits(db.Fetch(v).Exits)
+			md.MatchList(DB.Fetch(v).Contents)
+			md.MatchExits(DB.Fetch(v).Exits)
 		}
 	}
 }

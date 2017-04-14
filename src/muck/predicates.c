@@ -1,10 +1,10 @@
 package fbmuck
 
-func can_link_to(dbref who, object_flag_type what_type, dbref where) (r bool) {
+func can_link_to(ObjectID who, object_flag_type what_type, ObjectID where) (r bool) {
 	switch {
 	case where == HOME:
 		r = true
-	case !valid_reference(where):
+	case !where.IsValid():
 		r = false
 	default:
 		switch what_type {
@@ -12,7 +12,7 @@ func can_link_to(dbref who, object_flag_type what_type, dbref where) (r bool) {
 			/* If the target is LINK_OK, then any exit may be linked
 		 	 * there.  Otherwise, only someone who controls the
 		 	 * target may link there. */
-			r = controls(who, where) || db.Fetch(where).flags & LINK_OK != 0
+			r = controls(who, where) || DB.Fetch(where).flags & LINK_OK != 0
 		case TYPE_PLAYER:
 			/* Players may only be linked to rooms, that are either
 			 * controlled by the player or set either L or A. */
@@ -27,15 +27,15 @@ func can_link_to(dbref who, object_flag_type what_type, dbref where) (r bool) {
 			r = ((Typeof(where) == TYPE_ROOM || Typeof(where) == TYPE_PLAYER || Typeof(where) == TYPE_THING) && (controls(who, where) || Linkable(where)))
 		case NOTYPE:
 			/* Why is this here? -winged */
-			r = controls(who, where) || db.Fetch(where).flags & LINK_OK != 0 || (Typeof(where) != TYPE_THING && db.Fetch(where).flags & ABODE != 0)
+			r = controls(who, where) || DB.Fetch(where).flags & LINK_OK != 0 || (Typeof(where) != TYPE_THING && DB.Fetch(where).flags & ABODE != 0)
 		}
 	}
 	return
 }
 
 /* This checks to see if what can be linked to something else by who. */
-func can_link(dbref who, dbref what) bool {
-	return controls(who, what) || (TYPEOF(what) == TYPE_EXIT && len(db.Fetch(what).(Exit).Destinations) == 0)
+func can_link(ObjectID who, ObjectID what) bool {
+	return controls(who, what) || (TYPEOF(what) == TYPE_EXIT && len(DB.Fetch(what).(Exit).Destinations) == 0)
 }
 
 /*
@@ -50,39 +50,39 @@ func can_link(dbref who, dbref what) bool {
  * perform a move that is allowed. Then, it checks the @lock on the thing,
  * whether it's an exit or not.
  */
-func could_doit(int descr, dbref player, dbref thing) bool {
-	dbref source, dest, owner;
+func could_doit(int descr, ObjectID player, ObjectID thing) bool {
+	ObjectID source, dest, owner;
 
 	if TYPEOF(thing) == TYPE_EXIT {
 			/* If exit is unlinked, can't do it. */
-		if len(db.Fetch(thing).(Exit).Destinations) == 0 {
+		if len(DB.Fetch(thing).(Exit).Destinations) == 0 {
 			return false
 		}
 
-		owner = db.Fetch(thing).Owner
-		source = db.Fetch(player).Location
-		dest = *(db.Fetch(thing).(Exit).Destinations)
+		owner = DB.Fetch(thing).Owner
+		source = DB.Fetch(player).Location
+		dest = *(DB.Fetch(thing).(Exit).Destinations)
 
 		if (TYPEOF(dest) == TYPE_PLAYER) {
 			/* Check for additional restrictions related to player dests */
-			dbref destplayer = dest;
+			ObjectID destplayer = dest;
 
-			dest = db.Fetch(dest).Location
+			dest = DB.Fetch(dest).Location
 			/* If the dest player isn't JUMP_OK, or if the dest player's loc
 			 * is set BOUND, can't do it. */
-			if db.Fetch(destplayer).flags & JUMP_OK == 0 || db.Fetch(dest).flags & BUILDER != 0 {
+			if DB.Fetch(destplayer).flags & JUMP_OK == 0 || DB.Fetch(dest).flags & BUILDER != 0 {
 				return false
 			}
 		}
 
 		/* for actions */
-		if db.Fetch(thing).Location != NOTHING) && TYPEOF(db.Fetch(thing).Location) != TYPE_ROOM {
+		if DB.Fetch(thing).Location != NOTHING) && TYPEOF(DB.Fetch(thing).Location) != TYPE_ROOM {
 			/* If this is an exit on a Thing or a Player... */
 
 			/* If the destination is a room or player, and the current
 			 * location is set BOUND (note: if the player is in a vehicle
 			 * set BUILDER this will also return failure) */
-			if (Typeof(dest) == TYPE_ROOM || Typeof(dest) == TYPE_PLAYER) && db.Fetch(source).flags & BUILDER != 0 {
+			if (Typeof(dest) == TYPE_ROOM || Typeof(dest) == TYPE_PLAYER) && DB.Fetch(source).flags & BUILDER != 0 {
 				return false
 			}
 
@@ -93,7 +93,7 @@ func could_doit(int descr, dbref player, dbref thing) bool {
 				 * can't do it.  (Should this include getlink(owner)?  Not
 				 * everyone knows that 'home' or '#-3' can be linked to and
 				 * be treated specially. -winged) */
-				if dest != HOME && !controls(owner, source) && db.Fetch(source).flags & JUMP_OK == 0 {
+				if dest != HOME && !controls(owner, source) && DB.Fetch(source).flags & JUMP_OK == 0 {
 					return false
 				}
 			/* FIXME: Add support for in-server banishment from rooms and environments here. */
@@ -104,21 +104,21 @@ func could_doit(int descr, dbref player, dbref thing) bool {
 	return copy_bool(get_property_lock(thing, MESGPROP_LOCK)).Eval(descr, player, thing)
 }
 
-func test_lock(descr int, player, thing dbref, lockprop string) int {
+func test_lock(descr int, player, thing ObjectID, lockprop string) int {
 	return copy_bool(get_property_lock(thing, lockprop)).Eval(descr, player, thing)
 }
 
-func test_lock_false_default(descr int, player, thing dbref, lockprop string) (ok bool) {
+func test_lock_false_default(descr int, player, thing ObjectID, lockprop string) (ok bool) {
 	if lok := get_property_lock(thing, lockprop); !lok.IsTrue() {
 		ok = copy_bool(lok).Eval(descr, player, thing))
 	}
 	return
 }
 
-func can_doit(descr int, player, thing dbref, default_fail_msg string) (r bool) {
-	switch loc := db.Fetch(player).Location); {
+func can_doit(descr int, player, thing ObjectID, default_fail_msg string) (r bool) {
+	switch loc := DB.Fetch(player).Location); {
 	case loc == NOTHING:
-	case !Wizard(db.Fetch(player).Owner) && Typeof(player) == TYPE_THING && db.Fetch(thing).flags & ZOMBIE != 0:
+	case !Wizard(DB.Fetch(player).Owner) && Typeof(player) == TYPE_THING && DB.Fetch(thing).flags & ZOMBIE != 0:
 		notify(player, "Sorry, but zombies can't do that.")
 	case !could_doit(descr, player, thing):
 		/* can't do it */
@@ -128,7 +128,7 @@ func can_doit(descr int, player, thing dbref, default_fail_msg string) (r bool) 
 			notify(player, default_fail_msg)
 		}
 		if get_property_class(thing, MESGPROP_OFAIL) && !Dark(player) {
-			parse_oprop(descr, player, loc, thing, MESGPROP_OFAIL, db.Fetch(player).name, "(@Ofail)")
+			parse_oprop(descr, player, loc, thing, MESGPROP_OFAIL, DB.Fetch(player).name, "(@Ofail)")
 		}
 	default:
 		/* can do it */
@@ -136,41 +136,41 @@ func can_doit(descr int, player, thing dbref, default_fail_msg string) (r bool) 
 			exec_or_notify_prop(descr, player, thing, MESGPROP_SUCC, "(@Succ)")
 		}
 		if get_property_class(thing, MESGPROP_OSUCC) && !Dark(player) {
-			parse_oprop(descr, player, loc, thing, MESGPROP_OSUCC, db.Fetch(player).name, "(@Osucc)")
+			parse_oprop(descr, player, loc, thing, MESGPROP_OSUCC, DB.Fetch(player).name, "(@Osucc)")
 		}
 		r = true
 	}
 	return
 }
 
-func can_see(dbref player, dbref thing, int can_see_loc) (r bool) {
+func can_see(ObjectID player, ObjectID thing, int can_see_loc) (r bool) {
 	switch {
 	case player == thing || Typeof(thing) == TYPE_EXIT || Typeof(thing) == TYPE_ROOM:
 	case can_see_loc:
 		switch Typeof(thing) {
 		case TYPE_PROGRAM:
-			r = db.Fetch(thing).flags & LINK_OK != 0 || controls(player, thing)
+			r = DB.Fetch(thing).flags & LINK_OK != 0 || controls(player, thing)
 		case TYPE_PLAYER:
 			r = tp_dark_sleepers && !Dark(thing) && online(thing)
 		default:
-			r = !Dark(thing) || (controls(player, thing) && db.Fetch(player).flags & STICKY == 0)
+			r = !Dark(thing) || (controls(player, thing) && DB.Fetch(player).flags & STICKY == 0)
 		}
 	default:
-		r = controls(player, thing) && db.Fetch(player).flags & STICKY == 0
+		r = controls(player, thing) && DB.Fetch(player).flags & STICKY == 0
 	}
 	return
 }
 
-func controls(who, what dbref) bool {
+func controls(who, what ObjectID) bool {
 	/* No one controls invalid objects */
-	if valid_reference(what) {
+	if what.IsValid() {
 		/* Zombies and puppets use the permissions of their owner */
 		if Typeof(who) != TYPE_PLAYER {
-			who = db.Fetch(who).Owner
+			who = DB.Fetch(who).Owner
 		}
 		/* Wizard controls everything */
 		if Wizard(who) {
-			if db.Fetch(what).Owner == GOD && who != GOD {
+			if DB.Fetch(what).Owner == GOD && who != GOD {
 				/* Only God controls God's objects */
 				return false
 			} else {
@@ -184,8 +184,8 @@ func controls(who, what dbref) bool {
 			 * owner of that room controls every Room object contained within
 			 * that room, all the way to the leaves of the tree.
 			 * -winged */
-			for index := what; index != NOTHING; index = db.Fetch(index).Location {
-				if db.Fetch(index).Owner == who && Typeof(index) == TYPE_ROOM && Wizard(index) {
+			for index := what; index != NOTHING; index = DB.Fetch(index).Location {
+				if DB.Fetch(index).Owner == who && Typeof(index) == TYPE_ROOM && Wizard(index) {
 					/* Realm Owner doesn't control other Player objects */
 					if Typeof(what) == TYPE_PLAYER {
 						return false
@@ -205,67 +205,67 @@ func controls(who, what dbref) bool {
 		 * security hole. -winged */
 		/*
 		 * if TYPEOF(what) == TYPE_EXIT {
-		 *    dest := db.Fetch(what).(Exit).Destinations
+		 *    dest := DB.Fetch(what).(Exit).Destinations
 		 *    for i := len(dest) - 1; i > -1; i-- {
-		 *        if who == db.Fetch(dest[i]).Owner {
+		 *        if who == DB.Fetch(dest[i]).Owner {
 		 *            return true
 		 *        }
 		 *    }
-		 *    if who == db.Fetch(db.Fetch(what).Location).Owner {
+		 *    if who == DB.Fetch(DB.Fetch(what).Location).Owner {
 		 *        return true
 		 *    }
 		 * }
 		 */
 
 		/* owners control their own stuff */
-		return who == db.Fetch(what).Owner
+		return who == DB.Fetch(what).Owner
 	}
 	return false
 }
 
-func restricted(player, thing dbref, flag object_flag_type) int {
+func restricted(player, thing ObjectID, flag object_flag_type) int {
 	switch flag {
 	case ABODE:
 			/* Trying to set a program AUTOSTART requires TrueWizard */
-		return !TrueWizard(db.Fetch(player).Owner) && Typeof(thing) == TYPE_PROGRAM
+		return !TrueWizard(DB.Fetch(player).Owner) && Typeof(thing) == TYPE_PROGRAM
 		/* NOTREACHED */
 		break;
         case YIELD:
                         /* Mucking with the env-chain matching requires TrueWizard */
-                return !Wizard(db.Fetch(player).Owner)
+                return !Wizard(DB.Fetch(player).Owner)
         case OVERT:
                         /* Mucking with the env-chain matching requires TrueWizard */
-                return !Wizard(db.Fetch(player).Owner)
+                return !Wizard(DB.Fetch(player).Owner)
 	case ZOMBIE:
 			/* Restricting a player from using zombies requires a wizard. */
 		if (Typeof(thing) == TYPE_PLAYER)
-			return !Wizard(db.Fetch(player).Owner)
+			return !Wizard(DB.Fetch(player).Owner)
 			/* If a player's set Zombie, he's restricted from using them...
 			 * unless he's a wizard, in which case he can do whatever. */
-		if Typeof(thing) == TYPE_THING && db.Fetch(db.Fetch(player).Owner).flags & ZOMBIE != 0 {
-			return !Wizard(db.Fetch(player).Owner)
+		if Typeof(thing) == TYPE_THING && DB.Fetch(DB.Fetch(player).Owner).flags & ZOMBIE != 0 {
+			return !Wizard(DB.Fetch(player).Owner)
 		}
 		return (0);
 	case VEHICLE:
 			/* Restricting a player from using vehicles requires a wizard. */
 		if (Typeof(thing) == TYPE_PLAYER)
-			return !Wizard(db.Fetch(player).Owner)
+			return !Wizard(DB.Fetch(player).Owner)
 			/* If only wizards can create vehicles... */
 		if (tp_wiz_vehicles) {
 			/* then only a wizard can create a vehicle. :) */
 			if (Typeof(thing) == TYPE_THING)
-				return !Wizard(db.Fetch(player).Owner)
+				return !Wizard(DB.Fetch(player).Owner)
 		} else {
 			/* But, if vehicles aren't restricted to wizards, then
 			 * players who have not been restricted can do so */
-			if Typeof(thing) == TYPE_THING && db.Fetch(player).flags & VEHICLE != 0 {
-				return !Wizard(db.Fetch(player).Owner)
+			if Typeof(thing) == TYPE_THING && DB.Fetch(player).flags & VEHICLE != 0 {
+				return !Wizard(DB.Fetch(player).Owner)
 			}
 		}
 		return (0);
 	case DARK:
 		/* Dark can be set on a Program or Room by anyone. */
-		if !Wizard(db.Fetch(player).Owner) {
+		if !Wizard(DB.Fetch(player).Owner) {
 				/* Setting a player dark requires a wizard. */
 			if (Typeof(thing) == TYPE_PLAYER)
 				return (1);
@@ -282,7 +282,7 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 		break;
 	case QUELL:
 		/* Only God (or God's stuff) can quell or unquell another wizard. */
-		return db.Fetch(player).Owner == || (TrueWizard(thing) && (thing != player) && Typeof(thing) == TYPE_PLAYER)
+		return DB.Fetch(player).Owner == || (TrueWizard(thing) && (thing != player) && Typeof(thing) == TYPE_PLAYER)
 		/* NOTREACHED */
 		break;
 	case MUCKER, SMUCKER, SMUCKER | MUCKER, BUILDER:
@@ -293,12 +293,12 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 		 * Since this is just a convenience for atomic-functionwriters,
 		 * why is it limited to only a Wizard? -winged */
 		/* Setting a player Builder is limited to a Wizard. */
-		return !Wizard(db.Fetch(player).Owner)
+		return !Wizard(DB.Fetch(player).Owner)
 		/* NOTREACHED */
 		break;
 	case WIZARD:
 			/* To do anything with a Wizard flag requires a Wizard. */
-		if Wizard(db.Fetch(player).Owner) {
+		if Wizard(DB.Fetch(player).Owner) {
 			/* ...but only God can make a player a Wizard, or re-mort one. */
 			return Typeof(thing) == TYPE_PLAYER && player != GOD
 		} else
@@ -316,14 +316,14 @@ func restricted(player, thing dbref, flag object_flag_type) int {
 
 /* Removes 'cost' value from 'who', and returns true if the act has been
  * paid for, else returns false. */
-func payfor(who dbref, cost int) (r bool) {
-	who = db.Fetch(who).Owner
+func payfor(who ObjectID, cost int) (r bool) {
+	who = DB.Fetch(who).Owner
 	/* Wizards don't have to pay for anything. */
 	if Wizard(who) {
 		r = true
 	} else if get_property_value(who, MESGPROP_VALUE) >= cost {
 		add_property(who, MESGPROP_VALUE, nil, get_property_value(who, MESGPROP_VALUE) - cost)
-		db.Fetch(who).flags |= OBJECT_CHANGED
+		DB.Fetch(who).flags |= OBJECT_CHANGED
 		r = true
 	}
 	return
@@ -395,7 +395,7 @@ func ok_password(password string) (r bool) {
 
 /* If only paternity checks were this easy in real life... 
  * Returns 1 if the given 'child' is contained by the 'parent'.*/
-func isancestor(parent, child dbref) bool {
+func isancestor(parent, child ObjectID) bool {
 	for child != NOTHING && child != parent {
 		child = getparent(child)
 	}

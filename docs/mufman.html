@@ -284,7 +284,7 @@
     <td nowrap> &nbsp; <a href="#compiled?">compiled?</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#conboot">conboot</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#concount">concount</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#condbref">condbref</a> &nbsp; </td>
+    <td nowrap> &nbsp; <a href="#conObjectID">conObjectID</a> &nbsp; </td>
   </tr>
   <tr>
     <td nowrap> &nbsp; <a href="#condescr">condescr</a> &nbsp; </td>
@@ -315,8 +315,8 @@
   <tr>
     <td nowrap> &nbsp; <a href="#date">date</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#dbcmp">dbcmp</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#dbref">dbref</a> &nbsp; </td>
-    <td nowrap> &nbsp; <a href="#dbref?">dbref?</a> &nbsp; </td>
+    <td nowrap> &nbsp; <a href="#ObjectID">ObjectID</a> &nbsp; </td>
+    <td nowrap> &nbsp; <a href="#ObjectID?">ObjectID?</a> &nbsp; </td>
   </tr>
   <tr>
     <td nowrap> &nbsp; <a href="#dbtop">dbtop</a> &nbsp; </td>
@@ -343,7 +343,7 @@
     <td nowrap> &nbsp; <a href="#descrcon">descrcon</a> &nbsp; </td>
   </tr>
   <tr>
-    <td nowrap> &nbsp; <a href="#descrdbref">descrdbref</a> &nbsp; </td>
+    <td nowrap> &nbsp; <a href="#descrObjectID">descrObjectID</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#descrflush">descrflush</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#descrhost">descrhost</a> &nbsp; </td>
     <td nowrap> &nbsp; <a href="#descridle">descridle</a> &nbsp; </td>
@@ -1127,7 +1127,7 @@ or player if a message is sent to them that way.
 <br>
 </a></h4>
   A room or player may have a &quot;_connect&quot; property set that contains the
-dbref of a program to run when a player connects.  The program must be
+ObjectID of a program to run when a player connects.  The program must be
 either link_ok or must be owned by the player connecting.  When the
 program is run, the string on the stack will be &quot;Connect&quot;, the &quot;loc @&quot;
 will be the location of the connecting player, the &quot;me @&quot; will be the
@@ -1353,7 +1353,7 @@ of the program line, without using an ending $enddef.
 
 <hr><h4><a name="$include">$INCLUDE $&lt;libname&gt;
 <br>
-$INCLUDE &lt;dbref&gt;
+$INCLUDE &lt;ObjectID&gt;
 <br>
 
 <br>
@@ -1438,7 +1438,7 @@ For example:
     $libdef myfunc
 </pre>
 would put a prop named '_defs/myfunc' on the program object, with the
-value '&lt;this_programs_dbref&gt; &quot;myfunc&quot; call'
+value '&lt;this_programs_ObjectID&gt; &quot;myfunc&quot; call'
 <p><h5>Also see:
     <a href="#$pubdef">$PUBDEF</a>,
     <a href="#public">PUBLIC</a>,
@@ -1558,9 +1558,9 @@ $IFVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
 $IFVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $endif
+$IFVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
-$IFVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1569,7 +1569,7 @@ $IFVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; 
 depending on the $version of the given program, which is stored in its
 '_version' property.  In the form '$ifver this' then this checks this
 compiling program's $version.  Otherwise, this checks the $version of
-the program referenced by $regname or #dbref.
+the program referenced by $regname or #ObjectID.
 <p>
   The &lt;truebranch&gt; will be compiled if the given program's $version
 is greater than or equal to the given &lt;float&gt;, using a floating point
@@ -1593,9 +1593,9 @@ $IFNVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
 $IFNVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFNVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $endif
+$IFNVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
-$IFNVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFNVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1604,7 +1604,7 @@ $IFNVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt;
 depending on the $version of the given program, which is stored in its
 '_version' property.  In the form '$ifnver this' then this checks this
 compiling program's $version.  Otherwise, this checks the $version of
-the program referenced by $regname or #dbref.
+the program referenced by $regname or #ObjectID.
 <p>
   The &lt;truebranch&gt; will be compiled if the given program's $version
 is less than the given &lt;float&gt;, using a floating point number comparison.
@@ -1627,9 +1627,9 @@ $IFLIBVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
 $IFLIBVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $endif
+$IFLIBVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
-$IFLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFLIBVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1638,7 +1638,7 @@ $IFLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&g
 depending on the $lib-version of the given program, which is stored in its
 '_lib-version' property.  In the form '$iflibver this' then this checks this
 compiling program's $lib-version.  Otherwise, this checks the $lib-version
-of the program referenced by $regname or #dbref.
+of the program referenced by $regname or #ObjectID.
 <p>
   The &lt;truebranch&gt; will be compiled if the given program's $lib-version
 is greater than or equal to the given &lt;float&gt;, using a floating point
@@ -1662,9 +1662,9 @@ $IFNLIBVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
 $IFNLIBVER $&lt;libname&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFNLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $endif
+$IFNLIBVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $endif
 <br>
-$IFNLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFNLIBVER &lt;ObjectID&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1673,7 +1673,7 @@ $IFNLIBVER &lt;dbref&gt; &lt;float&gt; &lt;truebranch&gt; $else &lt;falsebranch&
 depending on the $lib-version of the given program, which is stored in its
 '_lib-version' property.  In the form '$ifnlibver this' then this checks this
 compiling program's $lib-version.  Otherwise, this checks the $lib-version
-of the program referenced by $regname or #dbref.
+of the program referenced by $regname or #ObjectID.
 <p>
   The &lt;truebranch&gt; will be compiled if the given program's $lib-version
 is less than the given &lt;float&gt;, using a floating point number comparison.
@@ -1692,9 +1692,9 @@ Otherwise, the &lt;falsebranch&gt;, if given, will be compiled.
 <br>
 $IFLIB $&lt;libname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFLIB &lt;dbref&gt; &lt;truebranch&gt; $endif
+$IFLIB &lt;ObjectID&gt; &lt;truebranch&gt; $endif
 <br>
-$IFLIB &lt;dbref&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFLIB &lt;ObjectID&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1719,9 +1719,9 @@ program.  Otherwise, the &lt;falsebranch&gt;, if given, will be compiled.
 <br>
 $IFNLIB $&lt;libname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFNLIB &lt;dbref&gt; &lt;truebranch&gt; $endif
+$IFNLIB &lt;ObjectID&gt; &lt;truebranch&gt; $endif
 <br>
-$IFNLIB &lt;dbref&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFNLIB &lt;ObjectID&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1751,9 +1751,9 @@ $IFCANCALL $&lt;libname&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
 <br>
 $IFCANCALL $&lt;libname&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFCANCALL &lt;dbref&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
+$IFCANCALL &lt;ObjectID&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
 <br>
-$IFCANCALL &lt;dbref&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFCANCALL &lt;ObjectID&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -1789,9 +1789,9 @@ $IFNCANCALL $&lt;libname&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
 <br>
 $IFNCANCALL $&lt;libname&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
-$IFNCANCALL &lt;dbref&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
+$IFNCANCALL &lt;ObjectID&gt; &lt;publicname&gt; &lt;truebranch&gt; $endif
 <br>
-$IFNCANCALL &lt;dbref&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
+$IFNCANCALL &lt;ObjectID&gt; &lt;publicname&gt; &lt;truebranch&gt; $else &lt;falsebranch&gt; $endif
 <br>
 
 <br>
@@ -2190,7 +2190,7 @@ stack, and the count is pushed onto the stack.
 
 <br>
 </a></h4>
-  There is a global variable named ME that contains the dbref of the
+  There is a global variable named ME that contains the ObjectID of the
 player who invoked the program.  The value of this variable is not
 guaranteed to be secure, as another program could change the value of
 ME then call your program.  If you must be certain that the value of
@@ -2212,7 +2212,7 @@ The ME global variable is the same variable as '0 variable'
 
 <br>
 </a></h4>
-  There is a global variable named LOC that contains the dbref of the
+  There is a global variable named LOC that contains the ObjectID of the
 location of the player who invoked the program.  The value of this
 variable is not guaranteed to be secure, as another program could change
 the value of LOC then call your program.  If you must be certain that
@@ -2234,7 +2234,7 @@ The LOC global variable is the same variable as '1 variable'
 
 <br>
 </a></h4>
-  There is a global variable named TRIGGER that contains the dbref of the
+  There is a global variable named TRIGGER that contains the ObjectID of the
 trigger object that invoked the process.  The value of this variable is
 not guaranteed to be secure, as another program could change the value of
 TRIGGER then call your program.  If you must be certain that the value of
@@ -2406,7 +2406,7 @@ and
 <pre>
     0 variable @
 </pre>
-will do the same thing (returning the user's dbref). User-defined variables
+will do the same thing (returning the user's ObjectID). User-defined variables
 are numbered sequentially starting at 4 by the compiler. Note that these
 variable numbers can be used even if variables have not been formally
 declared.  This command has been deprecated, and is not recommended to use.
@@ -2457,7 +2457,7 @@ and is not recommended.  Use the array stack item type instead.
   <tr>
     <td width="16%"> &nbsp; <a href="#and">and</a> &nbsp; </td>
     <td width="16%"> &nbsp; <a href="#array?">array?</a> &nbsp; </td>
-    <td width="16%"> &nbsp; <a href="#dbref?">dbref?</a> &nbsp; </td>
+    <td width="16%"> &nbsp; <a href="#ObjectID?">ObjectID?</a> &nbsp; </td>
     <td width="16%"> &nbsp; <a href="#dictionary?">dictionary?</a> &nbsp; </td>
     <td width="16%"> &nbsp; <a href="#float?">float?</a> &nbsp; </td>
     <td width="16%"> &nbsp; <a href="#int?">int?</a> &nbsp; </td>
@@ -2680,12 +2680,12 @@ of any type.  For the various types, here are their false values:
 <p>
 
 
-<hr><h4><a name="dbref?">DBREF? ( x -- i )
+<hr><h4><a name="ObjectID?">DBREF? ( x -- i )
 <br>
 
 <br>
 </a></h4>
-  Returns true if x is a dbref.
+  Returns true if x is a ObjectID.
 <p>
 
 
@@ -2699,7 +2699,7 @@ otherwise.
 <p><h5>Also see:
     <a href="#dictionary?">DICTIONARY?</a>,
     <a href="#int?">INT?</a>,
-    <a href="#dbref?">DBREF?</a>,
+    <a href="#ObjectID?">DBREF?</a>,
     <a href="#array_make_dict">ARRAY_MAKE_DICT</a> and
     <a href="#array_make">ARRAY_MAKE</a>
 </h5>
@@ -2716,7 +2716,7 @@ if so, 0 if otherwise.
 <p><h5>Also see:
     <a href="#array?">ARRAY?</a>,
     <a href="#int?">INT?</a>,
-    <a href="#dbref?">DBREF?</a>,
+    <a href="#ObjectID?">DBREF?</a>,
     <a href="#array_make_dict">ARRAY_MAKE_DICT</a> and
     <a href="#array_make">ARRAY_MAKE</a>
 </h5>
@@ -2924,7 +2924,7 @@ unless the caller is calling itself.
 
 <br>
 </a></h4>
-  Takes a program dbref to run d1, the trigger to use d2, and the top stack
+  Takes a program ObjectID to run d1, the trigger to use d2, and the top stack
 item string and calls the program with the given string on the stack.
 Returns when interpretation halts, which could be the result of an exit, an
 error, or a primitive that suspends execution such as sleep or read.
@@ -3226,7 +3226,7 @@ Example of a complex loop structure:
 </a></h4>
   Declares a previously defined function to be public for execution by other
 programs.  This is a compile-time directive, not a run-time primitive.  To
-call a public function, put the dbref of the program on the stack, then put
+call a public function, put the ObjectID of the program on the stack, then put
 a string, containing the function name, on the stack, then use CALL.
 For example:
 <pre>
@@ -3250,7 +3250,7 @@ For example:
   Declares a previously defined function to be callable from other programs,
 as long as the calling program has wizbit permissions.  This is a compile-
 time directive, not a run-time primitive.  To call a public function, put
-the dbref of the program on the stack, then put a string, containing the
+the ObjectID of the program on the stack, then put a string, containing the
 function name, on the stack, then use CALL.  For example:
 <pre>
     #888 &quot;functionname&quot; CALL
@@ -3445,7 +3445,7 @@ value 'userlog_mlev' (defaults to 3) to write this log entry.
 
 <br>
 </a></h4>
-  Converts variable, float, or dbref x to integer i.
+  Converts variable, float, or ObjectID x to integer i.
 <p>
 
 
@@ -3456,9 +3456,9 @@ value 'userlog_mlev' (defaults to 3) to write this log entry.
 </a></h4>
   This adds two numbers, n1 + n2.  If both numbers are integers, an integer
 will be returned.  If one of them is a floating point number, then a float
-will be returned.  You can also use this on a dbref or a variable number,
+will be returned.  You can also use this on a ObjectID or a variable number,
 so long as the second argument is an integer.  In those cases, this will
-return a dbref or variable number, respectively.
+return a ObjectID or variable number, respectively.
 <p>
 
 
@@ -3469,9 +3469,9 @@ return a dbref or variable number, respectively.
 </a></h4>
   This subtracts two numbers, n1 - n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 <p>
 
 
@@ -3482,9 +3482,9 @@ cases, this will return a dbref or variable number, respectively.
 </a></h4>
   This multiplies two numbers, n1 * n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 <p>
 
 
@@ -3495,9 +3495,9 @@ cases, this will return a dbref or variable number, respectively.
 </a></h4>
   This divides two numbers, n1 / n2.  If both numbers are integers, an
 integer will be returned.  If one of them is a floating point number,
-then a float will be returned.  You can also use this on a dbref or a
+then a float will be returned.  You can also use this on a ObjectID or a
 variable number, so long as the second argument is an integer.  In those
-cases, this will return a dbref or variable number, respectively.
+cases, this will return a ObjectID or variable number, respectively.
 <p>
 
 
@@ -3519,8 +3519,8 @@ use either the FMOD or MODF primitives.
 
 <br>
 </a></h4>
-  If given an integer, float, or dbref, adds 1 to it, and returns the result.
-If given a variable containing an integer, float, or dbref, adds 1 to the
+  If given an integer, float, or ObjectID, adds 1 to it, and returns the result.
+If given a variable containing an integer, float, or ObjectID, adds 1 to the
 value stored in the variable, and returns nothing.
 <p><h5>Also see:
     <a href="#--">--</a>
@@ -3535,9 +3535,9 @@ value stored in the variable, and returns nothing.
 
 <br>
 </a></h4>
-  If given an integer, float, or dbref, this subtracts 1 from it, and
+  If given an integer, float, or ObjectID, this subtracts 1 from it, and
 returns the result.  If given a variable containing an integer, float,
-or dbref, this subtracts 1 from the value stored in the variable, and
+or ObjectID, this subtracts 1 from the value stored in the variable, and
 returns nothing.
 <p><h5>Also see:
     <a href="#++">++</a>
@@ -4552,8 +4552,8 @@ identifiers:
 <pre>
     i - integer argument
     s - string argument
-    d - dbref number, in the form of #123
-    D - dbref name reference; given a dbref, will print the associated
+    d - ObjectID number, in the form of #123
+    D - ObjectID name reference; given a ObjectID, will print the associated
         name for that object - terminates on bad reference
     l - pretty-lock, given a lock, will print the description
     f - float in xxx.yyy form
@@ -4715,7 +4715,7 @@ These are the attributes currently recognized:
 
 <br>
 </a></h4>
-  Attempts to extract a dbref from s, recognizing both plain numerical
+  Attempts to extract a ObjectID from s, recognizing both plain numerical
 strings, and those prepended with a '#' sign.
 <p>
 
@@ -4735,7 +4735,7 @@ returns 0.
 
 <br>
 </a></h4>
-  x must be an integer or a dbref. Converts x into string s.
+  x must be an integer or a ObjectID. Converts x into string s.
 <p>
 
 
@@ -5126,8 +5126,8 @@ returns the values:
 
 <br>
 </a></h4>
-  Takes, in order, the dbref of the player to test the lock against, and
-the dbref of object the lock is on.  It tests the lock, running programs
+  Takes, in order, the ObjectID of the player to test the lock against, and
+the ObjectID of object the lock is on.  It tests the lock, running programs
 as necessary, and returns a integer of 0 if it is not locked against
 them, or 1 if it is.
 <p>
@@ -5193,7 +5193,7 @@ returned will be a TRUE, which is logically false to an 'if' test.
 
 <br>
 </a></h4>
-  Tests the player dbref against the given lock.  If the test was successful,
+  Tests the player ObjectID against the given lock.  If the test was successful,
 then this returns a 1.  If the test failed, then this returns a 0.
 <p><h5>Also see:
     <a href="#lock?">LOCK?</a>,
@@ -5363,7 +5363,7 @@ there are an even number of stack items between the { and the }dict.
 
 <br>
 </a></h4>
-  Notifies all strings in array a1 to all dbrefs in array a2.  Arrays
+  Notifies all strings in array a1 to all ObjectIDs in array a2.  Arrays
 must be homogenous of their respective types.
 <p>
 
@@ -5410,7 +5410,7 @@ will result in a single string: &quot;one... 2... three... 3.14159&quot;
 <br>
 </a></h4>
   Takes a list array and and returns a single string that is the concatenation
-of all the items in the list array, with dbrefs translated to the name of
+of all the items in the list array, with ObjectIDs translated to the name of
 their respective objects.  For example:
 <pre>
     { #1 &quot; &quot; 2 &quot; three &quot; 3.14159 }list array_join
@@ -5766,7 +5766,7 @@ be dictionaries.
 <br>
 </a></h4>
   This sorts all the items in the list array given, based on the given
-sort type.  This can sort strings, integers, floats, dbrefs, or mixes
+sort type.  This can sort strings, integers, floats, ObjectIDs, or mixes
 of types.  Integers are sorted in with floats, but strings sort after
 all numbers.  Dbrefs sort after the other number types, but before
 string types.  Other stack item types will sort separately, but in
@@ -6050,7 +6050,7 @@ smatch wildcard pattern.
 <br>
 </a></h4>
   Gets the value of a given property, and puts it on the stack.
-This can return a lock, a string, a dbref, or an integer, depending
+This can return a lock, a string, a ObjectID, or an integer, depending
 on the type of the property.  Permissions are the same as those for
 GETPROPSTR.  This primitive returns 0 if no such property exists, of
 if it is a valueless propdir.
@@ -6061,7 +6061,7 @@ if it is a valueless propdir.
     <a href="#getpropstr">GETPROPSTR</a>,
     <a href="#getpropval">GETPROPVAL</a>,
     <a href="#int?">INT?</a>,
-    <a href="#dbref?">DBREF?</a>,
+    <a href="#ObjectID?">DBREF?</a>,
     <a href="#string?">STRING?</a> and
     <a href="#lock?">LOCK?</a>
 </h5>
@@ -6102,10 +6102,10 @@ property s in object d. If the property is cleared, 0 is returned.
 
 <br>
 </a></h4>
-  Takes a starting object dbref and a property name and searches down the
+  Takes a starting object ObjectID and a property name and searches down the
 environment tree from that object for a property with the given name.  If
 the property isn't found, it returns #-1 and 0.  If the property is found,
-it will return the dbref of the object it was found on, and the value it
+it will return the ObjectID of the object it was found on, and the value it
 contained.
 <p><h5>Also see:
     <a href="#envpropstr">ENVPROPSTR</a>
@@ -6118,10 +6118,10 @@ contained.
 
 <br>
 </a></h4>
-  Takes a starting object dbref and a property name and searches down the
+  Takes a starting object ObjectID and a property name and searches down the
 environment tree from that object for a property with the given name.  If
 the property isn't found, it returns #-1 and a null string.  If the
-property is found, it will return the dbref of the object it was found on,
+property is found, it will return the ObjectID of the object it was found on,
 and the string value it contained.
 <p><h5>Also see:
     <a href="#envprop">ENVPROP</a>
@@ -6149,7 +6149,7 @@ read without permission.
 
 <br>
 </a></h4>
-  Stores a lock, dbref, integer, or string into the named property on the
+  Stores a lock, ObjectID, integer, or string into the named property on the
 given object.  Permissions are the same as for ADDPROP.
 <p><h5>Also see:
     <a href="#addprop">ADDPROP</a>,
@@ -6176,7 +6176,7 @@ permission on that object, the call fails.
 
 <br>
 </a></h4>
-  Takes a dbref and a property name, and returns a boolean integer that
+  Takes a ObjectID and a property name, and returns a boolean integer that
 tells if that property is a propdir that contains other props.
 (Requires Mucker Level 2)
 <p>
@@ -6187,7 +6187,7 @@ tells if that property is a propdir that contains other props.
 
 <br>
 </a></h4>
-  This takes a dbref and a string that is the full propdir pathname of a
+  This takes a ObjectID and a string that is the full propdir pathname of a
 property and returns the full pathname of the next property in the given
 object's given propdir, or returns a null string if that was the last
 property in the propdir.  To *start* the search, give it a propdir name
@@ -6207,8 +6207,8 @@ effective user id. (Requires Mucker Level 3)
 
 <br>
 </a></h4>
-  Reads in list of space delimited dbrefs from a string property, and
-returns them as a list array of dbrefs.  See ARRAY_PUT_REFLIST for
+  Reads in list of space delimited ObjectIDs from a string property, and
+returns them as a list array of ObjectIDs.  See ARRAY_PUT_REFLIST for
 property syntax.
 <p>
 
@@ -6218,8 +6218,8 @@ property syntax.
 
 <br>
 </a></h4>
-  Takes a list array of dbrefs, and stores them in a property as a space
-delimited string of dbrefs.  ie:  &quot;#1234 #6646 #1026 #7104&quot;
+  Takes a list array of ObjectIDs, and stores them in a property as a space
+delimited string of ObjectIDs.  ie:  &quot;#1234 #6646 #1026 #7104&quot;
 <p>
 
 
@@ -6228,10 +6228,10 @@ delimited string of dbrefs.  ie:  &quot;#1234 #6646 #1026 #7104&quot;
 
 <br>
 </a></h4>
-  Finds dbref d2 in the reflist in property s1 on object d1.  If d2 is
+  Finds ObjectID d2 in the reflist in property s1 on object d1.  If d2 is
 not in the list, then 0 is returned.  Otherwise the position of the
-dbref in the list is returned, with the first dbref being in position 1,
-the second dbref in 2, etc.
+ObjectID in the list is returned, with the first ObjectID being in position 1,
+the second ObjectID in 2, etc.
 <p>
 
 
@@ -6240,7 +6240,7 @@ the second dbref in 2, etc.
 
 <br>
 </a></h4>
-  Adds dbref d2 to the reflist in property s1 on object d1.  If d2 is already
+  Adds ObjectID d2 to the reflist in property s1 on object d1.  If d2 is already
 in the list, it is moved to the end of the reflist.
 <p>
 
@@ -6250,12 +6250,12 @@ in the list, it is moved to the end of the reflist.
 
 <br>
 </a></h4>
-  Removes dbref d2 from the reflist in property s1 on object d1.  If d2 is
+  Removes ObjectID d2 from the reflist in property s1 on object d1.  If d2 is
 not in the list, nothing happens.
 <p>
 
 
-<hr><h4><a name="unblessprop">UNBLESSPROP (dbrefObject strPropname -- )
+<hr><h4><a name="unblessprop">UNBLESSPROP (ObjectIDObject strPropname -- )
 <br>
 
 <br>
@@ -6264,7 +6264,7 @@ not in the list, nothing happens.
 <p>
 
 
-<hr><h4><a name="blessprop">BLESSPROP (dbrefObject strPropname -- )
+<hr><h4><a name="blessprop">BLESSPROP (ObjectIDObject strPropname -- )
 <br>
 
 <br>
@@ -6278,7 +6278,7 @@ not in the list, nothing happens.
 
 <br>
 </a></h4>
-  Takes a dbref and a property name, and returns a boolean integer that
+  Takes a ObjectID and a property name, and returns a boolean integer that
 tells if that property has been blessed.
 (Requires Mucker Level 2)
 <p>
@@ -6289,19 +6289,19 @@ tells if that property has been blessed.
 
 <br>
 </a></h4>
-  Takes a homogenous list array of dbrefs, and returns a list array with only
-those dbrefs who have a property specified by s1, set to a value that smatch
+  Takes a homogenous list array of ObjectIDs, and returns a list array with only
+those ObjectIDs who have a property specified by s1, set to a value that smatch
 matches s2.
 <p>
 
 
-<hr><h4><a name="array_filter_flags">ARRAY_FILTER_FLAGS ( list:dbrefs str:flags -- list:matchingdbrefs )
+<hr><h4><a name="array_filter_flags">ARRAY_FILTER_FLAGS ( list:ObjectIDs str:flags -- list:matchingObjectIDs )
 <br>
 
 <br>
 </a></h4>
-  Takes a homogenous list array of dbrefs and a flags test string, and
-returns a list array with only those dbrefs whose flags matched the flag
+  Takes a homogenous list array of ObjectIDs and a flags test string, and
+returns a list array with only those ObjectIDs whose flags matched the flag
 test string.  A flags test string is a list of flag letters or object type
 letters to require, and a list of flags to specifically reject preceeded
 by exclamation marks (!).  ie: &quot;TD!C!V&quot; would match Things set Dark, which
@@ -6423,7 +6423,7 @@ This primitives requires at least mucker level 3.
   </tr>
   <tr>
     <td width="33%"> &nbsp; <a href="#dbcmp">dbcmp</a> &nbsp; </td>
-    <td width="33%"> &nbsp; <a href="#dbref">dbref</a> &nbsp; </td>
+    <td width="33%"> &nbsp; <a href="#ObjectID">ObjectID</a> &nbsp; </td>
     <td width="33%"> &nbsp; <a href="#dbtop">dbtop</a> &nbsp; </td>
   </tr>
   <tr>
@@ -6544,7 +6544,7 @@ This primitives requires at least mucker level 3.
 
 
 
-<hr><h4><a name="dbref">DBREF ( i -- d )
+<hr><h4><a name="ObjectID">DBREF ( i -- d )
 <br>
 
 <br>
@@ -6558,7 +6558,7 @@ This primitives requires at least mucker level 3.
 
 <br>
 </a></h4>
-  Returns the dbref of the currently running program.
+  Returns the ObjectID of the currently running program.
 <p>
 
 
@@ -6567,7 +6567,7 @@ This primitives requires at least mucker level 3.
 
 <br>
 </a></h4>
-  Returns the dbref of the original trigger.
+  Returns the ObjectID of the original trigger.
 <p>
 
 
@@ -6576,7 +6576,7 @@ This primitives requires at least mucker level 3.
 
 <br>
 </a></h4>
-  Returns the dbref of the program that called this one, or the dbref of the
+  Returns the ObjectID of the program that called this one, or the ObjectID of the
 trigger, if this wasn't called by a program.
 <p>
 
@@ -6586,7 +6586,7 @@ trigger, if this wasn't called by a program.
 
 <br>
 </a></h4>
-  Returns the dbref of the first object beyond the top object of the database.
+  Returns the ObjectID of the first object beyond the top object of the database.
 'dbtop ok?' would return a false value.
 <p>
 
@@ -6598,7 +6598,7 @@ trigger, if this wasn't called by a program.
 </a></h4>
   Performs comparison of database objects d1 and d2. If they are the
 same object, then i is 1, otherwise i is 0.
-Use of this primitive is deprecated, as dbrefs may be compared with
+Use of this primitive is deprecated, as ObjectIDs may be compared with
 the standard comparison functions (&lt; &lt;= &gt; &gt;= =).
 <p>
 
@@ -6608,7 +6608,7 @@ the standard comparison functions (&lt; &lt;= &gt; &gt;= =).
 
 <br>
 </a></h4>
-  Returns the name-and-flag string for an object.  It always has the dbref and
+  Returns the name-and-flag string for an object.  It always has the ObjectID and
 flag string after the name, even if the player doesn't control the object.
 For example: &quot;One(#1PW)&quot;
 <p>
@@ -6630,7 +6630,7 @@ If d is a player, d' will be the same as d.
 <br>
 </a></h4>
   Sets the ownership of the first object to the player given in the second
-dbref. (wizbit only)
+ObjectID. (wizbit only)
 <p>
 
 
@@ -6679,7 +6679,7 @@ the @desc and @succ/@fail of a room when moving a player.
 
 <br>
 </a></h4>
-  Pushes the dbref of the first thing contained by d.  This dbref can
+  Pushes the ObjectID of the first thing contained by d.  This ObjectID can
 then be referenced by `next' to cycle through all of the contents of
 d.  d may be a room or a player.
 <p>
@@ -6690,7 +6690,7 @@ d.  d may be a room or a player.
 
 <br>
 </a></h4>
-  Returns a list array that contains the dbref of every object contained
+  Returns a list array that contains the ObjectID of every object contained
 within the given object.  If a #-1 is returned as the last list item,
 then there were too many objects to return all of them.
 <p>
@@ -6711,7 +6711,7 @@ This list can be transversed with `next'.
 
 <br>
 </a></h4>
-  Returns a list array that contains the dbref of every exit attached to the
+  Returns a list array that contains the ObjectID of every exit attached to the
 given object.  If a #-1 is returned as the last list item, then there were
 too many exits to return all of them.
 <p>
@@ -6732,8 +6732,8 @@ list of d's location.
 
 <br>
 </a></h4>
-  When called with a player dbref, returns the dbref of the first object they
-own.  Subsequent calls to those object dbrefs returns the next object owned
+  When called with a player ObjectID, returns the ObjectID of the first object they
+own.  Subsequent calls to those object ObjectIDs returns the next object owned
 by that same player.  When no more objects are left owned by that player,
 #-1 is returned.  The order of the objects is not guarenteed, but when used
 correctly, each object owned by that player will be returned exactly once.
@@ -6800,7 +6800,7 @@ This primitive is used like this:
   Searches the database for the next object after d2 that is linked to d1.
 You can begin a search by passing #-1 as d2.  The search currently scans
 upwards through the database, but this ordering is not guaranteed.  If an
-object is found that links to d1, then the dbref of that object is returned.
+object is found that links to d1, then the ObjectID of that object is returned.
 If no more such objects are found in the db, then #-1 is returned.
 <p>
 
@@ -6810,7 +6810,7 @@ If no more such objects are found in the db, then #-1 is returned.
 
 <br>
 </a></h4>
-  Takes a player dbref d1 and an object dbref d2, and returns true if the
+  Takes a player ObjectID d1 and an object ObjectID d2, and returns true if the
 player has control over the given object.
 <p>
 
@@ -6845,7 +6845,7 @@ a thing object, etc.  If nothing is found, d' = #-1.  if ambiguous, d'
 
 <br>
 </a></h4>
-  Takes a name and returns the dbref of the player.  If the name does not
+  Takes a name and returns the ObjectID of the player.  If the name does not
 match that of a player, #-1 is returned.
 <p>
 
@@ -6858,7 +6858,7 @@ match that of a player, #-1 is returned.
   Takes a player name, or the first part of the name, and matches it
 against the names of the players who are currently online.  If the
 given string is a prefix of the name of a player who is online, then
-their dbref is returned.  If two players could be matched by the
+their ObjectID is returned.  If two players could be matched by the
 given string, it returns a #-2.  If None of the players online match,
 then it returns a #-1.
 <p>
@@ -6901,7 +6901,7 @@ for enabling economies.
 
 <br>
 </a></h4>
-  Checks if password string s is valid for player dbref d.  returns 1 on
+  Checks if password string s is valid for player ObjectID d.  returns 1 on
 success, otherwise returns 0.
 Wizbit only.
 <p>
@@ -6972,7 +6972,7 @@ the &quot;Nucker&quot; flag returns the least significant bit. (Use MLEVEL inste
 
 <br>
 </a></h4>
-  Takes x and returns 1 if x is a type dbref, as well as 0 or above,
+  Takes x and returns 1 if x is a type ObjectID, as well as 0 or above,
 below the top of the database, and is not an object of type garbage.
 <p><h5>Also see:
     <a href="#exit?">EXIT?</a>,
@@ -6989,7 +6989,7 @@ below the top of the database, and is not an object of type garbage.
 <br>
 </a></h4>
   Returns 1 if object d is a player object, otherwise returns 0.
-If the dbref is that of an invalid object, it will return 0.
+If the ObjectID is that of an invalid object, it will return 0.
 <p><h5>Also see:
     <a href="#program?">PROGRAM?</a>,
     <a href="#room?">ROOM?</a>,
@@ -7005,8 +7005,8 @@ If the dbref is that of an invalid object, it will return 0.
 
 <br>
 </a></h4>
-  Returns 1 if object d is a room, otherwise returns 0.  If the dbref is that
-of an invalid object, it will return 0.  A dbref of #-3 (HOME) returns 1.
+  Returns 1 if object d is a room, otherwise returns 0.  If the ObjectID is that
+of an invalid object, it will return 0.  A ObjectID of #-3 (HOME) returns 1.
 <p><h5>Also see:
     <a href="#player?">PLAYER?</a>,
     <a href="#program?">PROGRAM?</a>,
@@ -7055,7 +7055,7 @@ of an invalid object, it will return 0.  A dbref of #-3 (HOME) returns 1.
 <br>
 </a></h4>
   Returns 1 if object d is a program, otherwise returns 0.
-If the dbref is that of an invalid object, it will return 0.
+If the ObjectID is that of an invalid object, it will return 0.
 <p><h5>Also see:
     <a href="#player?">PLAYER?</a>,
     <a href="#room?">ROOM?</a>,
@@ -7073,7 +7073,7 @@ If the dbref is that of an invalid object, it will return 0.
 </a></h4>
   Takes a tuneable system parameter and returns its value as a string.  For
 an integer it returns it as a string, a time is returned as a string
-containing the number of seconds, a dbref is returned in standard dbref
+containing the number of seconds, a ObjectID is returned in standard ObjectID
 format, and boolean is returned as 'yes' or 'no'
 Checking an invalid parameter or a parameter requiring higher permissions
 than the program has will return an empty string.
@@ -7268,15 +7268,15 @@ Each dictionary contains the following data, keyed with these strings:
 <p>
     &quot;group&quot;    The logical group that this parameter belongs to.
 <p>
-    &quot;type&quot;     One of &quot;string&quot;, &quot;integer&quot;, &quot;timespan&quot;, &quot;dbref&quot;, or &quot;boolean&quot;.
+    &quot;type&quot;     One of &quot;string&quot;, &quot;integer&quot;, &quot;timespan&quot;, &quot;ObjectID&quot;, or &quot;boolean&quot;.
 <p>
     &quot;mlev&quot;     The mucker level required to read the value of this sysparm.
 <p>
-    &quot;value&quot;    The value of the sysparm.  May be an int, string, or dbref.
+    &quot;value&quot;    The value of the sysparm.  May be an int, string, or ObjectID.
 
-If a given entry is of the &quot;dbref&quot; type, it will also have the extra field:
+If a given entry is of the &quot;ObjectID&quot; type, it will also have the extra field:
 <p>
-    &quot;objtype&quot;  The type of object the dbref is restricted to.  Can be one of
+    &quot;objtype&quot;  The type of object the ObjectID is restricted to.  Can be one of
 <p>
                 the strings &quot;player&quot;, &quot;thing&quot;, &quot;room&quot;, &quot;exit&quot;, &quot;program&quot;,
 <p>
@@ -7617,7 +7617,7 @@ or a room with no dropto, getlinks returns 0.  A count of
 
 <br>
 </a></h4>
-  Returns a list array that contains the dbref of every object that the
+  Returns a list array that contains the ObjectID of every object that the
 given object is linked to.
 <p>
 
@@ -7627,7 +7627,7 @@ given object is linked to.
 
 <br>
 </a></h4>
-  Returns a list array that contains the dbref of every object linked to the
+  Returns a list array that contains the ObjectID of every object linked to the
 given object.
 <p>
 
@@ -7637,7 +7637,7 @@ given object.
 
 <br>
 </a></h4>
-  Takes an exit dbref d1, and sets its destination to d2.  You must have
+  Takes an exit ObjectID d1, and sets its destination to d2.  You must have
 control of the exit, and if the exit is already linked, it must be unlinked
 first by doing setlink with #-1 as the destination.
 <p>
@@ -7704,7 +7704,7 @@ object per run.
 </a></h4>
   Creates a new player object with the name s1, and the password s2, and the
 properties, flags, links, etc. of the template object d1.  This returns
-the dbref of the newly created player object.
+the ObjectID of the newly created player object.
 <p>
 
 
@@ -7724,7 +7724,7 @@ You can't toad wizard players.
 <br>
 </a></h4>
   Creates a new player object, with the name s1, and the password s2.
-This returns the dbref of the new player object.
+This returns the ObjectID of the new player object.
 <p>
 
 
@@ -7733,8 +7733,8 @@ This returns the dbref of the new player object.
 
 <br>
 </a></h4>
-  Takes the dbref of the parent and the name of the room. It returns the
-dbref of the created room. Owner is the person running the program.
+  Takes the ObjectID of the parent and the name of the room. It returns the
+ObjectID of the created room. Owner is the person running the program.
 (program must have a wizbit)
 <p>
 
@@ -7744,7 +7744,7 @@ dbref of the created room. Owner is the person running the program.
 
 <br>
 </a></h4>
-  Takes location and name and returns new thing's dbref.
+  Takes location and name and returns new thing's ObjectID.
 Owner is the person running the program.
 (program must have a wizbit)
 <p>
@@ -7755,7 +7755,7 @@ Owner is the person running the program.
 
 <br>
 </a></h4>
-  Takes location and name and returns new exit's dbref.
+  Takes location and name and returns new exit's ObjectID.
 Owner is the person running the program.
 (program must have a wizbit)
 <p>
@@ -7766,7 +7766,7 @@ Owner is the person running the program.
 
 <br>
 </a></h4>
-  Creates a new program object with the given name, and returns its dbref.
+  Creates a new program object with the given name, and returns its ObjectID.
 <p>
 
 
@@ -8205,7 +8205,7 @@ This primitive is actually an inserver $define to 'bg_mode setmode'.
 
 <br>
 </a></h4>
-  Takes a time in seconds, a program's dbref, and a parameter string.  It
+  Takes a time in seconds, a program's ObjectID, and a parameter string.  It
 will execute the given program with the given string as the only string on
 the stack, after a delay of the given number of second.  Returns  the pid
 of the queued process, or 0 if the timequeue was full.
@@ -8293,10 +8293,10 @@ This primitive requires at least mucker level 3.
 
 <br>
 </a></h4>
-  If obj is a program dbref, this will return a list of the process IDs
+  If obj is a program ObjectID, this will return a list of the process IDs
 of every active process that has the given program in their call stack.
-If obj is a player dbref, this will return a list of all the PIDs assigned to
-that player.  If obj is a trigger dbref, it will return all the active PIDs
+If obj is a player ObjectID, this will return a list of all the PIDs assigned to
+that player.  If obj is a trigger ObjectID, it will return all the active PIDs
 associated with that trigger.   And finally, if obj is #-1, then all active
 PIDs will be included in the array that gets returned.
 <p><h5>Also see:
@@ -8317,7 +8317,7 @@ that process. The information returned is:
 <p>
     CALLED_DATA - The string the program was queued with, if any
 <p>
-    CALLED_PROG - The program dbref# of the process' current call level.
+    CALLED_PROG - The program ObjectID# of the process' current call level.
 <p>
     CPU         - The amount of CPU time used up by the process.
 <p>
@@ -8329,7 +8329,7 @@ that process. The information returned is:
 <p>
     PID         - That process ID.
 <p>
-    PLAYER      - The player dbref that PID belongs to.
+    PLAYER      - The player ObjectID that PID belongs to.
 <p>
     STARTED     - Systime in seconds when the process started.
 <p>
@@ -8420,7 +8420,7 @@ This primitive requires at least mucker level 4.
     <td width="25%"> &nbsp; <a href="#awake?">awake?</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#conboot">conboot</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#concount">concount</a> &nbsp; </td>
-    <td width="25%"> &nbsp; <a href="#condbref">condbref</a> &nbsp; </td>
+    <td width="25%"> &nbsp; <a href="#conObjectID">conObjectID</a> &nbsp; </td>
   </tr>
   <tr>
     <td width="25%"> &nbsp; <a href="#condescr">condescr</a> &nbsp; </td>
@@ -8441,7 +8441,7 @@ This primitive requires at least mucker level 4.
     <td width="25%"> &nbsp; <a href="#descrcon">descrcon</a> &nbsp; </td>
   </tr>
   <tr>
-    <td width="25%"> &nbsp; <a href="#descrdbref">descrdbref</a> &nbsp; </td>
+    <td width="25%"> &nbsp; <a href="#descrObjectID">descrObjectID</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#descrflush">descrflush</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#descrhost">descrhost</a> &nbsp; </td>
     <td width="25%"> &nbsp; <a href="#descridle">descridle</a> &nbsp; </td>
@@ -8483,7 +8483,7 @@ returned may be -1 in the case of listener or autostart programs.
 
 <br>
 </a></h4>
-  Passed a players dbref, returns the number of connections they have to
+  Passed a players ObjectID, returns the number of connections they have to
 the game. This will be 0 if they are not connected.
 <p>
 
@@ -8493,7 +8493,7 @@ the game. This will be 0 if they are not connected.
 
 <br>
 </a></h4>
-  Returns a dbref for every connection to the server, and lastly the number
+  Returns a ObjectID for every connection to the server, and lastly the number
 of connections.
 <p>
 
@@ -8503,7 +8503,7 @@ of connections.
 
 <br>
 </a></h4>
-  Returns a single stack item, which is a list array, containing a dbref for
+  Returns a single stack item, which is a list array, containing a ObjectID for
 every connection to the server.
 <p>
 
@@ -8518,12 +8518,12 @@ every connection to the server.
 <p>
 
 
-<hr><h4><a name="condbref">CONDBREF (i -- d)
+<hr><h4><a name="conObjectID">CONDBREF (i -- d)
 <br>
 
 <br>
 </a></h4>
-  Returns the dbref of the player connected to this connection.
+  Returns the ObjectID of the player connected to this connection.
 (Requires Mucker Level 3)
 <p>
 
@@ -8611,12 +8611,12 @@ or 0 if no match was found.
 <p>
 
 
-<hr><h4><a name="descrdbref">DESCRDBREF (i -- d)
+<hr><h4><a name="descrObjectID">DESCRDBREF (i -- d)
 <br>
 
 <br>
 </a></h4>
-  Returns the dbref of the player connected to this descriptor number.
+  Returns the ObjectID of the player connected to this descriptor number.
 This may return #-1 if there is no player connected to the given descriptor.
 (Requires Mucker Level 3)
 <p>
@@ -8648,7 +8648,7 @@ to the server.  (Requires Mucker Level 3)
 <br>
 </a></h4>
   Returns the descriptor number for the least idle connection of the given
-player dbref.  (Requires Mucker Level 3)
+player ObjectID.  (Requires Mucker Level 3)
 <p>
 
 
@@ -8658,7 +8658,7 @@ player dbref.  (Requires Mucker Level 3)
 <br>
 </a></h4>
   Returns the descriptor number for the most idle connection of the given
-player dbref.  (Requires Mucker Level 3)
+player ObjectID.  (Requires Mucker Level 3)
 <p>
 
 
@@ -8763,8 +8763,8 @@ output on all descriptors.
 
 <br>
 </a></h4>
-  Takes a player dbref, or #-1, and returns the range of descriptor numbers
-associated with that dbref (or all for #-1) with their count on top.
+  Takes a player ObjectID, or #-1, and returns the range of descriptor numbers
+associated with that ObjectID (or all for #-1) with their count on top.
 Descriptors are numbers that always stay the same for a connection, while
 a connection# is the relative position in the WHO list of a connection.
 <p><h5>Also see:
@@ -8779,9 +8779,9 @@ a connection# is the relative position in the WHO list of a connection.
 
 <br>
 </a></h4>
-  Takes a player dbref, or #-1, and returns a list array that contains the
-current descriptor numbers associated with that dbref.  (Or all connected
-descriptors, if the dbref is #-1)  This can return an empty list if there
+  Takes a player ObjectID, or #-1, and returns a list array that contains the
+current descriptor numbers associated with that ObjectID.  (Or all connected
+descriptors, if the ObjectID is #-1)  This can return an empty list if there
 are no connections for that player.  This is effectively the same as the
 sequence 'descriptors array_make', but doesn't overflow the stack if too
 many descriptors are available.  Descriptors are numbers that always stay
@@ -8800,8 +8800,8 @@ in the WHO list of a connection.
 
 <br>
 </a></h4>
-  Reconnects descriptor i to the player with dbref d and password s.  It first
-disconnects from the old dbref, then connects the new one, as if QUIT was
+  Reconnects descriptor i to the player with ObjectID d and password s.  It first
+disconnects from the old ObjectID, then connects the new one, as if QUIT was
 typed then the new character was logged in.  If the password doesn't match
 the player's password, then it gives a permission denied error.  This
 returns a 1 if successful or a 0 if the given descriptor wasn't found.
@@ -8937,17 +8937,17 @@ events is a dictionary containing the following keys:
 <br>
 caller_pid   Holds the integer Process ID of the sending program.
 <br>
-caller_prog  Holds the dbref of the sending program.
+caller_prog  Holds the ObjectID of the sending program.
 <br>
 data         Holds the stack item sent by the EVENT_SEND primitive.
 <br>
 descr        Holds the descr that initiated the calling program.
 <br>
-trigger      Holds the trigger dbref that initiated the calling program.
+trigger      Holds the trigger ObjectID that initiated the calling program.
 <br>
-player       Holds the player dbref that ran the calling program.
+player       Holds the player ObjectID that ran the calling program.
 <br>
-prog_uid     Holds the dbref of the player whose permissions the caller
+prog_uid     Holds the ObjectID of the player whose permissions the caller
 <br>
 </a></h4>
                program is running as.
@@ -8994,7 +8994,7 @@ The event type will be &quot;USER.&quot; with the given event id string appended
 to it.  The given event id string will be truncated at 32 characters.
 The receiving process will be passed a dictionary with items &quot;data&quot; for
 the given arbitrary stack element, &quot;caller_pid&quot; with the pid of the
-process calling EVENT_SEND, and &quot;caller_prog&quot; with the dbref of the
+process calling EVENT_SEND, and &quot;caller_prog&quot; with the ObjectID of the
 program calling EVENT_SEND.
 ie: '23 &quot;foobar&quot; 3.1416 event_send' will send an event to process 23, with
 an eventid of &quot;USER.foobar&quot;, and a floating point data value of 3.1416.
@@ -9140,7 +9140,7 @@ check version numbers.
   Sends an MCP message for the given package to the given connection
 descriptor.  dictArgs contains key-value pairs, where each key is
 an argument name, and the value is the argument value.  Values can
-be strings, floats, dbrefs, integers, or array lists of strings.
+be strings, floats, ObjectIDs, integers, or array lists of strings.
 They all get translated into an appropriate string format before
 getting sent.
 <p>
@@ -10111,7 +10111,7 @@ are currently supported:
 <p>
     &quot;line&quot;     The integer program line number where the error was thrown.
 <p>
-    &quot;program&quot;  The dbref of the program in which the error was thrown.
+    &quot;program&quot;  The ObjectID of the program in which the error was thrown.
 
 <p>
   The ABORT primitive may be used to throw an arbitrary error anywhere.
@@ -10164,37 +10164,37 @@ to different argument types.  The tests are:
 <p>
   a - function address.
 <p>
-  d - dbref.  (#-1, #-2, #-3 are okay)
+  d - ObjectID.  (#-1, #-2, #-3 are okay)
 <p>
-  D - valid, non-garbage dbref.  (#-1, #-2 NOT allowed.  #-3 is okay)
+  D - valid, non-garbage ObjectID.  (#-1, #-2 NOT allowed.  #-3 is okay)
 <p>
-  e - exit dbref.  (#-1, #-2 allowed)
+  e - exit ObjectID.  (#-1, #-2 allowed)
 <p>
-  E - exit dbref.  (#-1, #-2 NOT allowed)
+  E - exit ObjectID.  (#-1, #-2 NOT allowed)
 <p>
-  f - program dbref.  (#-1, #-2 allowed)
+  f - program ObjectID.  (#-1, #-2 allowed)
 <p>
-  F - program dbref.  (#-1, #-2 NOT allowed)
+  F - program ObjectID.  (#-1, #-2 NOT allowed)
 <p>
   i - integer.
 <p>
   l - lock boolean expression.
 <p>
-  p - player dbref.  (#-1, #-2 allowed)
+  p - player ObjectID.  (#-1, #-2 allowed)
 <p>
-  P - player dbref.  (#-1, #-2 NOT allowed)
+  P - player ObjectID.  (#-1, #-2 NOT allowed)
 <p>
-  r - room dbref.  (#-1, #-2 allowed)  (#-3 is a room)
+  r - room ObjectID.  (#-1, #-2 allowed)  (#-3 is a room)
 <p>
-  R - room dbref.  (#-1, #-2 NOT allowed)  (#-3 is a room)
+  R - room ObjectID.  (#-1, #-2 NOT allowed)  (#-3 is a room)
 <p>
   s - string.
 <p>
   S - non-null string.
 <p>
-  t - thing dbref.  (#-1, #-2 allowed)
+  t - thing ObjectID.  (#-1, #-2 allowed)
 <p>
-  T - thing dbref.  (#-1, #-2 NOT allowed)
+  T - thing ObjectID.  (#-1, #-2 NOT allowed)
 <p>
   v - local or global variable.
 <p>
@@ -10208,7 +10208,7 @@ Tests are done from the top of the stack down, in order, so the last test
 that fails in a string expression will be the one that the Program Error
 will be given for.  ie: '&quot;sdSi&quot; checkargs' will test that the top stack
 item is an integer, then it tests that the next item down is a non-null
-string, then it tests the third item from the top to see if it is a dbref,
+string, then it tests the third item from the top to see if it is a ObjectID,
 and lastly it tests to make sure that the 4th item from the top is a string.
 
 Spaces are ignored, so &quot;s d i&quot; is the same as &quot;sdi&quot;.  However, multipliers
@@ -10217,7 +10217,7 @@ This is because you are basically telling it to repeat the space 4 times,
 and since spaces are ignored, it has no effect.
 
 If you have a function that takes a stack item of any type, you can use
-the &quot;?&quot; test.  &quot;?&quot; will match a string, integer, dbref, or any other type.
+the &quot;?&quot; test.  &quot;?&quot; will match a string, integer, ObjectID, or any other type.
 
 Since sometimes arguments are passed in ranges, such as the way that the
 explode primitive returns multiple strings with an integer count on top,
@@ -10232,7 +10232,7 @@ range refers to the number of pairs.  To test for the range given above,
 you would use '&quot;{si}&quot; checkargs' to tell it that you want to check for
 a range of paired strings and integers.  You can group as many argument
 tests together in a range as you would like.  ie: you could use &quot;{sida}&quot;
-as an expression to test for a range of related strings, integers, dbrefs,
+as an expression to test for a range of related strings, integers, ObjectIDs,
 and function addresses.
 
 Since the argument multipliers refer to the previous test OR range, you
@@ -10246,7 +10246,7 @@ you can test for it by nesting the braces.  ie: '&quot;{{s}}&quot; checkargs'
 
 Now, as one last example, the primitive notify_exclude, if we were to test
 the arguments passed to it manually, would use the test '&quot;R{p}s&quot; checkargs'
-to test for a valid room dbref, a range of player dbrefs or #-1s, and a
+to test for a valid room ObjectID, a range of player ObjectIDs or #-1s, and a
 string.
 <p>
 
@@ -10389,7 +10389,7 @@ current instruction marked by surrounding braces.
 <p>
   prim PRIMITIVE  executes given primitive with current stack data.
 <p>
-  push DATA       pushes an int, dbref, var, or string onto the stack.
+  push DATA       pushes an int, ObjectID, var, or string onto the stack.
 <p>
   pop             pops top data item off the stack.
 <p>
@@ -10433,7 +10433,7 @@ either 'continue', 'finish', or while in a word called when 'next' or
 <p>
     NUM:            An integer. (As in 5 or -154)
 <p>
-    #dbref:         An object dbref. (As in #1 or #63516)
+    #ObjectID:         An object ObjectID. (As in #1 or #63516)
 <p>
     &quot;Text&quot;:         A string.  (As in &quot;Wizard&quot; or &quot;Hello world!&quot;) If it is
 <p>
@@ -10451,7 +10451,7 @@ either 'continue', 'finish', or while in a word called when 'next' or
 <p>
     'word:          The address of word. (As in 'do-something)
 <p>
-    '#dbref'word:   The address of word in another program.
+    '#ObjectID'word:   The address of word in another program.
 <p>
                     (As in '#2345'do-something)
 <p>
@@ -10473,7 +10473,7 @@ either 'continue', 'finish', or while in a word called when 'next' or
 <p>
                     report it to the current server code maintainer.
 <p>
-                    (As in ???&lt;p_db.c:1042&gt;)
+                    (As in ???&lt;p_DB.c:1042&gt;)
 Some tokens are just used as placeholders, and disappear as soon as the MUF
 is compiled.  These are BEGIN, and THEN.  In addition, FOR loops will
 produce at least two extra instruction, and an IF-&gt;lineNUM.  FORITER, the

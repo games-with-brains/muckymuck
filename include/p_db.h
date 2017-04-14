@@ -1,5 +1,5 @@
 #define PRIMS_DB_FUNCS1 prim_addpennies, prim_moveto, prim_pennies,      \
-    prim_dbcomp, prim_dbref, prim_contents, prim_exits, prim_next,       \
+    prim_dbcomp, prim_ObjectID, prim_contents, prim_exits, prim_next,       \
     prim_name, prim_setname, prim_match, prim_rmatch, prim_copyobj,      \
     prim_set, prim_mlevel, prim_flagp, prim_playerp, prim_thingp,        \
     prim_roomp, prim_programp, prim_exitp, prim_okp, prim_location,      \

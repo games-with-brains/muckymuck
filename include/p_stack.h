@@ -21,7 +21,7 @@
 // prim_dictionaryp	/*     ? -- i            */
 // prim_floatp	/*     ? -- i            */
 // prim_stringp	/*     ? -- i            */
-// prim_dbrefp	/*     ? -- i            */
+// prim_ObjectIDp	/*     ? -- i            */
 // prim_addressp	/*     ? -- i            */
 // prim_lockp	/*     ? -- i            */
 // prim_checkargs	/*     s --              */
@@ -46,7 +46,7 @@
 #define PRIMS_STACK_FUNCS prim_pop, prim_dup, prim_at, prim_bang, prim_var,  \
     prim_localvar, prim_swap, prim_over, prim_pick, prim_put, prim_rot,      \
     prim_rotate, prim_dbtop, prim_depth, prim_version, prim_prog, prim_trig, \
-    prim_caller, prim_intp, prim_stringp, prim_dbrefp, prim_addressp,        \
+    prim_caller, prim_intp, prim_stringp, prim_ObjectIDp, prim_addressp,        \
     prim_lockp, prim_checkargs, prim_mode, prim_setmode, prim_interp,        \
     prim_for, prim_foreach, prim_floatp, prim_reverse, prim_popn, prim_dupn, \
     prim_ldup, prim_lreverse, prim_arrayp, prim_dictionaryp, prim_mark,      \

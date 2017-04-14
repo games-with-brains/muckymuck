@@ -80,9 +80,9 @@ fbmuck
 
  If port is not specified it defaults to 4201.  The initial database
  will be read in from starting-dbfile, which must contain at least the two
- objects in minimal.db to work well.  The file basedb.db, which contains
+ objects in minimal.db to work well.  The file baseDB.db, which contains
  the core of the original TinyMUD universe, may be a better place to
- start a new universe from.  You can fetch basedb.tar.gz from the same
+ start a new universe from.  You can fetch baseDB.tar.gz from the same
  site you fetched this server code from.  The -decompress option will
  cause the dump-file to be saved in an uncompressed format.  The netmuck
  process will write a checkpoint out to dump-dbfile every few hours,

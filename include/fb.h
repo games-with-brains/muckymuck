@@ -2,7 +2,7 @@
 #define _FB_H
 
 /* We need struct inst before anything */
-#include "db.h"
+#include "DB.h"
 #include "array.h"
 #include "autoconf.h"
 #include "config.h"
@@ -24,7 +24,7 @@
 #include "mufevent.h"
 #include "p_array.h"
 #include "p_connects.h"
-#include "p_db.h"
+#include "p_DB.h"
 #include "p_error.h"
 #include "p_float.h"
 #include "p_math.h"

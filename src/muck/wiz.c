@@ -1,7 +1,7 @@
 /* Wizard-only commands */
 
-func do_teleport(descr int, player dbref, arg1, arg2 string) {
-	var victim, destination dbref
+func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
+	var victim, destination ObjectID
 	var to string
 
 	/* get victim, destination */
@@ -24,7 +24,7 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 		}
 		to = arg2
 	}
-	if player != GOD && db.Fetch(victim).Owner == GOD {
+	if player != GOD && DB.Fetch(victim).Owner == GOD {
 		notify(player, "God has already set that where He wants it to be.")
 		return
 	}
@@ -37,7 +37,7 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 		MatchHome().
 		MatchAbsolute().
 		MatchRegistered()
-	if Wizard(db.Fetch(player).Owner) {
+	if Wizard(DB.Fetch(player).Owner) {
 		md.MatchNeighbor().MatchPlayer()
 	}
 	switch destination = md.MatchResult(); desination {
@@ -46,19 +46,19 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 	case AMBIGUOUS:
 		notify(player, "I don't know which destination you mean!")
 	case HOME:
-		v := db.FetchPlayer(victim)
+		v := DB.FetchPlayer(victim)
 		switch victim.(type) {
 		case TYPE_PLAYER:
 			destination = v.home
 			if parent_loop_check(victim, destination) {
-				destination = db.FetchPlayer(v.Owner).home
+				destination = DB.FetchPlayer(v.Owner).home
 			}
 		case TYPE_THING:
 			destination = v.home
 			if parent_loop_check(victim, destination) {
-				destination = db.FetchPlayer(v.Owner).home
+				destination = DB.FetchPlayer(v.Owner).home
 				if parent_loop_check(victim, destination) {
-					destination = dbref(0)
+					destination = ObjectID(0)
 				}
 			}
 		case TYPE_ROOM:
@@ -71,13 +71,13 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 	default:
 		switch victim.(type) {
 		case TYPE_PLAYER:
-			v := db.FetchPlayer(victim)
+			v := DB.FetchPlayer(victim)
 			switch {
 			case !controls(player, victim), !controls(player, destination), !controls(player, v.Location), (Typeof(destination) == TYPE_THING && !controls(player, df.Fetch(destination).Location)):
 				notify(player, "Permission denied. (must control victim, dest, victim's loc, and dest's loc)")
 			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_THING:
 				notify(player, "Bad destination.")
-			case !Wizard(victim) && Typeof(destination) == TYPE_THING && db.Fetch(destination).flags & VEHICLE == 0:
+			case !Wizard(victim) && Typeof(destination) == TYPE_THING && DB.Fetch(destination).flags & VEHICLE == 0:
 				notify(player, "Destination object is not a vehicle.")
 			case parent_loop_check(victim, destination):
 				notify(player, "Objects can't contain themselves.")
@@ -96,15 +96,15 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 			switch {
 			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_PLAYER && Typeof(destination) != TYPE_THING:
 				notify(player, "Bad destination.")
-			case !((controls(player, destination) || can_link_to(player, NOTYPE, destination)) && (controls(player, victim) || controls(player, db.Fetch(victim).Location))):
+			case !((controls(player, destination) || can_link_to(player, NOTYPE, destination)) && (controls(player, victim) || controls(player, DB.Fetch(victim).Location))):
 				notify(player, "Permission denied. (must control dest and be able to link to it, or control dest's loc)")
 			default:
 				/* check for non-sticky dropto */
-				if TYPEOF(destination) == TYPE_ROOM && db.Fetch(destination).sp != NOTHING && db.Fetch(destination).flags & STICKY == 0 {
-					destination = db.Fetch(destination).(dbref)
+				if TYPEOF(destination) == TYPE_ROOM && DB.Fetch(destination).sp != NOTHING && DB.Fetch(destination).flags & STICKY == 0 {
+					destination = DB.Fetch(destination).(ObjectID)
 				}
 				if tp_thing_movement && TYPEOF(victim) == TYPE_THING {
-					enter_room(descr, victim, destination, db.Fetch(victim).Location)
+					enter_room(descr, victim, destination, DB.Fetch(victim).Location)
 				} else {
 					moveto(victim, destination)
 				}
@@ -129,7 +129,7 @@ func do_teleport(descr int, player dbref, arg1, arg2 string) {
 	return
 }
 
-int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *wild, int blessp) {
+int blessprops_wildcard(ObjectID player, ObjectID thing, const char *dir, const char *wild, int blessp) {
 	var propname string
 	var wld []byte
 	var buf []byte
@@ -139,7 +139,7 @@ int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	var i, cnt int
 	var recurse int
 
-	if player != GOD && db.Fetch(thing).Owner == GOD {
+	if player != GOD && DB.Fetch(thing).Owner == GOD {
 		notify(player,"Only God may touch what is God's.");
 		return 0;
 	}
@@ -161,7 +161,7 @@ int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	for propadr != nil {
 		if !smatch(wldcrd, propname) {
 			buf = fmt.Sprint(dir, PROPDIR_DELIMITER, propname)
-			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(db.Fetch(player).Owner))) {
+			if (!Prop_System(buf) && ((!Prop_Hidden(buf) && !(PropFlags(propadr) & PROP_SYSPERMS)) || Wizard(DB.Fetch(player).Owner))) {
 				if (!*ptr || recurse) {
 					cnt++;
 					if (blessp) {
@@ -183,7 +183,7 @@ int blessprops_wildcard(dbref player, dbref thing, const char *dir, const char *
 	return cnt;
 }
 
-func do_unbless(descr int, player dbref, what, propname string) {
+func do_unbless(descr int, player ObjectID, what, propname string) {
 	switch {
 	case !Wizard(player), Typeof(player) != TYPE_PLAYER):
 		notify(player, "Only Wizard players may use this command.")
@@ -195,7 +195,7 @@ func do_unbless(descr int, player dbref, what, propname string) {
 		md.MatchEverything()
 		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
-		case !Wizard(db.Fetch(player).Owner):
+		case !Wizard(DB.Fetch(player).Owner):
 			notify(player, "Permission denied. (You're not a wizard)")
 		default:
 			if cnt := blessprops_wildcard(player, victim, "", propname, 0); cnt == 1 {
@@ -207,7 +207,7 @@ func do_unbless(descr int, player dbref, what, propname string) {
 	}
 }
 
-func do_bless(descr int, player dbref, what, propname string) {
+func do_bless(descr int, player ObjectID, what, propname string) {
 	switch {
 	case force_level:
 		notify(player, "Can't @force an @bless.")
@@ -221,9 +221,9 @@ func do_bless(descr int, player dbref, what, propname string) {
 		md.MatchEverything()
 		switch victim = md.NoisyMatchResult(); {
 		case victim == NOTHING:
-		case player != GOD && db.Fetch(victim).Owner == GOD:
+		case player != GOD && DB.Fetch(victim).Owner == GOD:
 			notify(player, "Only God may touch God's stuff.")
-		case !Wizard(db.Fetch(player).Owner):
+		case !Wizard(DB.Fetch(player).Owner):
 			notify(player, "Permission denied. (you're not a wizard)")
 		default:
 			if cnt := blessprops_wildcard(player, victim, "", propname, 1); cnt == 1 {
@@ -235,7 +235,7 @@ func do_bless(descr int, player dbref, what, propname string) {
 	}
 }
 
-func do_force(descr int, player dbref, what, command string) {
+func do_force(descr int, player ObjectID, what, command string) {
 	switch {
 	case force_level > tp_max_force_level - 1:
 		notify(player, "Can't force recursively.")
@@ -259,7 +259,7 @@ func do_force(descr int, player dbref, what, command string) {
 		MatchRegistered().
 		MatchPlayer().
 		NoisyMatchResult()
-	v := db.FetchPlayer(victim)
+	v := DB.FetchPlayer(victim)
 	terms := strings.SplitN(v.name, " ", 2)
 	switch {
 	case victim == NOTHING:
@@ -274,29 +274,29 @@ func do_force(descr int, player dbref, what, command string) {
 		notify(player, "Permission denied: forced object not @set Xforcible.")
 	case !Wizard(player) && !test_lock_false_default(descr, player, victim, "@/flk"):
 		notify(player, "Permission denied: Object not force-locked to you.")
-	case !Wizard(player) && TYPEOF(victim) == TYPE_THING && v.Location != NOTHING && db.Fetch(v.Location).flags & ZOMBIE != 0 && TYPEOF(v.Location) == TYPE_ROOM:
+	case !Wizard(player) && TYPEOF(victim) == TYPE_THING && v.Location != NOTHING && DB.Fetch(v.Location).flags & ZOMBIE != 0 && TYPEOF(v.Location) == TYPE_ROOM:
 		notify(player, "Sorry, but that's in a no-puppet zone.")
-	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && db.FetchPlayer(player).flags & ZOMBIE != 0:
+	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && DB.FetchPlayer(player).flags & ZOMBIE != 0:
 		notify(player, "Permission denied -- you cannot use zombies.")
-	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && db.FetchPlayer(player).flags & DARK != 0:
+	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && DB.FetchPlayer(player).flags & DARK != 0:
 		notify(player, "Permission denied -- you cannot force dark zombies.")
-	case !Wizard(db.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && terms > 0 && lookup_player(terms[0]) != NOTHING:
+	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && terms > 0 && lookup_player(terms[0]) != NOTHING:
 		notify(player, "Puppet cannot share the name of a player.")
 	default:
-		log_status("FORCED: %s(%d) by %s(%d): %s", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player, command)
+		log_status("FORCED: %s(%d) by %s(%d): %s", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player, command)
 		/* force victim to do command */
 		ForceAction(NOTHING, func() {
-			process_command(dbref_first_descr(victim), victim, command)
+			process_command(ObjectID_first_descr(victim), victim, command)
 		})
 	}
 }
 
-func do_stats(player dbref, name string) {
+func do_stats(player ObjectID, name string) {
 	var rooms, exits, things, players, programs, garbage, total, altered, oldobjs int
 	currtime := time.Now()
 	owner := NOTHING
 
-	if !Wizard(db.FetchPlayer(player).Owner) && len(name) == 0 {
+	if !Wizard(DB.FetchPlayer(player).Owner) && len(name) == 0 {
 		notify(player, fmt.Sprintf("The universe contains %d objects.", db_top))
 	} else {
 		total = rooms = exits = things = players = programs = 0;
@@ -306,11 +306,11 @@ func do_stats(player dbref, name string) {
 				notify(player, "I can't find that player.")
 				return
 			}
-			if p := db.FetchPlayer(player); !Wizard(p.Owner) && p.Owner != owner {
+			if p := DB.FetchPlayer(player); !Wizard(p.Owner) && p.Owner != owner {
 				notify(player, "Permission denied. (you must be a wizard to get someone else's stats)")
 				return
 			}
-			EachObject(func(obj dbref, o *Object) {
+			EachObject(func(obj ObjectID, o *Object) {
 				if o.Owner == owner {
 					if o.flags & OBJECT_CHANGED != 0 {
 						altered++
@@ -340,7 +340,7 @@ func do_stats(player dbref, name string) {
 				}
 			})
 		} else {
-			EachObject(func(obj dbref, o *Object) {
+			EachObject(func(obj ObjectID, o *Object) {
 				if o.flags & OBJECT_CHANGED != 0 {
 					altered++
 				}
@@ -386,7 +386,7 @@ func do_stats(player dbref, name string) {
 }
 
 
-func do_boot(player dbref, name string) {
+func do_boot(player ObjectID, name string) {
 	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
 		notify(player, "Only a Wizard player can boot someone off.")
 		return
@@ -402,18 +402,18 @@ func do_boot(player dbref, name string) {
 	default:
 		notify(victim, "You have been booted off the game.")
 		if boot_off(victim) {
-			log_status("BOOTED: %s(%d) by %s(%d)", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player)
+			log_status("BOOTED: %s(%d) by %s(%d)", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player)
 			if player != victim {
-				notify(player, fmt.Sprintf("You booted %s off!", db.FetchPlayer(victim).name))
+				notify(player, fmt.Sprintf("You booted %s off!", DB.FetchPlayer(victim).name))
 			}
 		} else {
-			notify(player, fmt.Sprintf("%s is not connected.", db.FetchPlayer(victim).name))
+			notify(player, fmt.Sprintf("%s is not connected.", DB.FetchPlayer(victim).name))
 		}
 	}
 }
 
-func do_toad(descr int, player dbref, name, recip string) {
-	var victim, recipient dbref
+func do_toad(descr int, player ObjectID, name, recip string) {
+	var victim, recipient ObjectID
 	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
 		notify(player, "Only a Wizard player can turn a person into a toad.")
 		return
@@ -425,7 +425,7 @@ func do_toad(descr int, player dbref, name, recip string) {
 	if victim == GOD {
 		notify(player, "You cannot @toad God.")
 		if player != GOD {
-			log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", db.FetchPlayer(player).name, player)
+			log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", DB.FetchPlayer(player).name, player)
 		}
 		return
 	}
@@ -452,7 +452,7 @@ func do_toad(descr int, player dbref, name, recip string) {
 	} else {
 		send_contents(descr, victim, HOME)
 		dequeue_prog(victim, 0)							/* Dequeue the programs that the player's running */
-		EachObject(func(obj dbref, o *Object) {
+		EachObject(func(obj ObjectID, o *Object) {
 			if o.Owner == victim {
 				switch {
 				case IsProgram(obj):
@@ -472,10 +472,10 @@ func do_toad(descr int, player dbref, name, recip string) {
 			}
 		})
 
-		v := db.FetchPlayer(victim)
+		v := DB.FetchPlayer(victim)
 		notify(victim, "You have been turned into a toad.")
 		notify(player, fmt.Sprintf("You turned %s into a toad!", v.name))
-		log_status("TOADED: %s(%d) by %s(%d)", v.name, victim, db.FetchPlayer(player).name, player)
+		log_status("TOADED: %s(%d) by %s(%d)", v.name, victim, DB.FetchPlayer(player).name, player)
 
 		/* reset name */
 		delete_player(victim)
@@ -484,14 +484,14 @@ func do_toad(descr int, player dbref, name, recip string) {
 		boot_player_off(victim)
 		ignore_remove_from_all_players(victim)
 		ignore_flush_cache(victim)
-		v.sp = &Player{ home: db.FetchPlayer(player).home }
+		v.sp = &Player{ home: DB.FetchPlayer(player).home }
 		v.flags = (v.flags & ~TYPE_MASK) | TYPE_THING
 		v.Owner = player
 		add_property(victim, MESGPROP_VALUE, NULL, 1)		/* don't let him keep his immense wealth */
 	}
 }
 
-func do_newpassword(player dbref, name, password string) {
+func do_newpassword(player ObjectID, name, password string) {
 	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
 		notify(player, "Only a Wizard player can newpassword someone.")
 	} else {
@@ -507,30 +507,30 @@ func do_newpassword(player dbref, name, password string) {
 			notify(player, "Only God can change a wizard's password.")
 		default:
 			set_password(victim, password)
-			db.FetchPlayer(victim).flags |= OBJECT_CHANGED
+			DB.FetchPlayer(victim).flags |= OBJECT_CHANGED
 			notify(player, "Password changed.")
-			notify(victim, fmt.Sprintf("Your password has been changed by %s.", db.FetchPlayer(player).name))
-			log_status("NEWPASS'ED: %s(%d) by %s(%d)", db.FetchPlayer(victim).name, victim, db.FetchPlayer(player).name, player)
+			notify(victim, fmt.Sprintf("Your password has been changed by %s.", DB.FetchPlayer(player).name))
+			log_status("NEWPASS'ED: %s(%d) by %s(%d)", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player)
 		}
 	}
 }
 
-func do_pcreate(player dbref, user, password string) {
+func do_pcreate(player ObjectID, user, password string) {
 	if !Wizard(player) || Typeof(player) != TYPE_PLAYER {
 		notify(player, "Only a Wizard player can create a player.")
 	} else {
 		if newguy := create_player(user, password); newguy == NOTHING {
 			notify(player, "Create failed.")
 		} else {
-			log_status("PCREATED %s(%d) by %s(%d)", db.FetchPlayer(newguy).name, newguy, db.FetchPlayer(player).name, player)
+			log_status("PCREATED %s(%d) by %s(%d)", DB.FetchPlayer(newguy).name, newguy, DB.FetchPlayer(player).name, player)
 			notify(player, fmt.Sprintf("Player %s created as object #%d.", user, newguy))
 		}
 	}
 }
 
-func do_serverdebug(descr int, player dbref, arg1, arg2 string) {
+func do_serverdebug(descr int, player ObjectID, arg1, arg2 string) {
 	switch {
-	case !Wizard(db.FetchPlayer(player).Owner):
+	case !Wizard(DB.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (@dbginfo is a wizard-only command)")
 	case arg1 == "":
 		notify(player, "Usage: @dbginfo [cache|guitest|misc]")
@@ -545,10 +545,10 @@ func do_serverdebug(descr int, player dbref, arg1, arg2 string) {
 
 long max_open_files(void);		/* from interface.c */
 
-func do_muf_topprofs(player dbref, arg1 string) {
+func do_muf_topprofs(player ObjectID, arg1 string) {
 	struct profnode {
 		struct profnode *next;
-		dbref  prog;
+		ObjectID  prog;
 		double proftime;
 		double pcnt;
 		long   comptime;
@@ -557,16 +557,16 @@ func do_muf_topprofs(player dbref, arg1 string) {
 
 	struct profnode *curr = NULL;
 	int nodecount = 0;
-	dbref i = NOTHING;
+	ObjectID i = NOTHING;
 	int count = atoi(arg1);
 	current_systime := time.Now()
 
 	switch {
-	case !Wizard(db.FetchPlayer(player).Owner):
+	case !Wizard(DB.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (MUF profiling stats are wiz-only)");
 		return
 	case arg1 == "reset":
-		EachObjectInReverse(func(obj dbref, o *Object) {
+		EachObjectInReverse(func(obj ObjectID, o *Object) {
 			if p := o.(Program); IsProgram(obj) {
 				p.proftime = 0
 				p.profstart = current_systime
@@ -582,7 +582,7 @@ func do_muf_topprofs(player dbref, arg1 string) {
 		count = 10
 	}
 
-	EachObjectInReverse(func(obj dbref, o *Object) {
+	EachObjectInReverse(func(obj ObjectID, o *Object) {
 		if p := o.(Program); IsProgram(obj) && p.code != nil {
 			newnode := &profnode{
 				prog: obj,
@@ -642,10 +642,10 @@ func do_muf_topprofs(player dbref, arg1 string) {
 }
 
 
-func do_mpi_topprofs(player dbref, arg1 string) {
+func do_mpi_topprofs(player ObjectID, arg1 string) {
 	struct profnode {
 		struct profnode *next;
-		dbref  prog;
+		ObjectID  prog;
 		double proftime;
 		double pcnt;
 		long   comptime;
@@ -654,11 +654,11 @@ func do_mpi_topprofs(player dbref, arg1 string) {
 
 	struct profnode *curr = NULL;
 	int nodecount = 0;
-	dbref i = NOTHING;
+	ObjectID i = NOTHING;
 	int count = atoi(arg1);
 	current_systime := time.Now()
 
-	if !Wizard(db.FetchPlayer(player).Owner) {
+	if !Wizard(DB.FetchPlayer(player).Owner) {
 		notify(player, "Permission denied. (MPI statistics are wizard-only)")
 		return
 	}
@@ -681,7 +681,7 @@ func do_mpi_topprofs(player dbref, arg1 string) {
 		count = 10;
 	}
 
-	EachObjectInReverse(func(obj dbref, o *Object) {
+	EachObjectInReverse(func(obj ObjectID, o *Object) {
 		if o.MPIUses {
 			newnode := &profnode{
 				prog: obj,
@@ -743,7 +743,7 @@ func do_mpi_topprofs(player dbref, arg1 string) {
 
 type profnode struct {
 	next *profnode
-	prog dbref
+	prog ObjectID
 	proftime float64
 	pcnt float64
 	comptime time.Duration
@@ -751,17 +751,17 @@ type profnode struct {
 	is_mpi bool
 }
 
-func do_all_topprofs(player dbref, arg1 string) {
+func do_all_topprofs(player ObjectID, arg1 string) {
 	var curr, tops *profnode
 	var buf string
 	var nodecount int
 
 	current_systime := time.Now()
 	switch {
-	case !Wizard(db.FetchPlayer(player).Owner):
+	case !Wizard(DB.FetchPlayer(player).Owner):
 		notify(player, "Permission denied. (server profiling statistics are wizard-only)");
 	case arg1 == "reset":
-		EachObjectInReverse(func(obj dbref, o *Object) {
+		EachObjectInReverse(func(obj ObjectID, o *Object) {
 			if o.MPIUses {
 				o.MPIUses = 0
 				o.time.Duration.tv_usec = 0
@@ -785,7 +785,7 @@ func do_all_topprofs(player dbref, arg1 string) {
 			if count == 0 {
 				count = 10
 			}
-			EachObjectInReverse(func(obj dbref, o *Object) {
+			EachObjectInReverse(func(obj ObjectID, o *Object) {
 				if o.MPIUses {
 					newnode := &profnode{
 						prog: obj,

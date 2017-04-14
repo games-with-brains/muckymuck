@@ -2,7 +2,7 @@
 
 var temp1, temp2, temp3 inst
 var tmp, result int
-var ref dbref
+var ref ObjectID
 var pname string
 
 /* FMTTOKEN defines the start of a variable formatting string insertion */
@@ -10,7 +10,7 @@ var pname string
 
 // FIXME: rewrite fmtstring and fmtstrings to make better use of fmt.Sprintf
 
-func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_fmtstring(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		int slen, scnt, tstop, tlen, tnum, i;
 		int slrj, spad1, spad2, slen1, slen2, temp;
@@ -125,7 +125,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 
 						if sstr[scnt] == '~' {
 							switch op.(type) {
-							case dbref:
+							case ObjectID:
 								sstr[scnt] = 'D'
 							case float64:
 								sstr[scnt] = 'g'
@@ -182,7 +182,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 						case '?':
 							sfmt += "s"
 							switch op.(type) {
-							case dbref:
+							case ObjectID:
 								hold = "OBJECT"
 							case float64:
 								hold = "FLOAT"
@@ -235,7 +235,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 							}
 						case 'd':
 							sfmt += "s"
-							obj := op.(dbref)
+							obj := op.(ObjectID)
 							hold = fmt.Sprintf("#%d", obj)
 							tbuf = fmt.Sprintf(sfmt, hold)
 							tlen = len(tbuf)
@@ -256,9 +256,9 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 							}
 						case 'D':
 							sfmt += "s"
-							ref := valid_remote_object(player, mlev, op)
-							if db.Fetch(ref).name {
-								hold = db.Fetch(ref).name
+							ref := op.(ObjectID).ValidRemoteObject(player, mlev)
+							if DB.Fetch(ref).name {
+								hold = DB.Fetch(ref).name
 							} else {
 								hold = ""
 							}
@@ -364,7 +364,7 @@ func prim_fmtstring(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_array_fmtstrings(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		var oper3 inst
 
@@ -392,7 +392,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 			tmp = 0			/* Number of props to search for/found */
 			scnt = 0
 			tstop = 0
-			/*   "%-20.19[name]s %6[dbref]d"   */
+			/*   "%-20.19[name]s %6[ObjectID]d"   */
 			for scnt < len(fmtstr) {
 				if sstr[scnt] == FMTTOKEN {
 					if (sstr[scnt + 1] == FMTTOKEN) {
@@ -493,7 +493,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 						}
 						if sstr[scnt] == '~' {
 							switch (oper3->type) {
-							case dbref:
+							case ObjectID:
 								sstr[scnt] = 'D'
 							case float64:
 								sstr[scnt++] = 'l'
@@ -552,7 +552,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 						case '?':
 							sfmt += "s"
 							switch oper3.(type) {
-							case dbref:
+							case ObjectID:
 								tbuf = fmt.Sprintf(sfmt, "OBJECT")
 							case float64:
 								tbuf = fmt.Sprintf(sfmt, "FLOAT")
@@ -604,7 +604,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 							result += len(tbuf);
 						case 'd':
 							strcatn(sfmt, sizeof(sfmt), "s");
-							hold = fmt.Sprintf("#%d", oper3.data.(dbref))
+							hold = fmt.Sprintf("#%d", oper3.data.(ObjectID))
 							tbuf = fmt.Sprintf(sfmt, hold)
 							tlen = len(tbuf);
 							if (slrj == 2) {
@@ -624,9 +624,9 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 							result += len(tbuf);
 						case 'D':
 							sfmt += "s"
-							ref := valid_remote_object(player, mlev, oper3.data.(dbref))
-							if db.Fetch(ref).name {
-								strcpyn(hold, sizeof(hold), db.Fetch(ref).name);
+							ref := oper3.data.(ObjectID).ValidRemoteObject(player, mlev)
+							if DB.Fetch(ref).name {
+								strcpyn(hold, sizeof(hold), DB.Fetch(ref).name);
 							} else {
 								hold[0] = '\0';
 							}
@@ -729,7 +729,7 @@ func prim_array_fmtstrings(player, program dbref, mlev int, pc, arg *inst, top *
 	})
 }
 
-func prim_split(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_split(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		buf := op[0].(string)
 		delim := op[1].(string)
@@ -743,7 +743,7 @@ func prim_split(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	})
 }
 
-func prim_rsplit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_rsplit(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		s := op[0].(string)
 		delim := op[1].(string)
@@ -770,13 +770,13 @@ func prim_rsplit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_ctoi(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_ctoi(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, int(op[0].(string)[0]))
 	})
 }
 
-func prim_itoc(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_itoc(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch c := rune(op[0].(int)); {
 		case c < 0:
@@ -789,7 +789,7 @@ func prim_itoc(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_stod(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_stod(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if ptr := op[0].(string); ptr == "" {
 			push(arg, top, NOTHING)
@@ -811,13 +811,13 @@ func prim_stod(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 			if nptr != "" && !unicode.IsSpace(nptr[0]) {
 				push(arg, top, NOTHING)
 			} else {
-				push(arg, top, dbref(strings.Atoi(ptr)))
+				push(arg, top, ObjectID(strings.Atoi(ptr)))
 			}
 		}
 	})
 }
 
-func prim_midstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_midstr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		str := op[0].(string)
 		start := op[1].(int)
@@ -838,7 +838,7 @@ func prim_midstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_numberp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_numberp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		result, _ = strconv.ParseInt(op[0].(string), 10, 64); err != nil {
 			panic(err)
@@ -847,26 +847,26 @@ func prim_numberp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_stringcmp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_stringcmp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, strings.EqualFold(op[1].(string), op[0].(string)))
 	})
 }
 
-func prim_strcmp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strcmp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, strings.Compare(op[0].(string), op[1].(string)))
 	})
 }
 
-func prim_strncmp(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strncmp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		i := op[2].(int)
 		push(arg, top, strings.Compare(op[0].(string)[:i], op[1].(string)[:i]))
 	})
 }
 
-func prim_strcut(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strcut(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		if cut_point := op[1].(int); cut_point < 0 {
 			panic("Argument must be a positive integer.")
@@ -891,19 +891,19 @@ func prim_strcut(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_len(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_len(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, len(op[0].(string)))
 	})
 }
 
-func prim_strcat(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strcat(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, op[0].(string) + op[1].(string))
 	})
 }
 
-func prim_atoi(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_atoi(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		var result int
 		if val, ok := op[0].(string); ok {
@@ -913,24 +913,24 @@ func prim_atoi(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fra
 	})
 }
 
-func prim_notify(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_notify(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
-		target := valid_remote_object(player, mlev, op[0])
+		target := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		if buf := op[1].(string); buf != "" {
 			if tp_force_mlev1_name_notify && mlev < JOURNEYMAN && player != target {
-				buf = prefix_message(buf, db.Fetch(player).name)
+				buf = prefix_message(buf, DB.Fetch(player).name)
 			}
-			notify_listeners(player, program, target, db.Fetch(target).Location, buf, 1)
+			notify_listeners(player, program, target, DB.Fetch(target).Location, buf, 1)
 		}
 	})
 }
 
-func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_notify_exclude(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		result := op[0].(int)
 		buf = op[1].(string)
 		if tp_force_mlev1_name_notify && mlev < JOURNEYMAN {
-			buf = prefix_message(buf, db.Fetch(player).name)
+			buf = prefix_message(buf, DB.Fetch(player).name)
 		}
 
 		i := result
@@ -939,16 +939,16 @@ func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *in
 			panic("Count argument is out of range.")
 		}
 
-		excluded := make([]dbref, i)
+		excluded := make([]ObjectID, i)
 		for checkop(i, top); i > 0; i-- {
-			excluded[i] = POP().data.(dbref)
+			excluded[i] = POP().data.(ObjectID)
 		}
 		checkop(1, top)
-		switch where := valid_remote_object(player, mlev, POP().data).(type) {
+		switch where := POP().data.(ObjectID).ValidRemoteObject(player, mlev).(type) {
 		case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-			what := db.Fetch(where).Contents
+			what := DB.Fetch(where).Contents
 			if buf != "" {
-				for ; what != NOTHING; what = db.Fetch(what).next {
+				for ; what != NOTHING; what = DB.Fetch(what).next {
 					if what, ok := what.(TYPE_ROOM); ok {
 						tmp = true
 					} else {
@@ -974,7 +974,7 @@ func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *in
 					notify_listeners(player, program, where, where, buf, 0)
 				}
 				if tp_listeners_env && false == 0 {
-					for what = db.Fetch(where).Location ; what != NOTHING; what = db.Fetch(what).Location {
+					for what = DB.Fetch(where).Location ; what != NOTHING; what = DB.Fetch(what).Location {
 						notify_listeners(player, program, what, where, buf, 0)
 					}
 				}
@@ -985,13 +985,13 @@ func prim_notify_exclude(player, program dbref, mlev int, pc, arg *inst, top *in
 	})
 }
 
-func prim_intostr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_intostr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, fmt.Sprint(op[0].(string)))
 	})
 }
 
-func prim_explode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_explode(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		parts := strings.Split(op[0].(string), op[1].(string))
 		for _, v := range parts {
@@ -1001,7 +1001,7 @@ func prim_explode(player, program dbref, mlev int, pc, arg *inst, top *int, fr *
 	})
 }
 
-func prim_explode_array(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_explode_array(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		s := strings.Split(op[0].(string), op[1].(string))
 		x := make(Array, len(s), len(s))
@@ -1012,13 +1012,13 @@ func prim_explode_array(player, program dbref, mlev int, pc, arg *inst, top *int
 	})
 }
 
-func prim_subst(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_subst(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		push(arg, top, strings.Replace(op[0].(string), op[2].(string), op[1].(string), -1))
 	})
 }
 
-func prim_instr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_instr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		i := strings.Index(op[0].(string), op[1].(string))
 		if i < 0 {
@@ -1028,7 +1028,7 @@ func prim_instr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *fr
 	})
 }
 
-func prim_rinstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_rinstr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		i := strings.LastIndex(op[0].(string), op[1].(string))
 		if i < 0 {
@@ -1038,7 +1038,7 @@ func prim_rinstr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *f
 	})
 }
 
-func prim_pronoun_sub(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_pronoun_sub(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		obj := op[0].(objref)
 		str := op[1].(string)
@@ -1046,52 +1046,52 @@ func prim_pronoun_sub(player, program dbref, mlev int, pc, arg *inst, top *int, 
 	})
 }
 
-func prim_toupper(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_toupper(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, strings.ToUpper(op[0].(string)))
 	})
 }
 
-func prim_tolower(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_tolower(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, strings.ToLower(op[0].(string)))
 	})
 }
 
-func prim_unparseobj(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_unparseobj(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		switch v := op[0].(dbref); result {
+		switch v := op[0].(ObjectID); result {
 		case NOTHING:
 			push(arg, top, fmt.Sprintf("*NOTHING*"))
 		case HOME:
 			push(arg, top, fmt.Sprintf("*HOME*"))
-		case !valid_reference(result):
+		case !result.IsValid():
 			push(arg, top, fmt.Sprintf("*INVALID*"))
 		default:
-			push(arg, top, fmt.Sprintf("%s(#%d%s)", db.Fetch(v).name, v, unparse_flags(v)))
+			push(arg, top, fmt.Sprintf("%s(#%d%s)", DB.Fetch(v).name, v, unparse_flags(v)))
 		}
 	})
 }
 
-func prim_smatch(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_smatch(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		push(arg, top, !smatch(op[0].(string), op[1].(string)))
 	})
 }
 
-func prim_striplead(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_striplead(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, strings.TrimLeftFunc(op[0].(string), unicode.IsSpace))
 	})
 }
 
-func prim_striptail(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_striptail(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		push(arg, top, strings.TrimRightFunc(op[0].(string), unicode.IsSpace))
 	})
 }
 
-func prim_stringpfx(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_stringpfx(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		if op[0].(string) == op[1].(string) {
 			push(arg, top, 0)
@@ -1101,7 +1101,7 @@ func prim_stringpfx(player, program dbref, mlev int, pc, arg *inst, top *int, fr
 	})
 }
 
-func prim_strencrypt(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strencrypt(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		msg := op[0].(string)
 		key := op[1].(string)
@@ -1112,7 +1112,7 @@ func prim_strencrypt(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_strdecrypt(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_strdecrypt(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		msg := op[0].(string)
 		key := op[1].(string)
@@ -1123,7 +1123,7 @@ func prim_strdecrypt(player, program dbref, mlev int, pc, arg *inst, top *int, f
 	})
 }
 
-func prim_textattr(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_textattr(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(2, top, func(op Array) {
 		lstr := op[0].(string)
 		attrstr := op[1].(string)
@@ -1203,7 +1203,7 @@ func prim_textattr(player, program dbref, mlev int, pc, arg *inst, top *int, fr 
 	})
 }
 
-func prim_tokensplit(player, program dbref, mlev int, pc, arg *inst, top *int, fr *frame) {
+func prim_tokensplit(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(3, top, func(op Array) {
 		ptr := op[0].(string)
 		delim := op[1].(string)

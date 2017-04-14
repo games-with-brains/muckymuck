@@ -1,62 +1,48 @@
-
 package fbmuck
 
-func vlog2file(prepend_time int, filename, format string, args ...interface{}) {
-	fp *FILE
-	time_t lt;
-	char buf[40];
-	lt = time(NULL);
-	*buf = '\0';
-
-	if ((fp = fopen(filename, "ab")) == NULL) {
-		fprintf(stderr, "Unable to open %s!\n", filename);
-		if (prepend_time)
-			fprintf(stderr, "%.16s: ", ctime(&lt));
-		vfprintf(stderr, format, args);
+func log2file(filename string, format string, v ...interface{}) {
+	if fp, err := fopen(filename, "ab"); err != nil {
+		fmt.Fprintf(stderr, "Unable to open %s: %v\n", filename, err)
+		fmt.Fprintf(stderr, format, v...)
 	} else {
-		if (prepend_time) {
-			buf = format_time("%c", localtime(&lt))
-			fprintf(fp, "%.32s: ", buf);
-		}
-		
-		vfprintf(fp, format, args);
-		fprintf(fp, "\n");
-
-		fclose(fp);
+		fmt.Fprintf(fp, format, v...)
+		fmt.Fprintln(fp)
+		fp.Close()
 	}
 }
 
-void
-log2file(char *filename, char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	vlog2file(0, filename, format, args);
-	va_end(args);
+func vlog2file(filename, format string, v ...interface{}) {
+	if fp, err := fopen(filename, "ab"); err != nil {
+		fmt.Fprintf(stderr, "Unable to open %s: %v\n", filename, err)
+		fmt.Fprintf(stderr, "%.16s: ", time.Now())
+		fmt.Fprintf(stderr, format, v...)
+	} else {
+		fmt.Fprintf(fp, "%.32s: ", time.Now())
+		fmt.Fprintf(fp, format, v...)
+		fmt.Fprintln(fp)
+		fp.Close()
+	}
 }
 
-#define log_function(FILENAME) \
-{ \
-	va_list args; \
-	va_start(args, format); \
-	vlog2file(1, FILENAME, format, args); \
-	va_end(args); \
+func log_sanity(format string, v ...interface{}) {
+	vlog2file(LOG_SANITY, format, v...)
 }
 
-void
-log_sanity(char *format, ...) log_function(LOG_SANITY)
+func log_status(format string, v ...interface{}) {
+	vlog2file(LOG_STATUS, format, v...)
+}
 
-void
-log_status(char *format, ...) log_function(LOG_STATUS)
+func log_muf(format string, v ...interface{}) {
+	vlog2file(LOG_MUF, format, v...)
+}
 
-void
-log_muf(char *format, ...) log_function(LOG_MUF)
+func log_gripe(format string, v ...interface{}) {
+	vlog2file(LOG_GRIPE, format, v...)
+}
 
-void
-log_gripe(char *format, ...) log_function(LOG_GRIPE)
-
-void
-log_command(char *format, ...) log_function(COMMAND_LOG)
+func log_command(format string, v ...interface{}) {
+	vlog2file(COMMAND_LOG, format, v...)
+}
 
 func strip_evil_characters(s string) (r string) {
  	for ; s != ""; s = s[1:] {
@@ -72,10 +58,10 @@ func strip_evil_characters(s string) (r string) {
   	return
 }
 
-func log_user(player, program dbref, logmessage string) {
-	log2file(USER_LOG, "%s", strip_evil_characters(fmt.Sprintf("%s(#%d) [%s(#%d)] at %.32s: %s", db.Fetch(player).name, player, db.Fetch(program).name, program, time.Now(), logmessage)))
+func log_user(player, program ObjectID, logmessage string) {
+	log2file(USER_LOG, "%s", strip_evil_characters(fmt.Sprintf("%s(#%d) [%s(#%d)] at %.32s: %s", DB.Fetch(player).name, player, DB.Fetch(program).name, program, time.Now(), logmessage)))
 }
 
-func notify_fmt(player dbref, format string, args ...interface{}) {
+func notify_fmt(player ObjectID, format string, args ...interface{}) {
 	notify(player, fmt.Sprintf(format, args...))
 }

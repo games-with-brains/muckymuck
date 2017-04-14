@@ -1,14 +1,14 @@
 package fbmuck
 
-func disassemble(player, program dbref) {
-	curr := db.Fetch(program).(Program).code
+func disassemble(player, program ObjectID) {
+	curr := DB.Fetch(program).(Program).code
 	codestart := curr
 	if len(curr) == 0 {
 		notify(player, "Nothing to disassemble!")
 		return
 	}
 	var buf string
-	for i, v := range db.Fetch(program).(Program).code {
+	for i, v := range DB.Fetch(program).(Program).code {
 		switch op := v.data.(type) {
 		case PROG_PRIMITIVE:
 			if op >= BASE_MIN && op <= BASE_MAX {
@@ -42,7 +42,7 @@ func disassemble(player, program dbref) {
 			buf = fmt.Sprintf("%d: (line %d) JMP: %d", i, v.line, op.call - codestart)
 		case PROG_EXEC:
 			buf = fmt.Sprintf("%d: (line %d) EXEC: %d", i, v.line, op.call - codestart)
-		case dbref:
+		case ObjectID:
 			buf = fmt.Sprintf("%d: (line %d) OBJECT REF: %d", i, v.line, op)
 		case PROG_VAR:
 			buf = fmt.Sprintf("%d: (line %d) VARIABLE: %d", i, v.line, op)

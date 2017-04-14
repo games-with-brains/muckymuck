@@ -45,13 +45,13 @@ type timequeue struct {
 	subtyp int
 	when time_t
 	descr int
-	called_prog dbref
+	called_prog ObjectID
 	called_data string
 	command string
 	str3 string
-	uid dbref
-	loc dbref
-	trig dbref
+	uid ObjectID
+	loc ObjectID
+	trig ObjectID
 	fr *frame
 	where *inst
 	eventnum int
@@ -64,7 +64,7 @@ void prog_clean(struct frame *fr);
 
 int process_count = 0;
 
-func alloc_timenode(typ, subtyp int, mytime time_t, descr int, player, loc, trig, program dbref, fr *frame, strdata, strcmd, str3 string, nextone timequeue) (r timequeue) {
+func alloc_timenode(typ, subtyp int, mytime time_t, descr int, player, loc, trig, program ObjectID, fr *frame, strdata, strcmd, str3 string, nextone timequeue) (r timequeue) {
 	r = &timequeue{
 		typ: typ, subtyp: subtyp,
 		when: mytime, uid: player, loc: loc, trig: trig,
@@ -93,14 +93,14 @@ func free_timenode(ptr timequeue) {
 			DEBUGPRINT("free_timenode: ptr.type = MUF? %d  ptr.subtyp = MUF_TIMER? %d", ptr.typ == TQ_MUF_TYP, ptr.subtyp == TQ_MUF_TIMER)
 			if ptr.typ != TQ_MUF_TYP || ptr.subtyp != TQ_MUF_TIMER {
 				if ptr.fr.multitask != BACKGROUND {
-					if p := db.FetchPlayer(ptr.uid); p != nil {
+					if p := DB.FetchPlayer(ptr.uid); p != nil {
 						p.block = false
 					}
 				}
 				prog_clean(ptr.fr)
 			}
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
-				if p := db.Fetch(ptr.uid); p != nil {
+				if p := DB.Fetch(ptr.uid); p != nil {
 					p.flags &= ~INTERACTIVE
 					p.flags &= ~READMODE
 				}
@@ -111,7 +111,7 @@ func free_timenode(ptr timequeue) {
 	}
 }
 
-func control_process(player dbref, pid int) int {
+func control_process(player ObjectID, pid int) int {
 	timequeue ptr = tqhead;
 
 	while ((ptr) && (pid != ptr->eventnum)) {
@@ -138,7 +138,7 @@ func control_process(player dbref, pid int) int {
 	return 1;
 }
 
-func add_event(event_typ, subtyp, dtime, descr int, player, loc, trig, program dbref, fr *frame, strdata, strcmd, str3 string) int {
+func add_event(event_typ, subtyp, dtime, descr int, player, loc, trig, program ObjectID, fr *frame, strdata, strcmd, str3 string) int {
 	var lastevent timequeue
 	var rtime time_t = time((time_t *) NULL) + (time_t) dtime
 	var mypids int
@@ -162,10 +162,10 @@ func add_event(event_typ, subtyp, dtime, descr int, player, loc, trig, program d
 		}
 	}
 	if event_typ != TQ_MUF_TYP || subtyp != TQ_MUF_TREAD {
-		if process_count > tp_max_process_limit || (mypids > tp_max_plyr_processes && !Wizard(db.Fetch(player).Owner)) {
+		if process_count > tp_max_process_limit || (mypids > tp_max_plyr_processes && !Wizard(DB.Fetch(player).Owner)) {
 			if fr != nil {
 				if fr.multitask != BACKGROUND {
-					if p := db.FetchPlayer(player); p != nil {
+					if p := DB.FetchPlayer(player); p != nil {
 						p.block = false
 					}
 				}
@@ -197,7 +197,7 @@ func add_event(event_typ, subtyp, dtime, descr int, player, loc, trig, program d
 	return (ptr.next.eventnum)
 }
 
-func add_mpi_event(delay, descr int, player, loc, trig dbref, mpi, cmdstr, argstr string, listen_p, omesg_p, blessed_p bool) int {
+func add_mpi_event(delay, descr int, player, loc, trig ObjectID, mpi, cmdstr, argstr string, listen_p, omesg_p, blessed_p bool) int {
 	subtyp := TQ_MPI_QUEUE
 
 	if delay >= 1 {
@@ -215,31 +215,31 @@ func add_mpi_event(delay, descr int, player, loc, trig dbref, mpi, cmdstr, argst
 	return add_event(TQ_MPI_TYP, subtyp, delay, descr, player, loc, trig, NOTHING, nil, mpi, cmdstr, argstr)
 }
 
-func add_muf_queue_event(descr int, player, loc, trig, prog dbref, argstr, cmdstr string, listen_p bool) int {
+func add_muf_queue_event(descr int, player, loc, trig, prog ObjectID, argstr, cmdstr string, listen_p bool) int {
 	return add_event(TQ_MUF_TYP, (listen_p ? TQ_MUF_LISTEN : TQ_MUF_QUEUE), 0, descr, player, loc, trig, prog, nil, argstr, cmdstr, nil)
 }
 
-func add_muf_delayq_event(delay, descr int, player, loc, trig, prog dbref, argstr, cmdstr string, listen_p bool) int {
+func add_muf_delayq_event(delay, descr int, player, loc, trig, prog ObjectID, argstr, cmdstr string, listen_p bool) int {
 	return add_event(TQ_MUF_TYP, (listen_p ? TQ_MUF_LISTEN : TQ_MUF_QUEUE), delay, descr, player, loc, trig, prog, nil, argstr, cmdstr, nil)
 }
 
-func add_muf_read_event(descr int, player, prog dbref, fr *frame) int {
+func add_muf_read_event(descr int, player, prog ObjectID, fr *frame) int {
 	if fr == nil {
 		panic("add_muf_read_event(): NULL frame passed !")
 	}
-	db.Fetch(player).flags |= (INTERACTIVE | READMODE)
+	DB.Fetch(player).flags |= (INTERACTIVE | READMODE)
 	return add_event(TQ_MUF_TYP, TQ_MUF_READ, -1, descr, player, -1, fr.trig, prog, fr, "READ", nil, nil)
 }
 
-func add_muf_tread_event(descr int, player, prog dbref, fr *frame, delay int) int {
+func add_muf_tread_event(descr int, player, prog ObjectID, fr *frame, delay int) int {
 	if fr == nil {
 		panic("add_muf_tread_event(): NULL frame passed !")
 	}
-	db.Fetch(player).flags |= (INTERACTIVE | READMODE)
+	DB.Fetch(player).flags |= (INTERACTIVE | READMODE)
 	return add_event(TQ_MUF_TYP, TQ_MUF_TREAD, delay, descr, player, -1, fr.trig, prog, fr, "READ", nil, nil)
 }
 
-func add_muf_timer_event(descr int, player, prog dbref, fr *frame, delay int, id string) int {
+func add_muf_timer_event(descr int, player, prog ObjectID, fr *frame, delay int, id string) int {
 	if fr == nil {
 		panic("add_muf_timer_event(): NULL frame passed !")
 	}
@@ -248,11 +248,11 @@ func add_muf_timer_event(descr int, player, prog dbref, fr *frame, delay int, id
 	return add_event(TQ_MUF_TYP, TQ_MUF_TIMER, delay, descr, player, -1, fr.trig, prog, fr, buf, nil, nil)
 }
 
-func add_muf_delay_event(delay, descr int, player, loc, trig, prog dbref, fr *frame, mode string) int {
+func add_muf_delay_event(delay, descr int, player, loc, trig, prog ObjectID, fr *frame, mode string) int {
 	return add_event(TQ_MUF_TYP, TQ_MUF_DELAY, delay, descr, player, loc, trig, prog, fr, mode, nil, nil)
 }
 
-func read_event_notify(int descr, dbref player, const char* cmd) (r bool) {
+func read_event_notify(int descr, ObjectID player, const char* cmd) (r bool) {
 	if r = muf_event_read_notify(descr, player, cmd); !r {
 		for ptr := tqhead; ptr != nil; ptr = ptr.next {
 			if ptr.uid == player && ptr.fr != nil && ptr.fr.multitask != BACKGROUND {
@@ -268,18 +268,18 @@ func read_event_notify(int descr, dbref player, const char* cmd) (r bool) {
 }
 
 
-func handle_read_event(descr int, player dbref, command string) {
+func handle_read_event(descr int, player ObjectID, command string) {
 	var fr *frame
 	var lastevent timequeue
 	var flag, typ, oldflags int
-	var prog dbref
+	var prog ObjectID
 
 	nothing_flag := false
 	if command == "" {
 		nothing_flag = true
 	}
-	oldflags = db.Fetch(player).flags
-	db.Fetch(player).flags &= ~(INTERACTIVE | READMODE)
+	oldflags = DB.Fetch(player).flags
+	DB.Fetch(player).flags &= ~(INTERACTIVE | READMODE)
 
 	ptr := tqhead
 	for ; ptr != nil; ptr = ptr.next {
@@ -296,7 +296,7 @@ func handle_read_event(descr int, player dbref, command string) {
 		fr = ptr.fr
 		if (!fr->brkpt.debugging || fr->brkpt.isread) {
 			if (!fr->wantsblanks && command && !*command) {
-				db.Fetch(player).flags = oldflags
+				DB.Fetch(player).flags = oldflags
 				return
 			}
 		}
@@ -364,7 +364,7 @@ func handle_read_event(descr int, player dbref, command string) {
 		 * INTERACTIVE bit on the user, if it does NOT want the MUF
 		 * program to resume executing.
 		 */
-		if flag = db.Fetch(player).flags & INTERACTIVE; flag == 0 && fr != nil {
+		if flag = DB.Fetch(player).flags & INTERACTIVE; flag == 0 && fr != nil {
 			interp_loop(player, prog, fr, false)
 			/* WORK: if more input is pending, send the READ mufevent again. */
 			/* WORK: if no input is pending, clear READ mufevent from all of this player's programs. */
@@ -377,7 +377,7 @@ func handle_read_event(descr int, player dbref, command string) {
 		for ; ptr != nil; ptr = ptr.next {
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
 				if ptr.uid == player {
-					db.Fetch(player).flags |= (INTERACTIVE | READMODE);
+					DB.Fetch(player).flags |= (INTERACTIVE | READMODE);
 				}
 			}
 		}
@@ -432,8 +432,8 @@ func next_timequeue_event() {
 			case event.subtyp & TQ_MPI_OMESG == 0:
 				notify_filtered(event.uid, event.uid, cbuf, 1)
 			default:
-				bbuf := fmt.Sprintf(">> %.4000s %.*s", db.Fetch(event.uid).name, (int)(4000 - len(db.Fetch(event.uid).name)), pronoun_substitute(event.descr, event.uid, cbuf))
-				for plyr := db.Fetch(event.loc).Contents; plyr != NOTHING; plyr = db.Fetch(plyr).next {
+				bbuf := fmt.Sprintf(">> %.4000s %.*s", DB.Fetch(event.uid).name, (int)(4000 - len(DB.Fetch(event.uid).name)), pronoun_substitute(event.descr, event.uid, cbuf))
+				for plyr := DB.Fetch(event.loc).Contents; plyr != NOTHING; plyr = DB.Fetch(plyr).next {
 					switch plyr := plyr.(type) {
 					case TYPE_PLAYER:
 						if plyr != event.uid {
@@ -446,9 +446,9 @@ func next_timequeue_event() {
 			if Typeof(event.called_prog) == TYPE_PROGRAM {
 				switch event.subtyp {
 				case TQ_MUF_DELAY:
-					/* Uncomment when db.Fetch() "does" something */
-					/* FIXME: db.Fetch(event.uid) */
-					p := db.FetchPlayer(event.uid)
+					/* Uncomment when DB.Fetch() "does" something */
+					/* FIXME: DB.Fetch(event.uid) */
+					p := DB.FetchPlayer(event.uid)
 					tmpbl := p.block
 					tmpfg := event.fr.multitask != BACKGROUND
 					interp_loop(event.uid, event.called_prog, event.fr, false)
@@ -521,15 +521,15 @@ func next_event_time() (r int) {
 }
 
 /* Checks the MUF timequeue for address references on the stack or */
-/* dbref references on the callstack */
-func has_refs(program dbref, ptr timequeue) bool {
+/* ObjectID references on the callstack */
+func has_refs(program ObjectID, ptr timequeue) bool {
 	if ptr == nil {
 		log_status("WARNING: has_refs(): NULL ptr passed !  Ignored.")
 		return false
 	}
 
 	var i int
-	if p := db.Fetch(program).(Program); p != nil {
+	if p := DB.Fetch(program).(Program); p != nil {
 		i = p.instances
 	}
 
@@ -558,7 +558,7 @@ extern char *time_format_2(long dt);
 
 const EVENT_LIST_FORMAT = "%10s %4s %4s %6s %4s %7s %-10.10s %-12s %.512s"
 
-func list_events(player dbref) {
+func list_events(player ObjectID) {
 	var rtime time_t
 	var count int
 	var pcnt float64
@@ -585,7 +585,7 @@ func list_events(player dbref) {
 				pcnt = 0.0
 			}
 			progstr = fmt.Sprintf("#%d", ptr.fr.caller.st[1])
-			prognamestr = db.Fetch(ptr.fr.caller.st[1]).name
+			prognamestr = DB.Fetch(ptr.fr.caller.st[1]).name
 		} else {
 			runstr = "0s"
 			inststr = "0"
@@ -595,7 +595,7 @@ func list_events(player dbref) {
 				prognamestr = ""
 			} else {
 				progstr = fmt.Sprintf("#%d", ptr.called_prog)
-				progsnamestr = fmt.Sprint(db.Fetch(ptr.called_prog).name)
+				progsnamestr = fmt.Sprint(DB.Fetch(ptr.called_prog).name)
 			}
 		}
 		cpustr = fmt.Sprintf("%4.1f", pcnt)
@@ -616,11 +616,11 @@ func list_events(player dbref) {
 		}
 
 		switch {
-		case Wizard(db.Fetch(player).Owner), ptr.uid == player, ptr.called_prog != NOTHING && db.Fetch(ptr.called_prog).Owner == db.Fetch(player).Owner {
+		case Wizard(DB.Fetch(player).Owner), ptr.uid == player, ptr.called_prog != NOTHING && DB.Fetch(ptr.called_prog).Owner == DB.Fetch(player).Owner {
 			if ptr.called_data {
-				notify_nolisten(player, fmt.Sprintf(EVENT_LIST_FORMAT, pidstr, duestr, runstr, inststr, cpustr, progstr, prognamestr, db.Fetch(ptr.uid).name, ptr.called_data), true)
+				notify_nolisten(player, fmt.Sprintf(EVENT_LIST_FORMAT, pidstr, duestr, runstr, inststr, cpustr, progstr, prognamestr, DB.Fetch(ptr.uid).name, ptr.called_data), true)
 			} else {
-				notify_nolisten(player, fmt.Sprintf(EVENT_LIST_FORMAT, pidstr, duestr, runstr, inststr, cpustr, progstr, prognamestr, db.Fetch(ptr.uid).name, ""), true)
+				notify_nolisten(player, fmt.Sprintf(EVENT_LIST_FORMAT, pidstr, duestr, runstr, inststr, cpustr, progstr, prognamestr, DB.Fetch(ptr.uid).name, ""), true)
 			}
 		}
 		count++
@@ -629,7 +629,7 @@ func list_events(player dbref) {
 	notify_nolisten(player, fmt.Sprintf("%d events.", count), true)
 }
 
-func get_pids(ref dbref) (r Array) {
+func get_pids(ref ObjectID) (r Array) {
 	r = make(Array)
 	var i int
 	for ptr := tqhead; ptr != nil; ptr = ptr.next {
@@ -724,7 +724,7 @@ func get_pidinfo(int pid) (r Dictionary) {
  *     2: kill all matching foreground MUF processes
  */
 int
-dequeue_prog_real(dbref program, int killmode, const char *file, const int line)
+dequeue_prog_real(ObjectID program, int killmode, const char *file, const int line)
 {
 	int count = 0, ocount;
 	timequeue tmp, ptr;
@@ -788,7 +788,7 @@ dequeue_prog_real(dbref program, int killmode, const char *file, const int line)
 			prog_clean(tqhead->fr);
 		for (ptr = tqhead; ptr; ptr = ptr->next) {
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
-				db.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
+				DB.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
 			}
 		}
 	}
@@ -796,7 +796,7 @@ dequeue_prog_real(dbref program, int killmode, const char *file, const int line)
 	/* KLUDGE by premchai21 */
 	if Typeof(program) == TYPE_PROGRAM {
 		var i int
-		if p := db.Fetch(program).(Program); p != nil {
+		if p := DB.Fetch(program).(Program); p != nil {
 			i = p.instances
 		}
 		fmt.Fprintf(os.Stderr, "[debug] dequeue_prog: %d instances of #%d\n", i, program)
@@ -837,7 +837,7 @@ func dequeue_process(pid int) (r bool) {
 		if deqflag {
 			for ptr = tqhead; ptr != nil; ptr = ptr.next {
 				if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
-					db.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
+					DB.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
 				}
 			}
 			r = true
@@ -884,12 +884,12 @@ func dequeue_timers(pid int, id string) int {
 	return deqflag;
 }
 
-func do_dequeue(descr int, player dbref, arg1 string) {
+func do_dequeue(descr int, player ObjectID, arg1 string) {
 	switch arg1 {
 	case arg1 == "":
 		notify_nolisten(player, "What event do you want to dequeue?", true)
 	case arg1 == "all":
-		if !Wizard(db.Fetch(player).Owner) {
+		if !Wizard(DB.Fetch(player).Owner) {
 			notify_nolisten(player, "Permission denied", true)
 		} else {
 			for ; tqhead != nil; tqhead = tquead.next {
@@ -906,9 +906,9 @@ func do_dequeue(descr int, player dbref, arg1 string) {
 		switch match := md.NoisyMatchResult(); {
 		case match == NOTHING:
 			notify_nolisten(player, "I don't know what you want to dequeue!", true)
-		case !valid_reference(match):
+		case !match.IsValid():
 			notify_nolisten(player, "I don't recognize that object.", true)
-		case !Wizard(db.Fetch(player).Owner) && db.Fetch(match).Owner != db.Fetch(player).Owner:
+		case !Wizard(DB.Fetch(player).Owner) && DB.Fetch(match).Owner != DB.Fetch(player).Owner:
 			notify_nolisten(player, "Permission denied.", true)
 		default:
 			switch count = dequeue_prog(match, 0); count {
@@ -938,7 +938,7 @@ func do_dequeue(descr int, player dbref, arg1 string) {
 	return
 }
 
-func scan_instances(program dbref) (i int) {
+func scan_instances(program ObjectID) (i int) {
 	for tq := tqhead; tq != nil; tq = tq.next {
 		if tq.typ == TQ_MUF_TYP && tq.fr != nil {
 			if tq.called_prog == program {
@@ -962,14 +962,14 @@ func scan_instances(program dbref) (i int) {
 }
 
 static int propq_level = 0;
-func propqueue(descr int, player, where, trigger, what, xclude dbref, propname, toparg string, mlev, mt int) {
+func propqueue(descr int, player, where, trigger, what, xclude ObjectID, propname, toparg string, mlev, mt int) {
 	var tmpchar string
 	var buf string
 
 	prog := NOTHING
 
 	/* queue up program referred to by the given property */
-	if ((prog = get_property_dbref(what, propname)) != NOTHING) || (tmpchar = get_property_class(what, propname)) {
+	if ((prog = get_property_ObjectID(what, propname)) != NOTHING) || (tmpchar = get_property_class(what, propname)) {
 		if ((tmpchar && *tmpchar) || the_prog != NOTHING) {
 			if tmpchar != "" {
 				if (*tmpchar == '&') {
@@ -979,7 +979,7 @@ func propqueue(descr int, player, where, trigger, what, xclude dbref, propname, 
 				} else if (*tmpchar == REGISTERED_TOKEN) {
 					prog = find_registered_obj(what, tmpchar);
 				} else if (unicode.IsNumber(tmpchar)) {
-					prog = (dbref) strconv.Atoi(tmpchar);
+					prog = (ObjectID) strconv.Atoi(tmpchar);
 				} else {
 					prog = NOTHING;
 				}
@@ -990,13 +990,13 @@ func propqueue(descr int, player, where, trigger, what, xclude dbref, propname, 
 			}
 			if prog != AMBIGUOUS {
 				switch {
-				case !valid_reference(the_prog):
+				case !the_prog.IsValid():
 					prog = NOTHING
 				case Typeof(prog) != TYPE_PROGRAM:
 					prog = NOTHING
-				case db.Fetch(prog).Owner != db.Fetch(player).Owner && db.Fetch(prog).flags & LINK_OK == 0:
+				case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && DB.Fetch(prog).flags & LINK_OK == 0:
 					prog = NOTHING
-				case MLevel(prog) < mlev, MLevel(db.Fetch(prog).Owner) < mlev:
+				case MLevel(prog) < mlev, MLevel(DB.Fetch(prog).Owner) < mlev:
 					prog = NOTHING
 				case the_prog == xclude:
 					prog = NOTHING
@@ -1024,7 +1024,7 @@ func propqueue(descr int, player, where, trigger, what, xclude dbref, propname, 
 							notify_filtered(player, player, cbuf, 1)
 						} else {
 							bbuf := fmt.Sprintf(">> %.4000s", pronoun_substitute(descr, player, cbuf))
-							for plyr := db.Fetch(where).Contents; plyr != NOTHING; plyr = db.Fetch(plyr).next {
+							for plyr := DB.Fetch(where).Contents; plyr != NOTHING; plyr = DB.Fetch(plyr).next {
 								switch plyr.(type) {
 								case TYPE_PLAYER:
 									if plyr != player {
@@ -1060,18 +1060,18 @@ func propqueue(descr int, player, where, trigger, what, xclude dbref, propname, 
 	}
 }
 
-func envpropqueue(descr int, player, where, trigger, what, xclude dbref, propname, toparg string, mlev, mt int) {
+func envpropqueue(descr int, player, where, trigger, what, xclude ObjectID, propname, toparg string, mlev, mt int) {
 	for ; what != NOTHING; what = getparent(what) {
 		propqueue(descr, player, where, trigger, what, xclude, propname, toparg, mlev, mt)
 	}
 }
 
-func listenqueue(descr int, player, where, trigger, what, xclude dbref, propname, toparg string, mlev, mt, mpi_p int) {
-	if db.Fetch(what).flags & LISTENER != 0 || db.Fetch(db.Fetch(what).Owner).flags & ZOMBIE != 0 {
+func listenqueue(descr int, player, where, trigger, what, xclude ObjectID, propname, toparg string, mlev, mt, mpi_p int) {
+	if DB.Fetch(what).flags & LISTENER != 0 || DB.Fetch(DB.Fetch(what).Owner).flags & ZOMBIE != 0 {
 		var buf string
 
 		/* queue up program referred to by the given property */
-		prog := get_property_dbref(what, propname)
+		prog := get_property_ObjectID(what, propname)
 		tmpchar := get_property_class(what, propname)
 		if prog != NOTHING || tmpchar != "" {
 			if tmpchar != "" {
@@ -1093,11 +1093,11 @@ func listenqueue(descr int, player, where, trigger, what, xclude dbref, propname
 						prog = AMBIGUOUS
 					case tmpchar[0] == NUMBER_TOKEN && unicode.IsNumber(tmpchar[1]):
 						tmpchar = tmpchar[1:]
-						prog = dbref(strconv.Atoi(tmpchar))
+						prog = ObjectID(strconv.Atoi(tmpchar))
 					case tmpchar[0] == REGISTERED_TOKEN:
 						prog = find_registered_obj(what, tmpchar)
 					case unicode.IsNumber(tmpchar[0]):
-						prog = dbref(strconv.Atoi(tmpchar[0]))
+						prog = ObjectID(strconv.Atoi(tmpchar[0]))
 					default:
 						prog = NOTHING
 					}
@@ -1106,15 +1106,15 @@ func listenqueue(descr int, player, where, trigger, what, xclude dbref, propname
 				}
 				if prog != AMBIGUOUS {
 					switch {
-					case !valid_reference(prog):
+					case !prog.IsValid():
 						prog = NOTHING
 					case Typeof(prog) != TYPE_PROGRAM:
 						prog = NOTHING
-					case db.Fetch(prog).Owner != db.Fetch(player).Owner && db.Fetch(prog).flags & LINK_OK == 0:
+					case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && DB.Fetch(prog).flags & LINK_OK == 0:
 						prog = NOTHING
 					case MLevel(prog) < mlev:
 						prog = NOTHING
-					case MLevel(db.Fetch(prog).Owner) < mlev:
+					case MLevel(DB.Fetch(prog).Owner) < mlev:
 						prog = NOTHING
 					case the_prog == xclude:
 						prog = NOTHING
