@@ -1,26 +1,31 @@
 package fbmuck
 
+import(
+	"log"
+	"os"
+)
+
 func log2file(filename string, format string, v ...interface{}) {
-	if fp, err := fopen(filename, "ab"); err != nil {
-		fmt.Fprintf(stderr, "Unable to open %s: %v\n", filename, err)
-		fmt.Fprintf(stderr, format, v...)
+	if f, e := os.OpenFile(filename, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e == nil {
+		fmt.Fprintf(f, format, v...)
+		fmt.Fprintln(f)
+		f.Close()
 	} else {
-		fmt.Fprintf(fp, format, v...)
-		fmt.Fprintln(fp)
-		fp.Close()
+		log.Printf("Unable to open %s: %v\n", filename, err)
+		log.Printf(format, v...)
 	}
 }
 
 func vlog2file(filename, format string, v ...interface{}) {
-	if fp, err := fopen(filename, "ab"); err != nil {
-		fmt.Fprintf(stderr, "Unable to open %s: %v\n", filename, err)
-		fmt.Fprintf(stderr, "%.16s: ", time.Now())
-		fmt.Fprintf(stderr, format, v...)
+	if f, e := os.OpenFile(filename, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e == nil {
+		fmt.Fprintf(f, "%.32s: ", time.Now())
+		fmt.Fprintf(f, format, v...)
+		fmt.Fprintln(f)
+		f.Close()
 	} else {
-		fmt.Fprintf(fp, "%.32s: ", time.Now())
-		fmt.Fprintf(fp, format, v...)
-		fmt.Fprintln(fp)
-		fp.Close()
+		log.Printf("Unable to open %s: %v\n", filename, err)
+		log.Printf("%.16s: ", time.Now())
+		log.Printf(format, v...)
 	}
 }
 

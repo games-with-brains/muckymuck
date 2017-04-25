@@ -205,8 +205,8 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 					}
 					do_compile(descr, player, obj, 1)
 					DB.Fetch(obj).(Program).first = tmpline
-					DB.Fetch(player).flags |= OBJECT_CHANGED
-					DB.Fetch(obj).flags |= OBJECT_CHANGED
+					DB.Fetch(player).Touch()
+					DB.Fetch(obj).Touch()
 				}
 			}
 		case "sysparm":
@@ -219,9 +219,9 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 				content = mcp_mesg_arg_getline(msg, "content", 0)
 				if player == GOD {
 					MLEV_GOD
-					tune_setparm(reference, content, MLEV_GOD)
+					Tuneables.SetAs(MLEV_GOD, reference, content)
 				} else {
-					tune_setparm(reference, content, MLEV_WIZARD)
+					Tuneables.SetAs(MLEV_WIZARD, reference, content)
 				}
 			}
 		case "user":

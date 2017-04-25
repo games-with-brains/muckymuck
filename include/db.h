@@ -82,8 +82,6 @@ typedef int ObjectID;				/* offset into db */
 #define SMUCKER        0x100000	/* second programmer bit.  For levels */
 #define INTERACTIVE    0x200000	/* internal: denotes player is in editor, or
 								 * muf READ. */
-#define OBJECT_CHANGED 0x400000	/* internal: when an object is dbdirty()ed,
-								 * set this */
 #define SAVED_DELTA    0x800000	/* internal: object last saved to delta file */
 #define VEHICLE       0x1000000	/* Vehicle flag */
 #define VIEWABLE VEHICLE
@@ -99,10 +97,8 @@ typedef int ObjectID;				/* offset into db */
 
 
 /* what flags to NOT dump to disk. */
-#define DUMP_MASK    (INTERACTIVE | SAVED_DELTA | OBJECT_CHANGED | LISTENER | READMODE | SANEBIT)
+#define DUMP_MASK    (INTERACTIVE | SAVED_DELTA | LISTENER | READMODE | SANEBIT)
 
-
-typedef long object_flag_type;
 
 #define GOD ((ObjectID) 1)
 
@@ -259,7 +255,7 @@ struct debuggerdata {
   To obtain an object pointer use DB.Fetch(i).  Pointers returned by DB.Fetch
   may become invalid after a call to new_object().
 
-  If you have updated an object set the OBJECT_CHANGED flag before leaving the routine that did the update.
+  If you have updated an object set the TimeStamps.Changed flag before leaving the routine that did the update.
 
   Some fields are now handled in a unique way, since they are always memory
   resident, even in the GDBM_DATABASE disk-based muck.  These are: name,

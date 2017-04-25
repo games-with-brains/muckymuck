@@ -1300,12 +1300,6 @@ Changed:
     on room or player objects will never act as if they have an effective
     priority level of less than 1.
   
-  Removed the MORTAL_DARKING #define and replaced it with the EXIT_DARKING
-    and THING_DARKING #define options.  If both are #defined, they act just
-    like MORTAL_DARKING used to.  Individually, you can specify whether
-    non-wizards can @set objects of TYPE_THING, or objects of TYPE_EXIT
-    DARK.
-  
   Changed all the "look" forces in the server to use a slightly better
     method of making a player look around.  This was done in preparation
     for the exit priority Level security mods.  A nice side effect of

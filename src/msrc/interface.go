@@ -216,8 +216,8 @@ func main() {
 					show_program_usage(os.Args)
 				}
 				i++
-				if chdir(os.Args[i]) {
-					perror("cd to gamedir")
+				if e := os.Chdir(os.Args[i]); e != nil {
+					fmt.Fprintf(os.Stderr, "cd to gamedir: %v\n", e)
 					exit(4)
 				}
 			case "--":
@@ -254,27 +254,28 @@ func main() {
 #ifdef DETACH
 		/* Go into the background unless requested not to */
 		if !sanity_interactive && !db_conversion_flag {
-			fclose(stdin)
-			fclose(stdout)
-			fclose(stderr)
+			os.Stdin.Close()
+			os.Stdout.Close()
+			os.Stderr.Close()
 			if fork() != 0 {
 				_exit(0)
 			}
 		}
 #endif
 		/* save the PID for future use */
-		if ((ffd = fopen(PID_FILE, "wb")) != NULL) {
-			fprintf(ffd, "%d\n", getpid())
-			fclose(ffd)
+		pid := os.Getpid()
+		if ffd, e := os.OpenFile(PID_FILE, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+			fmt.Fprintf(ffd, "%d\n", pid)
+			ffd.Close()
 		}
-		log_status("%s PID is: %d", argv[0], getpid())
+		log_status("%s PID is: %d", os.Args[0], pid)
 #ifdef DETACH
 		if !sanity_interactive && !db_conversion_flag {
 			/* Detach from the TTY, log whatever output we have... */
-			freopen(LOG_ERR_FILE, "a", stderr)
-			setbuf(stderr, NULL)
-			freopen(LOG_FILE, "a", stdout)
-			setbuf(stdout, NULL)
+			freopen(LOG_ERR_FILE, "a", os.Stderr)
+			setbuf(os.Stderr, NULL)
+			freopen(LOG_FILE, "a", os.Stdout)
+			setbuf(os.Stdout, nil)
 
 			/* Disassociate from Process Group */
 #  ifdef _POSIX_SOURCE
@@ -283,7 +284,7 @@ func main() {
 #   ifdef SYSV
 			setpgrp()			/* The SysV way */
 #   else
-			setpgid(0, getpid())	/* The POSIX way. */
+			setpgid(0, os.Getpid())	/* The POSIX way. */
 #   endif						/* SYSV */
 
 #   ifdef  TIOCNOTTY				/* we can force this, POSIX / BSD */
@@ -318,7 +319,7 @@ func main() {
     sel_prof_idle_use = 0
 
 	if (init_game(infile_name, outfile_name) < 0) {
-		fprintf(stderr, "Couldn't load %s!\n", infile_name);
+		log.Println("Couldn't load", infile_name);
 		exit(2);
 	}
 
@@ -352,16 +353,16 @@ func main() {
 
 	}
 
-	if (sanity_interactive) {
-		san_main();
+	if sanity_interactive {
+		san_main()
 	} else {
-		dump_database();
-		tune_save_parmsfile();
-		fclose(delta_infile);
-		fclose(delta_outfile);
-		(void) unlink(DELTAFILE_NAME);
+		dump_database()
+		Tuneables.Save(PARMFILE_NAME)
+		delta_infile.Close()
+		delta_outfile.Close()
+		os.Remove(DELTAFILE_NAME)
 
-		if (restart_flag) {
+		if restart_flag {
 			char **argslist;
 			char numbuf[32];
 			int argcnt = numports + 2;
@@ -382,7 +383,7 @@ func main() {
 				argslist[0] = "restart";
 				execv(argslist[0], argslist);
 
-				fprintf(stderr, "Could not find restart script!\n");
+				log.Println("Could not find restart script!")
 			}
 		}
 	}
@@ -426,10 +427,11 @@ func notify_nolisten(player ObjectID, msg string, isprivate bool) (r int) {
         }
 
 		if tp_zombies {
-			if TYPEOF(player) == TYPE_THING && DB.Fetch(player).flags & ZOMBIE != 0 && DB.Fetch(DB.Fetch(player).Owner).flags & ZOMBIE == 0 && (DB.Fetch(player).flags & DARK == 0 || Wizard(DB.Fetch(player).Owner)) {
-				ref = DB.Fetch(player).Location
-				if Wizard(DB.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || DB.Fetch(ref).flags & ZOMBIE == 0 {
-					if isprivate || DB.Fetch(player).Location != DB.Fetch(DB.Fetch(player).Owner).Location {
+			p := DB.Fetch(player)
+			if IsThing(player) && p.flags & ZOMBIE != 0 && DB.Fetch(p.Owner).flags & ZOMBIE == 0 && (p.flags & DARK == 0 || Wizard(p.Owner)) {
+				ref = p.Location
+				if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || DB.Fetch(ref).flags & ZOMBIE == 0 {
+					if isprivate || p.Location != DB.Fetch(p.Owner).Location {
 						ch := match_args[0]
 						match_args[0] = ""
 						var prefix string
@@ -440,12 +442,12 @@ func notify_nolisten(player ObjectID, msg string, isprivate bool) (r int) {
 						}
 						match_args[0] = ch
 						if prefix == "" {
-							buf2 = fmt.Sprint(DB.Fetch(player).name, "> ", buf)
+							buf2 = fmt.Sprint(p.name, "> ", buf)
 						} else {
 							buf2 = fmt.Sprint(prefix. " ", buf)
 						}
 
-						for _, v := range get_player_descrs(DB.Fetch(player).Owner) {
+						for _, v := range get_player_descrs(p.Owner) {
                             queue_msg(lookup_descriptor(v), buf2)
                             if firstpass {
 								r++
@@ -470,17 +472,19 @@ func notify_filtered(from, player ObjectID, msg string, isprivate bool) (r int) 
 func notify_from_echo(from, player ObjectID, msg string, isprivate bool) int {
 	ptr := msg
 	if tp_listeners {
-		if tp_listeners_obj || TYPEOF(player) == TYPE_ROOM {
-			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
-			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
-			listenqueue(-1, from, DB.Fetch(from).Location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
+		if tp_listeners_obj || IsRoom(player) {
+			f := DB.Fetch(from)
+			listenqueue(-1, from, f.Location, player, player, NOTHING, "_listen", ptr, tp_listen_mlev, 1, 0)
+			listenqueue(-1, from, f.Location, player, player, NOTHING, "~listen", ptr, tp_listen_mlev, 1, 1)
+			listenqueue(-1, from, f.Location, player, player, NOTHING, "~olisten", ptr, tp_listen_mlev, 0, 1)
 		}
 	}
 
-	if TYPEOF(player) == TYPE_THING && DB.Fetch(player).flags & VEHICLE == 0 && (DB.Fetch(player).flags & DARK == 0 || Wizard(DB.Fetch(player).Owner)) {
-		ref := DB.Fetch(player).Location
-		if Wizard(DB.Fetch(player).Owner) || ref == NOTHING || TYPEOF(ref) != TYPE_ROOM || DB.Fetch(ref).flags & VEHICLE == 0 {
-			if !isprivate && DB.Fetch(from).Location == DB.Fetch(player).Location {
+	p := DB.Fetch(player)
+	if IsThing(player) && p.flags & VEHICLE == 0 && (p.flags & DARK == 0 || Wizard(p.Owner)) {
+		ref := p.Location
+		if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || DB.Fetch(ref).flags & VEHICLE == 0 {
+			if !isprivate && DB.Fetch(from).Location == p.Location {
 				ch := match_args[0]
 				match_args[0] = '\0'
 				prefix := do_parse_prop(-1, from, player, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
@@ -490,8 +494,8 @@ func notify_from_echo(from, player ObjectID, msg string, isprivate bool) int {
 					prefix = "Outside>"
 				}
 				buf := fmt.Sprint(prefix, " ", msg)
-				for ref = DB.Fetch(player).Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
-					notify_filtered(from, ref, buf, isprivate);
+				for ref = p.Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
+					notify_filtered(from, ref, buf, isprivate)
 				}
 			}
 		}
@@ -687,7 +691,7 @@ func shovechars() {
 		sel_in := time.Now()
 		if select(maxd, &input_set, &output_set, (fd_set *) 0, &timeout) < 0 {
 			if errno != EINTR {
-				perror("select")
+				fmt.Fprintf(os.Stderr, "select: %v\n", errno)
 				return
 			}
 		} else {
@@ -698,8 +702,8 @@ func shovechars() {
 			for i := 0; i < numsocks; i++ {
 				if (FD_ISSET(sock[i], &input_set)) {
 					if (!(newd = new_connection(listener_port[i], sock[i]))) {
-						if (errno && errno != EINTR && errno != EMFILE && errno != ENFILE) {
-							perror("new_connection");
+						if errno != 0 && errno != EINTR && errno != EMFILE && errno != ENFILE {
+							fmt.Fprintf(os.Stderr, "new_connection: %v\n", errno)
 							/* return; */
 						}
 					} else {
@@ -933,43 +937,42 @@ func make_socket(int port) int {
 	int opt;
 	struct sockaddr_in server;
 
-	s := socket(AF_INET, SOCK_STREAM, 0)
-	if s < 0 {
-		perror("creating stream socket");
-		exit(3);
+	if s := socket(AF_INET, SOCK_STREAM, 0); s < 0 {
+		fmt.Fprintf(os.Stderr, "creating stream socket: %v\n", s)
+		exit(3)
 	}
 
 	opt = 1;
-	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &opt, sizeof(opt)) < 0) {
-		perror("setsockopt");
-		exit(1);
+	if setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &opt, sizeof(opt)) < 0 {
+		fmt.Fprintln(os.Stderr, "setsockopt")
+		exit(1)
 	}
 
 	opt = 1;
-	if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *) &opt, sizeof(opt)) < 0) {
-		perror("setsockopt");
-		exit(1);
+	if setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *) &opt, sizeof(opt)) < 0 {
+		fmt.Fprintln(os.Stderr, "setsockopt")
+		exit(1)
 	}
 
 	/*
-	opt = 240;
-	if (setsockopt(s, SOL_TCP, TCP_KEEPIDLE, (char *) &opt, sizeof(opt)) < 0) {
-		perror("setsockopt");
-		exit(1);
+	opt = 240
+	if setsockopt(s, SOL_TCP, TCP_KEEPIDLE, (char *) &opt, sizeof(opt)) < 0 {
+		fmt.Fprintln(os.Stderr, "setsockopt")
+		exit(1)
 	}
 	*/
 
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(port);
+	server.sin_family = AF_INET
+	server.sin_addr.s_addr = INADDR_ANY
+	server.sin_port = htons(port)
 
-	if (bind(s, (struct sockaddr *) &server, sizeof(server))) {
-		perror("binding stream socket");
-		close(s);
-		exit(4);
+	if bind(s, (struct sockaddr *) &server, sizeof(server)) {
+		fmt.Fprintln(os.Stderr, "binding stream socket")
+		s.Close()
+		exit(4)
 	}
-	listen(s, 5);
-	return s;
+	listen(s, 5)
+	return s
 }
 
 func (q *text_queue) Add(b string) {
@@ -1078,7 +1081,7 @@ func process_output(d *descriptor_data) bool {
 
 func make_nonblocking(s int) {
 	if fcntl(s, F_SETFL, O_NONBLOCK) == -1 {
-		perror("make_nonblocking: fcntl")
+		fmt.Fprintln(os.Stderr, "make_nonblocking: fcntl")
 		panic("O_NONBLOCK fcntl failed")
 	}
 }
@@ -1536,7 +1539,7 @@ func close_sockets(msg string) {
 		d.output_prefix = ""
 		d.output_suffix = ""
 		if shutdown(d.descriptor, 2) < 0 {
-			perror("shutdown")
+			fmt.Fprintln(os.Stderr, "shutdown")
 		}
 		close(d.descriptor)
 		freeqs(d)
@@ -1564,7 +1567,7 @@ func do_armageddon(player ObjectID, msg string) {
 		buf := fmt.Sprintf("\r\nImmediate shutdown initiated by %s.\r\n", DB.Fetch(player).name)
 		buf += msg
 		log_status("ARMAGEDDON initiated by %s(%d): %s", DB.Fetch(player).name, player, msg)
-		fprintf(stderr, "ARMAGEDDON initiated by %s(%d): %s\n", DB.Fetch(player).name, player, msg)
+		log.Printf("ARMAGEDDON initiated by %s(%d): %s\n", DB.Fetch(player).name, player, msg)
 		close_sockets(buf)
 		exit(1)
 	}
@@ -1783,7 +1786,7 @@ func announce_disconnect(d *descriptor_data) {
 		envpropqueue(d.descriptor, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_disconnect", "Disconnect", 1, 1)
 		envpropqueue(d.descriptor, player, DB.Fetch(player).Location, NOTHING, player, NOTHING, "_odisconnect", "Odisconnect", 1, 0)
 		ts_lastuseobject(player)
-		DB.Fetch(player).flags |= OBJECT_CHANGED
+		DB.Fetch(player).Touch()
 	}
 }
 
@@ -1796,7 +1799,7 @@ func do_setuid(name string) {
 	}
 	if setuid(pw.pw_uid) == -1 {
 		log_status("can't setuid(%d): ", pw.pw_uid)
-		perror("setuid")
+		fmt.Fprintln(os.Stderr, "setuid")
 		os.Exit(1)
 	}
 }
@@ -1809,7 +1812,7 @@ func do_setgid(name string) {
 	}
 	if setgid(gr.gr_gid) == -1 {
 		log_status("can't setgid(%d): ", gr.gr_gid)
-		perror("setgid")
+		fmt.Fprintln(os.Stderr, "setgid")
 		os.Exit(1)
 	}
 }
@@ -2020,9 +2023,9 @@ func partial_pmatch(name string) (last ObjectID) {
 }
 
 func welcome_user(d *descriptor_data) {
-	if f := fopen(WELC_FILE, "rb"); f == nil {
+	if f := os.Open(WELC_FILE); f == nil {
 		queue_msg(d, DEFAULT_WELCOME_MESSAGE)
-		perror("spit_file: welcome.txt")
+		log.Println("spit_file: welcome.txt")
 	} else {
 		var buf string
 		for fgets(buf, sizeof(buf) - 3, f) {
@@ -2034,7 +2037,7 @@ func welcome_user(d *descriptor_data) {
 			}
 			queue_msg(d, buf)
 		}
-		fclose(f)
+		f.Close()
 	}
 	switch {
 	case wizonly_mode:

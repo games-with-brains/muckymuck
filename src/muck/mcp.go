@@ -589,7 +589,7 @@ func mcp_mesg_arg_remove(msg *McpMesg, argname string) {
 		msg.args = ptr.next
 		msg.bytes -= sizeof(McpArg)
 		if ptr.name {
-			ptr.name = ""
+			ptr.NowCalled("")
 			msg.bytes -= len(ptr.name) + 1
 		}
 		for ptr.value != nil {
@@ -614,7 +614,7 @@ func mcp_mesg_arg_remove(msg *McpMesg, argname string) {
 			msg.bytes -= sizeof(McpArg)
 			if ptr.name != "" {
 				msg.bytes -= len(ptr.name) + 1
-				ptr.name = ""
+				ptr.NowCalled("")
 			}
 			for ptr.value != nil {
 				ptr2 := ptr.value

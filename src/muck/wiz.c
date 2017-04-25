@@ -1,4 +1,14 @@
-/* Wizard-only commands */
+package fbmuck
+
+func WizardPlayerOnly(p ObjectID, f func(*Player)) {
+	if Wizard(player) {
+		if p, ok := DB.Fetch(player).(*Player); ok {
+			f(p)
+			return
+		}
+	}
+	notify(player, "Only a Wizard player can do that")
+}
 
 func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
 	var victim, destination ObjectID
@@ -48,36 +58,36 @@ func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
 	case HOME:
 		v := DB.FetchPlayer(victim)
 		switch victim.(type) {
-		case TYPE_PLAYER:
-			destination = v.home
+		case Player:
+			destination = v.Home
 			if parent_loop_check(victim, destination) {
-				destination = DB.FetchPlayer(v.Owner).home
+				destination = DB.Fetch(v.Owner).Home
 			}
-		case TYPE_THING:
-			destination = v.home
+		case Object:
+			destination = v.Home
 			if parent_loop_check(victim, destination) {
-				destination = DB.FetchPlayer(v.Owner).home
+				destination = DB.Fetch(v.Owner).Home
 				if parent_loop_check(victim, destination) {
 					destination = ObjectID(0)
 				}
 			}
-		case TYPE_ROOM:
+		case Room:
 			destination = GLOBAL_ENVIRONMENT
-		case TYPE_PROGRAM:
+		case Program:
 			destination = v.Owner
 		default:
 			destination = tp_player_start
 		}
 	default:
-		switch victim.(type) {
-		case TYPE_PLAYER:
+		switch {
+		case IsPlayer(victim):
 			v := DB.FetchPlayer(victim)
 			switch {
-			case !controls(player, victim), !controls(player, destination), !controls(player, v.Location), (Typeof(destination) == TYPE_THING && !controls(player, df.Fetch(destination).Location)):
+			case !controls(player, victim), !controls(player, destination), !controls(player, v.Location), (IsThing(destination) && !controls(player, df.Fetch(destination).Location)):
 				notify(player, "Permission denied. (must control victim, dest, victim's loc, and dest's loc)")
-			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_THING:
+			case !IsRoom(destination) && !IsThing(destination):
 				notify(player, "Bad destination.")
-			case !Wizard(victim) && Typeof(destination) == TYPE_THING && DB.Fetch(destination).flags & VEHICLE == 0:
+			case !Wizard(victim) && IsThing(destination) && DB.Fetch(destination).flags & VEHICLE == 0:
 				notify(player, "Destination object is not a vehicle.")
 			case parent_loop_check(victim, destination):
 				notify(player, "Objects can't contain themselves.")
@@ -86,33 +96,33 @@ func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
 				enter_room(descr, victim, destination, v.Location)
 				notify(player, "Teleported.")
 			}
-		case TYPE_THING:
+		case IsThing(victim):
 			if parent_loop_check(victim, destination) {
 				notify(player, "You can't make a container contain itself!")
 				break
 			}
 			fallthrough
-		case TYPE_PROGRAM:
+		case IsProgram(victim):
 			switch {
-			case Typeof(destination) != TYPE_ROOM && Typeof(destination) != TYPE_PLAYER && Typeof(destination) != TYPE_THING:
+			case !IsRoom(destination) && !IsPlayer(destination) && !IsThing(destination):
 				notify(player, "Bad destination.")
 			case !((controls(player, destination) || can_link_to(player, NOTYPE, destination)) && (controls(player, victim) || controls(player, DB.Fetch(victim).Location))):
 				notify(player, "Permission denied. (must control dest and be able to link to it, or control dest's loc)")
 			default:
 				/* check for non-sticky dropto */
-				if TYPEOF(destination) == TYPE_ROOM && DB.Fetch(destination).sp != NOTHING && DB.Fetch(destination).flags & STICKY == 0 {
+				if IsRoom(destination) && DB.Fetch(destination).sp != NOTHING && DB.Fetch(destination).flags & STICKY == 0 {
 					destination = DB.Fetch(destination).(ObjectID)
 				}
-				if tp_thing_movement && TYPEOF(victim) == TYPE_THING {
+				if tp_thing_movement && IsThing(victim) {
 					enter_room(descr, victim, destination, DB.Fetch(victim).Location)
 				} else {
 					moveto(victim, destination)
 				}
 				notify(player, "Teleported.")
 			}
-		case TYPE_ROOM:
+		case IsRoom(victim):
 			switch {
-			case Typeof(destination) != TYPE_ROOM:
+			case !IsRoom(destination):
 				notify(player, "Bad destination.")
 			case !controls(player, victim), !can_link_to(player, NOTYPE, destination), victim == GLOBAL_ENVIRONMENT:
 				notify(player, "Permission denied. (Can't move #0, dest must be linkable, and must control victim)")
@@ -184,55 +194,53 @@ int blessprops_wildcard(ObjectID player, ObjectID thing, const char *dir, const 
 }
 
 func do_unbless(descr int, player ObjectID, what, propname string) {
-	switch {
-	case !Wizard(player), Typeof(player) != TYPE_PLAYER):
-		notify(player, "Only Wizard players may use this command.")
-	case propname == "":
-		notify(player, "Usage is @unbless object=propname.")
-	default:
-		/* get victim */
-		md := NewMatch(descr, player, what, NOTYPE)
-		md.MatchEverything()
-		switch victim = md.NoisyMatchResult(); {
-		case victim == NOTHING:
-		case !Wizard(DB.Fetch(player).Owner):
-			notify(player, "Permission denied. (You're not a wizard)")
-		default:
-			if cnt := blessprops_wildcard(player, victim, "", propname, 0); cnt == 1 {
-				notify(player, fmt.Sprintf("%d property unblessed.", cnt))
-			} else {
-				notify(player, fmt.Sprintf("%d properties unblessed.", cnt))
+	WizardPlayerOnly(player, func(p *Player) {
+		if propname == "" {
+			notify(player, "Usage is @unbless object=propname.")
+		} else {
+			md := NewMatch(descr, player, what, NOTYPE)
+			md.MatchEverything()
+			switch victim = md.NoisyMatchResult(); {
+			case victim == NOTHING:
+			case !Wizard(p.Owner):
+				notify(player, "Permission denied. (You're not a wizard)")
+			default:
+				if cnt := blessprops_wildcard(player, victim, "", propname, 0); cnt == 1 {
+					notify(player, fmt.Sprintf("%d property unblessed.", cnt))
+				} else {
+					notify(player, fmt.Sprintf("%d properties unblessed.", cnt))
+				}
 			}
 		}
-	}
+	})
 }
 
 func do_bless(descr int, player ObjectID, what, propname string) {
-	switch {
-	case force_level:
-		notify(player, "Can't @force an @bless.")
-	case !Wizard(player), Typeof(player) != TYPE_PLAYER:
-		notify(player, "Only Wizard players may use this command.")
-	case propname == "":
-		notify(player, "Usage is @bless object=propname.")
-	default:
-		/* get victim */
-		md := NewMatch(descr, player, what, NOTYPE)
-		md.MatchEverything()
-		switch victim = md.NoisyMatchResult(); {
-		case victim == NOTHING:
-		case player != GOD && DB.Fetch(victim).Owner == GOD:
-			notify(player, "Only God may touch God's stuff.")
-		case !Wizard(DB.Fetch(player).Owner):
-			notify(player, "Permission denied. (you're not a wizard)")
+	WizardPlayerOnly(player, func(p *Player) {
+		switch {
+		case force_level:
+			notify(player, "Can't @force an @bless.")
+		case propname == "":
+			notify(player, "Usage is @bless object=propname.")
 		default:
-			if cnt := blessprops_wildcard(player, victim, "", propname, 1); cnt == 1 {
-				notify(player, fmt.Sprintf("%d property blessed.", cnt))
-			} else {
-				notify(player, fmt.Sprintf("%d properties blessed.", cnt))
+			/* get victim */
+			md := NewMatch(descr, player, what, NOTYPE)
+			md.MatchEverything()
+			switch victim = md.NoisyMatchResult(); {
+			case victim == NOTHING:
+			case player != GOD && DB.Fetch(victim).Owner == GOD:
+				notify(player, "Only God may touch God's stuff.")
+			case !Wizard(p.Owner):
+				notify(player, "Permission denied. (you're not a wizard)")
+			default:
+				if cnt := blessprops_wildcard(player, victim, "", propname, 1); cnt == 1 {
+					notify(player, fmt.Sprintf("%d property blessed.", cnt))
+				} else {
+					notify(player, fmt.Sprintf("%d properties blessed.", cnt))
+				}
 			}
 		}
-	}
+	})
 }
 
 func do_force(descr int, player ObjectID, what, command string) {
@@ -240,13 +248,9 @@ func do_force(descr int, player ObjectID, what, command string) {
 	case force_level > tp_max_force_level - 1:
 		notify(player, "Can't force recursively.")
 		return
-	case !tp_zombies && (!Wizard(player) || TYPEOF(player) != TYPE_PLAYER):
+	case !tp_zombies && (!Wizard(player) || !IsPlayer(player)):
 		notify(player, "Zombies are not enabled here.")
 		return
-#ifdef DEBUG
-	} else {
-		notify(player, "[debug] Zombies are not enabled for nonwizards -- force succeeded.")
-#endif
 	}
 
 	/* get victim */
@@ -259,14 +263,12 @@ func do_force(descr int, player ObjectID, what, command string) {
 		MatchRegistered().
 		MatchPlayer().
 		NoisyMatchResult()
+	p := DB.FetchPlayer(player)
 	v := DB.FetchPlayer(victim)
 	terms := strings.SplitN(v.name, " ", 2)
 	switch {
 	case victim == NOTHING:
-#ifdef DEBUG
-		notify(player, "[debug] do_force: unable to find your target!")
-#endif /* DEBUG */
-	case TYPEOF(victim) != TYPE_PLAYER && TYPEOF(victim) != TYPE_THING:
+	case !IsPlayer(victim) && !IsThing(victim):
 		notify(player, "Permission Denied -- Target not a player or thing.")
 	case victim == GOD:
 		notify(player, "You cannot force God to do anything.")
@@ -274,16 +276,16 @@ func do_force(descr int, player ObjectID, what, command string) {
 		notify(player, "Permission denied: forced object not @set Xforcible.")
 	case !Wizard(player) && !test_lock_false_default(descr, player, victim, "@/flk"):
 		notify(player, "Permission denied: Object not force-locked to you.")
-	case !Wizard(player) && TYPEOF(victim) == TYPE_THING && v.Location != NOTHING && DB.Fetch(v.Location).flags & ZOMBIE != 0 && TYPEOF(v.Location) == TYPE_ROOM:
+	case !Wizard(player) && IsThing(victim) && v.Location != NOTHING && DB.Fetch(v.Location).flags & ZOMBIE != 0 && IsRoom(v.Location):
 		notify(player, "Sorry, but that's in a no-puppet zone.")
-	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && DB.FetchPlayer(player).flags & ZOMBIE != 0:
+	case !Wizard(p.Owner) && IsThing(victim) && p.flags & ZOMBIE != 0:
 		notify(player, "Permission denied -- you cannot use zombies.")
-	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && DB.FetchPlayer(player).flags & DARK != 0:
+	case !Wizard(p.Owner) && IsThing(victim) && p.flags & DARK != 0:
 		notify(player, "Permission denied -- you cannot force dark zombies.")
-	case !Wizard(DB.FetchPlayer(player).Owner) && TYPEOF(victim) == TYPE_THING && terms > 0 && lookup_player(terms[0]) != NOTHING:
+	case !Wizard(p.Owner) && IsThing(victim) && terms > 0 && lookup_player(terms[0]) != NOTHING:
 		notify(player, "Puppet cannot share the name of a player.")
 	default:
-		log_status("FORCED: %s(%d) by %s(%d): %s", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player, command)
+		log_status("FORCED: %s(%d) by %s(%d): %s", v.Name(), victim, p.Name(), player, command)
 		/* force victim to do command */
 		ForceAction(NOTHING, func() {
 			process_command(ObjectID_first_descr(victim), victim, command)
@@ -312,7 +314,7 @@ func do_stats(player ObjectID, name string) {
 			}
 			EachObject(func(obj ObjectID, o *Object) {
 				if o.Owner == owner {
-					if o.flags & OBJECT_CHANGED != 0 {
+					if o.Changed {
 						altered++
 					}
 					/* if unused for 90 days, inc oldobj count */
@@ -341,7 +343,7 @@ func do_stats(player ObjectID, name string) {
 			})
 		} else {
 			EachObject(func(obj ObjectID, o *Object) {
-				if o.flags & OBJECT_CHANGED != 0 {
+				if o.Changed {
 					altered++
 				}
 				/* if unused for 90 days, inc oldobj count */
@@ -385,116 +387,112 @@ func do_stats(player ObjectID, name string) {
 	}
 }
 
-
 func do_boot(player ObjectID, name string) {
-	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
-		notify(player, "Only a Wizard player can boot someone off.")
-		return
-	}
-	victim := lookup_player(name)
-	switch {
-	case victim == NOTHING:
-		notify(player, "That player does not exist.")
-	case TYPEOF(victim) != TYPE_PLAYER:
-		notify(player, "You can only boot players!")
-	case victim == GOD:
-		notify(player, "You can't boot God!")
-	default:
-		notify(victim, "You have been booted off the game.")
-		if boot_off(victim) {
-			log_status("BOOTED: %s(%d) by %s(%d)", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player)
-			if player != victim {
-				notify(player, fmt.Sprintf("You booted %s off!", DB.FetchPlayer(victim).name))
+	WizardPlayerOnly(player, func(p *Player) {
+		switch victim := lookup_player(name); victim {
+		case NOTHING:
+			notify(player, "That player does not exist.")
+		case GOD:
+			notify(player, "You can't boot God!")
+		default:
+			switch v := DB.Fetch(victim); v.(type) {
+			case Player:
+				notify(victim, "You have been booted off the game.")
+				if boot_off(victim) {
+					log_status("BOOTED: %s(%d) by %s(%d)", v.Name(), victim, p.Name(), player)
+					if player != victim {
+						notify(player, fmt.Sprintf("You booted %s off!", v.Name()))
+					}
+				} else {
+					notify(player, fmt.Sprintf("%s is not connected.", v.Name()))
+				}
+			default:
+				notify(player, "You can only boot players!")
 			}
-		} else {
-			notify(player, fmt.Sprintf("%s is not connected.", DB.FetchPlayer(victim).name))
 		}
-	}
+	})
 }
 
 func do_toad(descr int, player ObjectID, name, recip string) {
-	var victim, recipient ObjectID
-	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
-		notify(player, "Only a Wizard player can turn a person into a toad.")
-		return
-	}
-	if victim = lookup_player(name); victim == NOTHING {
-		notify(player, "That player does not exist.")
-		return
-	}
-	if victim == GOD {
-		notify(player, "You cannot @toad God.")
-		if player != GOD {
-			log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", DB.FetchPlayer(player).name, player)
-		}
-		return
-	}
-	if player == victim {
-		/* We don't want the last wizard to be toaded, in any case, so only someone else can do it. */
-		notify(player, "You cannot toad yourself.  Get someone else to do it for you.")
-		return
-	}
-	if recip == "" {
-		/* FIXME: Make me a tunable parameter! */
-		recipient = GOD
-	} else {
-		recipient = lookup_player(recip)
-		if recipient == NOTHING || recipient == victim {
-			notify(player, "That recipient does not exist.")
-			return
-		}
-	}
-
-	if TYPEOF(victim) != TYPE_PLAYER {
-		notify(player, "You can only turn players into toads!")
-	} else if player != GOD && TrueWizard(victim) {
-		notify(player, "You can't turn a Wizard into a toad.")
-	} else {
-		send_contents(descr, victim, HOME)
-		dequeue_prog(victim, 0)							/* Dequeue the programs that the player's running */
-		EachObject(func(obj ObjectID, o *Object) {
-			if o.Owner == victim {
-				switch {
-				case IsProgram(obj):
-					dequeue_prog(obj, 0)				/* dequeue player's progs */
-					if TrueWizard(recipient) {
-						o.flags &= ~(ABODE | WIZARD)
-						SetMLevel(obj, APPRENTICE)
-					}
-				case TYPE_ROOM, TYPE_THING, TYPE_EXIT:
-					o.Owner = recipient
-					o.flags |= OBJECT_CHANGED
+	WizardPlayerOnly(player, func(p *Player) {
+		switch victim := lookup_player(name); victim {
+		case NOTHING:
+			notify(player, "That player does not exist.")
+		case GOD:
+			notify(player, "You cannot @toad God.")
+			if player != GOD {
+				log_status("TOAD ATTEMPT: %s(#%d) tried to toad God.", p.name, player)
+			}
+		case player:
+			//	We don't want the last wizard to be toaded, in any case, so only someone else can do it.
+			notify(player, "You cannot toad yourself.  Get someone else to do it for you.")
+		default:
+			var recipient ObjectID
+			if recip == "" {
+				/* FIXME: Make me a tunable parameter! */
+				recipient = GOD
+			} else {
+				recipient = lookup_player(recip)
+				if recipient == NOTHING || recipient == victim {
+					notify(player, "That recipient does not exist.")
+					return
 				}
 			}
-			if p := o.(Player); IsThing(obj) && p.home == victim {
-				/* FIXME: Set a tunable "lost and found" area! */
-				p.home = tp_player_start
+
+			switch {
+			case !IsPlayer(victim):
+				notify(player, "You can only turn players into toads!")
+			case player != GOD && TrueWizard(victim):
+				notify(player, "You can't turn a Wizard into a toad.")
+			default:
+				send_contents(descr, victim, HOME)
+				dequeue_prog(victim, 0)							//	Dequeue the programs that the player's running
+				EachObject(func(obj ObjectID, o *Object) {
+					if o.Owner == victim {
+						switch o.(type) {
+						case Program:
+							dequeue_prog(obj, 0)				//	dequeue player's progs
+							if TrueWizard(recipient) {
+								o.flags &= ~(ABODE | WIZARD)
+								SetMLevel(obj, APPRENTICE)
+							}
+						case Room, Object, Exit:
+							o.GiveTo(recipient)
+							o.Touch()
+						}
+					}
+					if _, ok o.(Object); ok {
+						if o.Home == victim {
+							//	FIXME: Set a tunable "lost and found" area!
+							p.LiveAt(tp_player_start)
+						}
+					}
+				})
+
+				v := DB.FetchPlayer(victim)
+				notify(victim, "You have been turned into a toad.")
+				notify(player, fmt.Sprintf("You turned %s into a toad!", v.name))
+				log_status("TOADED: %s(%d) by %s(%d)", v.name, victim, p.name, player)
+
+				/* reset name */
+				delete_player(victim)
+				boot_player_off(victim)
+				ignore_remove_from_all_players(victim)
+				ignore_flush_cache(victim)
+				DB.Store(victim, &Object{
+					name: fmt.Sprintf("A slimy toad named %s", v.name),
+					home: p.Home(),
+					owner: player,
+				})
+				v.Touch()
+				add_property(victim, MESGPROP_VALUE, NULL, 1)		/* don't let him keep his immense wealth */
 			}
-		})
-
-		v := DB.FetchPlayer(victim)
-		notify(victim, "You have been turned into a toad.")
-		notify(player, fmt.Sprintf("You turned %s into a toad!", v.name))
-		log_status("TOADED: %s(%d) by %s(%d)", v.name, victim, DB.FetchPlayer(player).name, player)
-
-		/* reset name */
-		delete_player(victim)
-		v.name = fmt.Sprintf("A slimy toad named %s", v.name)
-		v.flags |= OBJECT_CHANGED
-		boot_player_off(victim)
-		ignore_remove_from_all_players(victim)
-		ignore_flush_cache(victim)
-		v.sp = &Player{ home: DB.FetchPlayer(player).home }
-		v.flags = (v.flags & ~TYPE_MASK) | TYPE_THING
-		v.Owner = player
-		add_property(victim, MESGPROP_VALUE, NULL, 1)		/* don't let him keep his immense wealth */
-	}
+		}
+	})
 }
 
 func do_newpassword(player ObjectID, name, password string) {
-	if !Wizard(player) || TYPEOF(player) != TYPE_PLAYER {
-		notify(player, "Only a Wizard player can newpassword someone.")
-	} else {
+	WizardPlayerOnly(player, func(p *Player) {
 		switch victim := lookup_player(name); {
 		case victim == NOTHING:
 			notify(player, "No such player.")
@@ -507,25 +505,23 @@ func do_newpassword(player ObjectID, name, password string) {
 			notify(player, "Only God can change a wizard's password.")
 		default:
 			set_password(victim, password)
-			DB.FetchPlayer(victim).flags |= OBJECT_CHANGED
+			DB.FetchPlayer(victim).Touch()
 			notify(player, "Password changed.")
-			notify(victim, fmt.Sprintf("Your password has been changed by %s.", DB.FetchPlayer(player).name))
-			log_status("NEWPASS'ED: %s(%d) by %s(%d)", DB.FetchPlayer(victim).name, victim, DB.FetchPlayer(player).name, player)
+			notify(victim, fmt.Sprintf("Your password has been changed by %s.", p.Name()))
+			log_status("NEWPASS'ED: %s(%d) by %s(%d)", DB.FetchPlayer(victim).name, victim, p.Name(), player)
 		}
 	}
 }
 
 func do_pcreate(player ObjectID, user, password string) {
-	if !Wizard(player) || Typeof(player) != TYPE_PLAYER {
-		notify(player, "Only a Wizard player can create a player.")
-	} else {
+	WizardPlayerOnly(player, func(p *Player) {
 		if newguy := create_player(user, password); newguy == NOTHING {
 			notify(player, "Create failed.")
 		} else {
-			log_status("PCREATED %s(%d) by %s(%d)", DB.FetchPlayer(newguy).name, newguy, DB.FetchPlayer(player).name, player)
+			log_status("PCREATED %s(%d) by %s(%d)", DB.FetchPlayer(newguy).name, newguy, p.Name(), player)
 			notify(player, fmt.Sprintf("Player %s created as object #%d.", user, newguy))
 		}
-	}
+	})
 }
 
 func do_serverdebug(descr int, player ObjectID, arg1, arg2 string) {
@@ -828,7 +824,7 @@ func do_all_topprofs(player ObjectID, arg1 string) {
 						}
 					}
 				}
-				if p := o.(Program); IsProgram(obj) == TYPE_PROGRAM && p.code != nil {
+				if p := o.(Program); p.code != nil {
 					newnode := &profnode{
 						prog: i,
 						proftime: p.proftime,

@@ -52,13 +52,14 @@ func (o ObjectID) ValidRemoteObject(player ObjectID, mlev int f ...func(ObjectID
 	return
 }
 
-func valid_object_or_home(oper interface{}, f ...func(ObjectID)) (obj ObjectID) {
-	if obj = oper.(ObjectID); obj == HOME {
+func (o ObjectID) ValidObjectOrHome(f ...func(ObjectID)) (r ObjectID) {
+	if o == HOME {
 		for _, f := range f {
 			f(HOME)
 		}
+		r = HOME
 	} else {
-		obj = obj.ValidObject(f...)
+		r = o.ValidObject(f...)
 	}
 	return
 }

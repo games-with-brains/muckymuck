@@ -150,19 +150,20 @@ func (o ObjectKey) Unparse(player ObjectID, fullname bool) (r string) {
 
 func (o ObjectKey) Eval(descr int, player, thing ObjectID) (r bool) {
 	if o.ObjectID != NOTHING {
-		if _, ok := o.ObjectID.(TYPE_PROGRAM):
+		p := DB.Fetch(player)
+		if _, ok := o.ObjectID.(Program); ok {
 			var real_player ObjectID
-			switch player.(type) {
-			case TYPE_PLAYER, TYPE_THING:
+			switch p.(type) {
+			case Player, Object:
 				real_player = player
 			default:
-				real_player = DB.Fetch(player).Owner
+				real_player = p.Owner
 			}
-			if tmpfr := interp(descr, real_player, DB.Fetch(player).Location, o.ObjectID, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
+			if tmpfr := interp(descr, real_player, p.Location, o.ObjectID, thing, PREEMPT, STD_HARDUID, 0); tmpfr != nil {
 				r = interp_loop(real_player, o.ObjectID, tmpfr, false) != nil
 			}
 		}
-		r ||= o.ObjectID == player || o.ObjectID == DB.Fetch(player).Owner || member(o.ObjectID, DB.Fetch(player).Contents) || o.ObjectID == DB.Fetch(player).Location
+		r ||= o.ObjectID == player || o.ObjectID == p.Owner || member(o.ObjectID, p.Contents) || o.ObjectID == p.Location
 	}
 	return
 }

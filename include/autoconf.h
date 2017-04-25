@@ -60,9 +60,6 @@
 /* ssl headers are under openssl dir. */
 /* #undef HAVE_OPENSSL */
 
-/* Did the user specify debugging assertions? */
-/* #undef DEBUG */
-
 /* Define to 1 if you have the `random' function. */
 #define HAVE_RANDOM 1
 

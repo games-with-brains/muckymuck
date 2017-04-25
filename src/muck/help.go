@@ -30,7 +30,6 @@ char* strcatn(char* buf, size_t bufsize, const char* src) {
 }
 
 func spit_file_segment(player ObjectID, filename, seg string) {
-	FILE *f;
 	char buf[BUFFER_LEN];
 	char segbuf[BUFFER_LEN];
 	char *p;
@@ -51,10 +50,9 @@ func spit_file_segment(player ObjectID, filename, seg string) {
 			endline = startline = atoi(segbuf);
 		}
 	}
-	if ((f = fopen(filename, "rb")) == NULL) {
+	if f, e := os.Open(filename); e != nil {
 		fmt.Printf("Sorry, %v is missing.  Management has been notified.", filename)
-		fmt.Fprint(os.Stderr, "spit_file:")
-		perror(filename)
+		fmt.Fprintln(os.Stderr, "spit_file:", filename)
 	} else {
 		while (fgets(buf, sizeof buf, f)) {
 			for (p = buf; *p; p++) {
@@ -72,7 +70,7 @@ func spit_file_segment(player ObjectID, filename, seg string) {
 				}
 			}
 		}
-		fclose(f);
+		f.Close()
 	}
 }
 
@@ -80,57 +78,49 @@ void spit_file(ObjectID player, const char *filename) {
 	spit_file_segment(player, filename, "");
 }
 
-void index_file(ObjectID player, const char *onwhat, const char *file) {
-	FILE *f;
+func index_file(player ObjectID, onwhat, file string) {
 	char buf[BUFFER_LEN];
-	char topic[BUFFER_LEN];
 	char *p;
-	int arglen, found;
 
-	*topic = '\0';
-	strcpyn(topic, sizeof(topic), onwhat);
-	if (*onwhat) {
-		strcatn(topic, sizeof(topic), "|");
+	topic := onwhat
+	if onwhat != "" {
+		topic += "|"
 	}
-
-	if ((f = fopen(file, "rb")) == NULL) {
-		buf = fmt.Sprintf("Sorry, %s is missing.  Management has been notified.", file)
-		fmt.Print(buf)
-		fmt.Fprintf(os.Stderr, "help: No file %s!\n", file)
+	if f, e := os.Open(file); e != nil {
+		fmt.Printf("Sorry, %s is missing.  Management has been notified.", file)
+		log.Println("help: No file", file)
 	} else {
-		if (*topic) {
-			arglen = len(topic);
-			do {
+		scanner := bufio.NewScanner(f)
+		if topic != "" {
+			arglen := len(topic)
+			for found := false; !found; {
 				do {
 					if (!(fgets(buf, sizeof buf, f))) {
-						buf = fmt.Sprintf("Sorry, no help available on topic \"%v\"", onwhat)
-						fmt.Print(buf)
-						fclose(f);
-						return;
+						fmt.Printf("Sorry, no help available on topic \"%v\"", onwhat)
+						f.Close()
+						return
 					}
-				} while (*buf != '~');
+				} while buf[0] != '~'
 				do {
 					if (!(fgets(buf, sizeof buf, f))) {
-						buf = fmt.Sprintf("Sorry, no help available on topic \"%v\"", onwhat)
-						fmt.Print(buf)
-						fclose(f);
-						return;
+						fmt.Printf("Sorry, no help available on topic \"%v\"", onwhat)
+						f.Close()
+						return
 					}
-				} while (*buf == '~');
-				p = buf;
-				found = 0;
-				buf[len(buf) - 1] = '|';
-				while (*p && !found) {
-					if (strncasecmp(p, topic, arglen)) {
-						while (*p && (*p != '|'))
-							p++;
-						if (*p)
-							p++;
+				} while buf[0] == '~'
+				p = buf
+				buf[len(buf) - 1] = '|'
+				for found = false; p != "" && !found; {
+					if strncasecmp(p, topic, arglen) != 0 {
+						for ; p != "" && p[0] != '|'; p = p[1:] {}
+						if p != "" {
+							p = p[1:]
+						}
 					} else {
-						found = 1;
+						found = true
 					}
 				}
-			} while (!found);
+			}
 		}
 		while (fgets(buf, sizeof buf, f)) {
 			if (*buf == '~')
@@ -147,7 +137,7 @@ void index_file(ObjectID player, const char *onwhat, const char *file) {
 				fmt.Print("  ")
 			}
 		}
-		fclose(f);
+		f.Close()
 	}
 }
 
@@ -196,7 +186,7 @@ func main() {
 		case "help":
 			helpfile = HELP_FILE
 		default:
-			fprintf(stderr, "Usage: %s muf|mpi|help [topic]\n", os.Args[0])
+			log.Printf("Usage: %s muf|mpi|help [topic]\n", os.Args[0])
 			os.Exit(-2)
 		}
 		helpfile := strrchr(helpfile, '/')
@@ -210,7 +200,7 @@ func main() {
 		index_file(1, topic, buf)
 		os.Exit(0)
 	default:
-		fprintf(stderr, "Usage: %s muf|mpi|help [topic]\n", os.Args[0])
+		log.Printf("Usage: %s muf|mpi|help [topic]\n", os.Args[0])
 		os.Exit(-1)
 	}
 }

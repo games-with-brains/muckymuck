@@ -1,5 +1,7 @@
 package fbmuck
 
+//	FIXME: Changed will be replaced by a new layered DB design in which records are stored in a list of maps which act as snapshots of currently loaded records
+
 type TimeStamps struct {
 	Created time.Time
 	Modified time.Time
@@ -7,6 +9,12 @@ type TimeStamps struct {
 	Uses int
 	MPIUses int
 	time.Duration
+	Changed
+}
+
+func (t *TimeStamps) Touch() {
+	t.Modified = time.Now()
+	t.Changed = true
 }
 
 func NewTimeStamps() *TimeStamps {
@@ -19,7 +27,7 @@ func ts_useobject(thing ObjectID) {
 		p := DB.Fetch(thing)
 		p.LastUsed = time(nil)
 		p.Uses++
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		if Typeof(thing) == TYPE_ROOM {
 			ts_useobject(p.Location)
 		}
@@ -30,7 +38,7 @@ func ts_lastuseobject(thing ObjectID) {
 	if thing != NOTHING {
 		p := DB.Fetch(thing)
 		p.LastUsed = time(nil)
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		if Typeof(thing) == TYPE_ROOM {
 			ts_lastuseobject(p.Location)
 		}
@@ -38,7 +46,5 @@ func ts_lastuseobject(thing ObjectID) {
 }
 
 func ts_modifyobject(thing ObjectID) {
-	p := DB.Fetch(thing)
-	p.Modified = time(nil)
-	p.flags |= OBJECT_CHANGED
+	DB.Fetch(thing).Touch()
 }

@@ -6,7 +6,7 @@ import "os"
 func mfn_owner(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("OWNER", mesg_ObjectID_raw(descr, player, what, perms, argv[0]), func(obj ObjectID) {
 		if obj == HOME {
-			obj = DB.FetchPlayer(player).home
+			obj = DB.FetchPlayer(player).Home
 		}
 		r = ref2str(DB.Fetch(obj).Owner)
 	})
@@ -16,13 +16,13 @@ func mfn_owner(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp in
 func mfn_controls(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int) (r string) {
 	with_useful_object("CONTROLS (1)", mesg_ObjectID_raw(descr, player, what, perms, argv[0]), func(obj ObjectID) {
 		if obj == HOME {
-			obj = DB.FetchPlayer(player).home
+			obj = DB.FetchPlayer(player).Home
 		}
 		obj2 := DB.Fetch(perms).Owner
 		if len(argv) >  1 {
 			with_useful_object("CONTROLS (2)", mesg_ObjectID_raw(descr, player, what, perms, argv[1]), func(o ObjectID) {
 				if obj2 = o; o == HOME {
-					obj2 = DB.FetchPlayer(player).home
+					obj2 = DB.FetchPlayer(player).Home
 				}
 				if !IsPlayer(obj2) {
 					obj2 = DB.Fetch(obj2).Owner
@@ -42,9 +42,9 @@ func mfn_links(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp in
 		case Room:
 			r = ref2str(o.ObjectID)
 		case Player:
-			r = ref2str(o.home)
+			r = ref2str(o.Home)
 		case Object:
-			r = ref2str(o.home)
+			r = ref2str(o.Home)
 		case Exit:
 			var items []string
 			for _, v := range o.Destinations {

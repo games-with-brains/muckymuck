@@ -62,7 +62,7 @@ func remove_first(ObjectID first, ObjectID what) ObjectID {
 		for prev = first; prev != NOTHING; prev = DB.Fetch(prev).next {
 			if DB.Fetch(prev).next == what {
 				DB.Fetch(prev).next = DB.Fetch(what).next
-				DB.Fetch(prev).flags |= OBJECT_CHANGED
+				DB.Fetch(prev).Touch()
 				return first
 			}
 		}
@@ -81,9 +81,9 @@ func reverse(list ObjectID) (newlist ObjectID) {
 	for newlist = NOTHING; list != NOTHING; {
 		rest := DB.Fetch(list).next
 		DB.Fetch(list).next = newlist
-		DB.Fetch(list).flags |= OBJECT_CHANGED
+		DB.Fetch(list).Touch()
 		newlist = list
-		DB.Fetch(newlist).flags |= OBJECT_CHANGED
+		DB.Fetch(newlist).Touch()
 		list = rest
 	}
 	return

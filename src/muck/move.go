@@ -4,23 +4,23 @@ func moveto(what, where ObjectID) {
 	var loc ObjectID
 	if loc = DB.Fetch(what).Location; loc != NOTHING {
 		DB.Fetch(loc).Contents = remove_first(DB.Fetch(loc).Contents, what)
-		DB.Fetch(loc).flags |= OBJECT_CHANGED
+		DB.Fetch(loc).Touch()
 	}
 
 	o := DB.Fetch(what)
 	switch where {
 	case NOTHING:
-		o.Location = NOTHING
-		o.flags |= OBJECT_CHANGED
+		o.MoveTo(NOTHING)
+		o.Touch()
 		return					/* NOTHING doesn't have contents */
 	case HOME:
 		switch o := o.(type) {
 		case Player:
-			where = o.home
+			where = o.Home
 		case Object:
-			where = o.home
+			where = o.Home
 			if parent_loop_check(what, where) {
-				where = DB.FetchPlayer(o.Owner).home
+				where = DB.FetchPlayer(o.Owner).Home
 				if parent_loop_check(what, where) {
 					where = ObjectID(tp_player_start)
 				}
@@ -34,11 +34,11 @@ func moveto(what, where ObjectID) {
 		if parent_loop_check(what, where) {
 			switch o := o.(type) {
 			case Player:
-				where = o.home
+				where = o.Home
 			case Object:
-				where = o.home
+				where = o.Home
 				if parent_loop_check(what, where) {
-					where = DB.FetchPlayer(o.Owner).home
+					where = DB.FetchPlayer(o.Owner).Home
 					if parent_loop_check(what, where) {
 						where = tp_player_start
 					}
@@ -53,20 +53,20 @@ func moveto(what, where ObjectID) {
 	dest := DB.Fetch(where)
 	o.next = dest.Contents
 	dest.Contents = what
-	dest.flags |= OBJECT_CHANGED
-	o.Location = where
-	o.flags |= OBJECT_CHANGED
+	dest.Touch()
+	o.MoveTo(where)
+	o.Touch()
 }
 
 func send_contents(int descr, ObjectID loc, ObjectID dest) {
 	first := DB.Fetch(loc).Contents
 	DB.Fetch(loc).Contents = NOTHING
-	DB.Fetch(loc).flags |= OBJECT_CHANGED
+	DB.Fetch(loc).Touch()
 
 	/* blast locations of everything in list */
 	for rest := first; rest != NOTHING; rest = DB.Fetch(rest).next {
-		DB.Fetch(rest).Location = NOTHING
-		DB.Fetch(rest).flags |= OBJECT_CHANGED
+		DB.Fetch(rest).MoveTo(NOTHING)
+		DB.Fetch(rest).Touch()
 	}
 
 	for first != NOTHING {
@@ -95,7 +95,7 @@ func send_contents(int descr, ObjectID loc, ObjectID dest) {
 		first = rest
 	}
 	DB.Fetch(loc).Contents = reverse(DB.Fetch(loc).Contents)
-	DB.Fetch(loc).flags |= OBJECT_CHANGED
+	DB.Fetch(loc).Touch()
 }
 
 func maybe_dropto(descr int, loc, dropto ObjectID) {
@@ -167,9 +167,9 @@ func parent_loop_check(source, dest ObjectID) bool {
 	if dest == HOME {
 		switch source := DB.Fetch(source).(type) {
 		case Player:
-			dest = source.home
+			dest = source.Home
 		case Object:
-			dest = source.home
+			dest = source.Home
 		case Room:
 			dest = GLOBAL_ENVIRONMENT
 		case Program:
@@ -216,7 +216,7 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 
 	p := DB.Fetch(player)
 	if loc == HOME {
-		loc = p.home
+		loc = p.Home
 	}
 
 	/* get old location */
@@ -225,11 +225,11 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 	if parent_loop_check(player, loc) {
 		switch p := p.(type) {
 		case Player:
-			loc = p.home
+			loc = p.Home
 		case Object:
-			loc = p.home
+			loc = p.Home
 			if parent_loop_check(player, loc) {
-				loc = DB.FetchPlayer(p.Owner).home
+				loc = DB.FetchPlayer(p.Owner).Home
 				if parent_loop_check(player, loc) {
 					loc = tp_player_start
 				}
@@ -295,7 +295,7 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 		if !controls(player, loc) && get_property_value(p.Owner, MESGPROP_VALUE) <= tp_max_pennies && RANDOM() % tp_penny_rate == 0 {
 			notify_fmt(player, "You found one %s!", tp_penny)
 			add_property(p.Owner, MESGPROP_VALUE, nil, get_property_value(p.Owner, MESGPROP_VALUE) + 1)
-			DB.Fetch(p.Owner).flags |= OBJECT_CHANGED
+			DB.Fetch(p.Owner).Touch()
 		}
 	}
 
@@ -311,13 +311,13 @@ func send_home(descr int, thing ObjectID, puppethome int) {
 		/* send his possessions home first! */
 		/* that way he sees them when he arrives */
 		send_contents(descr, thing, HOME)
-		enter_room(descr, thing, o.home, o.Location)
+		enter_room(descr, thing, o.Home, o.Location)
 	case Object:
 		if puppethome {
 			send_contents(descr, thing, HOME)
 		}
 		if tp_thing_movement || o.flags & (ZOMBIE | LISTENER) != 0 {
-			enter_room(descr, thing, o.home, o.Location)
+			enter_room(descr, thing, o.Home, o.Location)
 		} else {
 			moveto(thing, HOME)		/* home */
 		}
@@ -364,7 +364,7 @@ func trigger(int descr, ObjectID player, ObjectID exit, int pflag) {
 	p := DB.FetchPlayer(player)
 	for i, dest := range e.Destinations {
 		if dest == HOME {
-			dest = p.home
+			dest = p.Home
 
 			/* fix #1112946 temporarily -- premchai21 */
 			if IsThing(dest) {
@@ -797,12 +797,13 @@ func recycle(descr int, player, thing ObjectID) {
 	}
 	/* dequeue any MUF or MPI events for the given object */
 	dequeue_prog(thing, 0)
-	switch o := DB.Fetch(thing).(type) {
+	o := DB.Fetch(thing)
+	switch o := o.(type) {
 	case Room:
 		if !Wizard(o.Owner) {
 			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_room_cost)
 		}
-		DB.Fetch(o.Owner).flags |= OBJECT_CHANGED
+		DB.Fetch(o.Owner).Touch()
 		for first := o.Exits; first != NOTHING; first = rest {
 			p := DB.Fetch(first)
 			rest = p.next
@@ -816,7 +817,7 @@ func recycle(descr int, player, thing ObjectID) {
 		if !Wizard(o.Owner) {
 			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + get_property_value(thing, MESGPROP_VALUE))
 		}
-		DB.Fetch(o.Owner).flags |= OBJECT_CHANGED
+		DB.Fetch(o.Owner).Touch()
 		for first := o.Exits; first != NOTHING; first = rest {
 			p := DB.Fetch(first)
 			rest = p.next
@@ -832,9 +833,9 @@ func recycle(descr int, player, thing ObjectID) {
 		if !Wizard(o.Owner) && len(o.Destinations) != 0 {
 			add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_link_cost)
 		}
-		DB.Fetch(o.Owner).flags |= OBJECT_CHANGED
+		DB.Fetch(o.Owner).Touch()
 	case Program:
-		unlink(fmt.Sprintf("muf/%v.m", thing))
+		os.Remove(fmt.Sprintf("muf/%v.m", thing))
 	}
 
 	t := DB.Fetch(thing)
@@ -844,38 +845,38 @@ func recycle(descr int, player, thing ObjectID) {
 		case Room:
 			if o.sp == thing {
 				o.sp = NOTHING
-				o.flags |= OBJECT_CHANGED
+				o.Touch()
 			}
 			if o.Exits == thing {
 				o.Exits = t.next
-				o.flags |= OBJECT_CHANGED
+				o.Touch()
 			}
 			if o.Owner == thing {
-				o.Owner = GOD
-				o.flags |= OBJECT_CHANGED
+				o.GiveTo(GOD)
+				o.Touch()
 			}
 		case Object:
-			if o.home == thing {
-				if p := DB.FetchPlayer(o.Owner); p.home == thing {
-					p.home = tp_player_start
+			if o.Home == thing {
+				if p := DB.FetchPlayer(o.Owner); p.Home == thing {
+					p.LiveAt(tp_player_start)
 				}
-				loc := DB.FetchPlayer(o.Owner).home
+				loc := DB.FetchPlayer(o.Owner).Home
 				if parent_loop_check(rest, loc) {
 					loc = o.Owner
 					if parent_loop_check(rest, loc) {
 						loc = ObjectID(0)
 					}
 				}
-				o.home = loc
-				o.flags |= OBJECT_CHANGED
+				o.LiveAt(loc)
+				o.Touch()
 			}
 			if o.Exits == thing {
 				o.Exits = t.next
-				o.flags |= OBJECT_CHANGED
+				o.Touch()
 			}
 			if o.Owner == thing {
-				o.Owner = GOD
-				o.flags |= OBJECT_CHANGED
+				o.GiveTo(GOD)
+				o.Touch()
 			}
 		case Exit:
 			var i, j int
@@ -886,17 +887,17 @@ func recycle(descr int, player, thing ObjectID) {
 				}
 				if j < len(o.Destinations) {
 					add_property(o.Owner, MESGPROP_VALUE, nil, get_property_value(o.Owner, MESGPROP_VALUE) + tp_link_cost)
-					DB.Fetch(o.Owner).flags |= OBJECT_CHANGED
+					DB.Fetch(o.Owner).Touch()
 					for x, _ := range o.Destinations[j:] {
 						o.Destinations[x] = nil
 					}
 					o.Destinations = o.Destinations[:j]
-					o.flags |= OBJECT_CHANGED
+					o.Touch()
 				}
 			}
 			if o.Owner == thing {
-				o.Owner = GOD
-				o.flags |= OBJECT_CHANGED
+				o.GiveTo(GOD)
+				o.Touch()
 			}
 		case Player:
 			if IsProgram(thing) && o.flags & INTERACTIVE != 0 && o.(Player).curr_prog == thing {
@@ -911,30 +912,30 @@ func recycle(descr int, player, thing ObjectID) {
 					notify(rest, "The program you were editing has been recycled.  Exiting Editor.")
 				}
 			}
-			if o.home == thing {
-				o.home = tp_player_start
-				o.flags |= OBJECT_CHANGED
+			if o.Home == thing {
+				o.LiveAt(tp_player_start)
+				o.Touch()
 			}
 			if o.Exits == thing {
 				o.Exits = t.next
-				o.flags |= OBJECT_CHANGED
+				o.Touch()
 			}
 			if o.curr_prog == thing {
 				o.curr_prog = 0
 			}
 		case IsProgram(rest):
 			if o.Owner == thing {
-				o.Owner = GOD
-				o.flags |= OBJECT_CHANGED
+				o.GiveTo(GOD)
+				o.Touch()
 			}
 		}
 		if o.Contents == thing {
 			o.Contents = t.next
-			o.flags |= OBJECT_CHANGED
+			o.Touch()
 		}
 		if o.next == thing {
 			o.next = t.next
-			o.flags |= OBJECT_CHANGED
+			o.Touch()
 		}
 	})
 
@@ -958,5 +959,5 @@ func recycle(descr int, player, thing ObjectID) {
 
 	DB.Store(thing, nil)
 	db_clear_object(thing)
-	t.flags |= OBJECT_CHANGED
+	t.Touch()
 }

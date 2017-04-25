@@ -18,9 +18,9 @@ func do_rob(int descr, ObjectID player, const char *what) {
 	case can_doit(descr, player, thing, "Your conscience tells you not to."):
 		/* steal a penny */
 		add_property(DB.Fetch(player).Owner, MESGPROP_VALUE, nil, get_property_value(DB.Fetch(player).Owner, MESGPROP_VALUE) + 1)
-		DB.Fetch(player).flags |= OBJECT_CHANGED
+		DB.Fetch(player).Touch()
 		add_property(thing, MESGPROP_VALUE, nil, get_property_value(thing, MESGPROP_VALUE) - 1)
-		DB.Fetch(thing).flags |= OBJECT_CHANGED
+		DB.Fetch(thing).Touch()
 		notify_fmt(player, "You stole a %s.", tp_penny)
 		notify(thing, fmt.Sprintf("%s stole one of your %s!", DB.Fetch(player).name, tp_pennies))
 	}
@@ -70,7 +70,7 @@ func do_kill(descr int, player ObjectID, what string, cost int) {
 		if get_property_value(victim, MESGPROP_VALUE) < tp_max_pennies {
 			notify(victim, fmt.Sprintf("Your insurance policy pays %d %s.", tp_kill_bonus, tp_pennies))
 			add_property(victim, MESGPROP_VALUE, nil, get_property_value(victim, MESGPROP_VALUE) + tp_kill_bonus)
-			DB.Fetch(victim).flags |= OBJECT_CHANGED
+			DB.Fetch(victim).Touch()
 		} else {
 			notify(victim, "Your insurance policy has been revoked.")
 		}
@@ -108,7 +108,7 @@ func do_give(descr int, player ObjectID, recipient string, amount int) {
 				notify_fmt(player, "You don't have that many %s to give!", tp_pennies)
 			default:
 				switch who.(type) {
-				case TYPE_PLAYER:
+				case Player:
 					add_property(who, MESGPROP_VALUE, nil, get_property_value(who, MESGPROP_VALUE) + amount)
 					switch amount {
 					case -1, 1:
@@ -118,7 +118,7 @@ func do_give(descr int, player ObjectID, recipient string, amount int) {
 						notify(player, fmt.Sprintf("You take %d %s from %s.", -amount, tp_pennies, DB.Fetch(who).name))
 						notify(who, fmt.Sprintf("%s takes %d %s from you!", DB.Fetch(player).name, -amount, tp_pennies))
 					}
-				case TYPE_THING:
+				case Object:
 					add_property(who, MESGPROP_VALUE, nil, get_property_value(who, MESGPROP_VALUE) + amount)
 					if v := get_property_value(who, MESGPROP_VALUE); v == 1 {
 						notify(player, fmt.Sprintf("You change the value of %s to %d %s.", DB.Fetch(who).name, v, tp_penny))
@@ -128,7 +128,7 @@ func do_give(descr int, player ObjectID, recipient string, amount int) {
 				default:
 					notify_fmt(player, "You can't give %s to that!", tp_pennies)
 				}
-				DB.Fetch(who).flags |= OBJECT_CHANGED
+				DB.Fetch(who).Touch()
 			}
 		}
 	}

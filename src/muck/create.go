@@ -81,17 +81,17 @@ func do_open(descr int, player ObjectID, direction, linkto string) {
 				exit := new_object()
 
 				/* initialize everything */
-				DB.Fetch(exit).name = direction
-				DB.Fetch(exit).Location = loc
-				DB.Fetch(exit).Owner = DB.Fetch(player).Owner
+				DB.Fetch(exit).NowCalled(direction)
+				DB.Fetch(exit).MoveTo(loc)
+				DB.Fetch(exit).GiveTo(DB.Fetch(player).Owner)
 				DB.Fetch(exit).flags = TYPE_EXIT
 				DB.Fetch(exit).(Exit).Destinations = nil
 
 				/* link it in */
 				DB.Fetch(exit).next = DB.Fetch(loc).Exits
-				DB.Fetch(exit).flags |= OBJECT_CHANGED
+				DB.Fetch(exit).Touch()
 				DB.Fetch(loc).Exits = exit
-				DB.Fetch(loc§).flags |= OBJECT_CHANGED
+				DB.Fetch(loc§).Touch()
 
 				/* and we're done */
 				notify(player, fmt.Sprintf("Exit opened with number %d.", exit))
@@ -105,7 +105,7 @@ func do_open(descr int, player ObjectID, direction, linkto string) {
 						var good_dest []ObjectID
 						ndest := link_exit(descr, player, exit, qname, good_dest)
 						DB.Fetch(exit).(Exit).Destinations = good_dest
-						DB.Fetch(exit).flags |= OBJECT_CHANGED
+						DB.Fetch(exit).Touch()
 					}
 				}
 
@@ -131,7 +131,7 @@ func _link_exit(descr int, player, exit ObjectID, name string, dest_list []Objec
 
 		if dest := parse_linkable_dest(descr, player, exit, q); dest != NOTHING {
 			switch Typeof(dest) {
-			case TYPE_PLAYER, TYPE_ROOM, TYPE_PROGRAM:
+			case Player, Room, Program:
 				if prdest {
 					notify(player, fmt.Sprintf("Only one player, room, or program destination allowed. Destination %s ignored.", unparse_object(player, dest)))
 					if dryrun {
@@ -142,10 +142,10 @@ func _link_exit(descr int, player, exit ObjectID, name string, dest_list []Objec
 				dest_list[r] = dest
 				r++
 				prdest = true
-			case TYPE_THING:
+			case Object:
 				dest_list[r] = dest
 				r++
-			case TYPE_EXIT:
+			case Exit:
 				if exit_loop_check(exit, dest) {
 					notify(player, fmt.Sprintf("Destination %s would create a loop, ignored.", unparse_object(player, dest)))
 					if dryrun {
@@ -257,26 +257,26 @@ func do_link(descr int, player ObjectID, thing_name, dest_name string) {
 				default:
 					owner := DB.Fetch(thing).Owner
 					add_property(owner, MESGPROP_VALUE, nil, get_property_value(owner, MESGPROP_VALUE) + tp_exit_cost)
-					DB.Fetch(owner).flags |= OBJECT_CHANGED
-					DB.Fetch(thing).Owner = DB.Fetch(player).Owner
+					DB.Fetch(owner).Touch()
+					DB.Fetch(thing).GiveTo(DB.Fetch(player).Owner)
 					var good_dest []ObjectID
 					if n := link_exit(descr, player, thing, dest_name, good_dest); n == 0 {
 						notify(player, "No destinations linked.")
 						add_property(player, MESGPROP_VALUE, nil, get_property_value(player, MESGPROP_VALUE) + tp_link_cost)
-						DB.Fetch(player).flags |= OBJECT_CHANGED
+						DB.Fetch(player).Touch()
 					} else {
 						DB.Fetch(thing).(Exit).Destinations = good_dest
-						DB.Fetch(thing).flags |= OBJECT_CHANGED
+						DB.Fetch(thing).Touch()
 					}
 				}
-			case TYPE_THING, TYPE_PLAYER:
+			case Object, Player:
 				md := NewMatch(descr, player, dest_name, IsRoom).
 					MatchNeighbor().
 					MatchAbsolute().
 					MatchRegistered().
 					MatchMe().
 					MatchHere()
-				if Typeof(thing) == TYPE_THING {
+				if IsThing(thing) {
 					md.MatchPossession()
 				}
 				switch dest := md.NoisyMatchResult(); {
@@ -286,14 +286,10 @@ func do_link(descr int, player ObjectID, thing_name, dest_name string) {
 				case parent_loop_check(thing, dest):
 					notify(player, "That would cause a parent paradox.")
 				default:
-					/* do the link */
-					if Typeof(thing) == TYPE_THING {
-						DB.Fetch(thing).(Player).home = dest
-					} else {
-						DB.Fetch(thing).(Player).home = dest
-					}
+					p := DB.Fetch(thing)
+					p.LiveAt(dest)
+					p.Touch()
 					notify(player, "Home set.")
-					DB.Fetch(thing).flags |= OBJECT_CHANGED
 				}
 			case TYPE_ROOM:			/* room dropto's */
 				dest = NewMatch(descr, player, dest_name, IsRoom).
@@ -308,9 +304,9 @@ func do_link(descr int, player ObjectID, thing_name, dest_name string) {
 				case !controls(player, thing), !can_link_to(player, Typeof(thing), dest), thing == dest:
 					notify(player, "Permission denied. (you don't control the room, or can't link to the dropto)")
 				default:
-					DB.Fetch(thing).sp = dest
+					DB.Store(thing, dest)
 					notify(player, "Dropto set.")
-					DB.Fetch(thing).flags |= OBJECT_CHANGED
+					DB.Fetch(thing).Touch()
 				}
 			case TYPE_PROGRAM:
 				notify(player, "You can't link programs to things!")
@@ -352,18 +348,18 @@ func do_dig(descr int, player ObjectID, name, pname string) {
 				newparent = tp_default_room_parent
 			}
 
-			DB.Fetch(room).name = name
-			DB.Fetch(room).Location = newparent
-			DB.Fetch(room).Owner = DB.Fetch(player).Owner
+			DB.Fetch(room).NowCalled(name)
+			DB.Fetch(room).MoveTo(newparent)
+			DB.Fetch(room).GiveTo(DB.Fetch(player).Owner)
 			DB.Fetch(room).Exits = NOTHING
 			DB.Fetch(room).sp = NOTHING
 			DB.Fetch(room).flags = TYPE_ROOM | (DB.Fetch(player).flags & JUMP_OK)
 			DB.Fetch(room).next = DB.Fetch(newparent).Contents
-			DB.Fetch(room).flags |= OBJECT_CHANGED
+			DB.Fetch(room).Touch()
 			DB.Fetch(newparent).Contents = room
 
-			DB.Fetch(room).flags |= OBJECT_CHANGED
-			DB.Fetch(newparent).flags |= OBJECT_CHANGED
+			DB.Fetch(room).Touch()
+			DB.Fetch(newparent).Touch()
 
 			notify(player, fmt.Sprintf("%s created with room number %d.", name, room))
 
@@ -423,9 +419,9 @@ func do_prog(descr int, player ObjectID, name string) {
 			switch {
 			case i == NOTHING:
 				newprog := new_object()
-				DB.Fetch(newprog).name = name
+				DB.Fetch(newprog).NowCalled(name)
 				add_property(newprog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
-				DB.Fetch(newprog).Location = player
+				DB.Fetch(newprog).MoveTo(player)
 				DB.Fetch(newprog).flags = TYPE_PROGRAM
 				mlev := MLevel(player)
 				switch {
@@ -436,17 +432,17 @@ func do_prog(descr int, player ObjectID, name string) {
 				}
 				SetMLevel(newprog, mlev)
 
-				DB.Fetch(newprog).Owner = DB.Fetch(player).Owner
+				DB.Fetch(newprog).GiveTo(DB.Fetch(player).Owner)
 				DB.Fetch(newprog).(Program) = new(Program)
-				DB.Fetch(player).(Player).curr_prog = newprog
+				DB.FetchPlayer(player).curr_prog = newprog
 
 				DB.Fetch(newprog).next = DB.Fetch(player).Contents
-				DB.Fetch(newprog).flags |= OBJECT_CHANGED
+				DB.Fetch(newprog).Touch()
 				DB.Fetch(player).Contents = newprog
-				DB.Fetch(newprog).flags |= OBJECT_CHANGED
+				DB.Fetch(newprog).Touch()
 
 				DB.Fetch(player).flags |= INTERACTIVE
-				DB.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(player).Touch()
 				notify(player, fmt.Sprintf("Program %s created with number %d.", name, newprog))
 				notify(player, fmt.Sprintf("Entering editor."))
 			case i == AMBIGUOUS:
@@ -458,13 +454,13 @@ func do_prog(descr int, player ObjectID, name string) {
 			} else {
 				DB.Fetch(i).(Program).first = read_program(i)
 				DB.Fetch(i).flags |= INTERNAL
-				DB.Fetch(player).(Player).curr_prog = i
+				DB.FetchPlayer(player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
-				DB.Fetch(i).flags |= OBJECT_CHANGED
+				DB.Fetch(i).Touch()
 				DB.Fetch(player).flags |= INTERACTIVE
-				DB.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(player).Touch()
 			}
 		}
 	})
@@ -495,13 +491,13 @@ func do_edit(descr int, player ObjectID, name string) {
 			default:
 				DB.Fetch(i).flags |= INTERNAL
 				DB.Fetch(i).(Program).first = read_program(i)
-				DB.Fetch(player).(Player).curr_prog = i
+				DB.FetchPlayer(player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
 				DB.Fetch(player).flags |= INTERACTIVE
-				DB.Fetch(i).flags |= OBJECT_CHANGED
-				DB.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(i).Touch()
+				DB.Fetch(player).Touch()
 			}
 		}
 	})
@@ -560,9 +556,9 @@ func do_mcpprogram(descr int, player ObjectID, name string) {
 				notify(player, "I don't know which one you mean!")
 			case NOTHING:
 				prog = new_object()
-				DB.Fetch(prog).name = name
+				DB.Fetch(prog).NowCalled(name)
 				add_property(prog, MESGPROP_DESC, fmt.Sprintf("A scroll containing a spell called %s", name), 0)
-				DB.Fetch(prog).Location = player
+				DB.Fetch(prog).MoveTo(player)
 				DB.Fetch(prog).flags = TYPE_PROGRAM
 
 				mlev := MLevel(player)
@@ -574,15 +570,15 @@ func do_mcpprogram(descr int, player ObjectID, name string) {
 				}
 				SetMLevel(prog, mlev)
 
-				DB.Fetch(prog).Owner = DB.Fetch(player).Owner
+				DB.Fetch(prog).GiveTo(DB.Fetch(player).Owner)
 				DB.Fetch(prog).(Program) = new(Program)
-				DB.Fetch(player).(Player).curr_prog = prog
+				DB.FetchPlayer(player).curr_prog = prog
 
 				DB.Fetch(prog).next = DB.Fetch(player).Contents
-				DB.Fetch(prog).flags |= OBJECT_CHANGED
+				DB.Fetch(prog).Touch()
 				DB.Fetch(player).Contents = prog
-				DB.Fetch(prog).flags |= OBJECT_CHANGED
-				DB.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(prog).Touch()
+				DB.Fetch(player).Touch()
 				notify(player, fmt.Sprintf("Program %s created with number %d.", name, prog))
 				fallthrough
 			default:
@@ -611,7 +607,7 @@ func mcpedit_program(descr int, player, prog ObjectID, name string) {
 			show_mcp_error(mfr, "@mcpedit", "Sorry, this program is currently being edited by someone else.  Try again later.");
 		default:
 			DB.Fetch(prog).(Program).first = read_program(prog)
-			DB.Fetch(player).(Player).curr_prog = prog
+			DB.FetchPlayer(player).curr_prog = prog
 			refstr := fmt.Sprintf("%d.prog.", prog)
 			namestr := fmt.Sprintf("a program named %s(%d)", DB.Fetch(prog).name, prog)
 			msg := &McpMesg{ package: "dns-org-mud-moo-simpleedit", mesgname: "content" }
@@ -693,7 +689,7 @@ func do_clone(descr int, player ObjectID, name string) {
 			case thing == NOTHING:
 			case thing == AMBIGUOUS:
  				notify(player, "I don't know which one you mean!")
-			case Typeof(thing) != TYPE_THING:
+			case !IsThing(thing):
 				notify(player, "That is not a cloneable object.")
 			case !ok_name(DB.Fetch(thing).name):
 				/* check the name again, just in case reserved name patterns have changed since the original object was created. */
@@ -713,10 +709,10 @@ func do_clone(descr int, player ObjectID, name string) {
 					}
 		
 					clonedthing := new_object()
-					DB.Fetch(clonedthing).name = DB.Fetch(thing).name
-					DB.Fetch(clonedthing).(Player) = new(Player)
-					DB.Fetch(clonedthing).Location = player
-					DB.Fetch(clonedthing).Owner = DB.Fetch(player).Owner
+					DB.Fetch(clonedthing).NowCalled(DB.Fetch(thing).name)
+					DB.Store(clonedthing, Player)
+					DB.Fetch(clonedthing).MoveTo(player)
+					DB.Fetch(clonedthing).GiveTo(DB.Fetch(player).Owner)
 					add_property(clonedthing, MESGPROP_VALUE, nil, get_property_value(thing, MESGPROP_VALUE))
 
 					/* FIXME: should we clone attached actions? */
@@ -727,15 +723,15 @@ func do_clone(descr int, player ObjectID, name string) {
 					if get_property_value(thing, MESGPROP_VALUE) > tp_max_object_endowment {
 						add_property(thing, MESGPROP_VALUE, nil, tp_max_object_endowment)
 					}
-					DB.Fetch(clonedthing).(Player).home = DB.Fetch(thing).(Player).home
+					DB.FetchPlayer(clonedthing).LiveAt(DB.FetchPlayer(thing).Home)
 					DB.Fetch(clonedthing).next = DB.Fetch(player).Contents
-					DB.Fetch(clonedthing).flags |= OBJECT_CHANGED
+					DB.Fetch(clonedthing).Touch()
 
 					DB.Fetch(player).Contents = clonedthing
-					DB.Fetch(player).flags |= OBJECT_CHANGED
+					DB.Fetch(player).Touch()
 
 					notify(player, fmt.Sprintf("%s created with number %d.", DB.Fetch(thing).name, clonedthing))
-					DB.Fetch(clonedthing).flags |= OBJECT_CHANGED
+					DB.Fetch(clonedthing).Touch()
 				}
 			}
 		} 
@@ -773,29 +769,29 @@ func do_create(player ObjectID, name, acost string) {
 			if !payfor(player, cost) {
 				notify_fmt(player, "Sorry, you don't have enough %s.", tp_pennies)
 			} else {
-				thing := new_object();
-				DB.Fetch(thing).name = name
-				DB.Fetch(thing).(Player) = new(Player)
-				DB.Fetch(thing).Location = player
-				DB.Fetch(thing).Owner = DB.Fetch(player).Owner
+				p := DB.Fetch(player)
+				thing := new_object()
+				DB.Store(thing, &Object{
+					name: name,
+					location: player,
+					owner: p.Owner,
+					exits: NOTHING,
+				})
 				add_property(thing, MESGPROP_VALUE, nil, OBJECT_ENDOWMENT(cost))
-				DB.Fetch(thing).Exits = NOTHING
-				DB.Fetch(thing).flags = TYPE_THING
-
 				if get_property_value(thing, MESGPROP_VALUE) > tp_max_object_endowment {
 					add_property(thing, MESGPROP_VALUE, nil, tp_max_object_endowment)
 				}
-				if loc := DB.Fetch(player).Location); loc != NOTHING && controls(player, loc) {
-					DB.Fetch(thing).(Player).home = loc
+				if loc := p.Location(); loc != NOTHING && controls(player, loc) {
+					DB.Fetch(thing).(HasHome).LiveAt(loc)
 				} else {
-					DB.Fetch(thing).(Player).home = player
+					DB.Fetch(thing).(HasHome).LiveAt(player)
 				}
-				DB.Fetch(thing).next = DB.Fetch(player).Contents
-				DB.Fetch(thing).flags |= OBJECT_CHANGED
-				DB.Fetch(player).Contents = thing
-				DB.Fetch(player).flags |= OBJECT_CHANGED
+				DB.Fetch(thing).next = p.Contents
+				DB.Fetch(thing).Touch()
+				p.Contents = thing
+				DB.Fetch(player).Touch()
 				notify(player, fmt.Sprintf("%s created with number %d.", name, thing))
-				DB.Fetch(thing).flags |= OBJECT_CHANGED
+				DB.Fetch(thing).Touch()
 				if rname != "" {
 					notify(player, fmt.Sprintf("Registered as $%s", rname))
 					set_property(player, fmt.Sprintf("_reg/%s", rname), thing)
@@ -846,35 +842,36 @@ func parse_source(int descr, ObjectID player, const char *source_name) (r Object
  *
  */
 func set_source(player, action, source ObjectID) {
-	switch Typeof(source) {
-	case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
-		DB.Fetch(action).next = DB.Fetch(source).Exits
-		DB.Fetch(action).flags |= OBJECT_CHANGED
-		DB.Fetch(source).Exits = action
-		DB.Fetch(source).flags |= OBJECT_CHANGED
-		DB.Fetch(action).Location = source
-		DB.Fetch(action).flags |= OBJECT_CHANGED
+	switch s := DB.Fetch(source); s.(type) {
+	case Room, Object, Player:
+		a := DB.Fetch(action)
+		a.next = s.Exits
+		s.Exits = action
+		s.Touch()
+		a.MoveTo(source)
+		a.Touch()
 	default:
 		notify(player, "Internal error: weird object type.")
-		log_status("PANIC: tried to source %d to %d: type: %d", action, source, Typeof(source))
+		log_status("PANIC: tried to source %d to %d: type: %T", action, source, s)
 	}
 }
 
 func unset_source(player, loc, action ObjectID) bool {
-	if oldsrc := DB.Fetch(action).Location; oldsrc == NOTHING {
+	if oldsrc := DB.Fetch(action).Location(); oldsrc == NOTHING {
 		/* old-style, sourceless exit */
 		if !member(action, DB.Fetch(loc).Exits) {
 			return false
 		}
-		DB.Fetch(DB.Fetch(player).Location).Exits = remove_first(DB.Fetch(DB.Fetch(player).Location).Exits, action)
-		DB.Fetch(DB.Fetch(player).Location).flags |= OBJECT_CHANGED
+		l := DB.Fetch(player).Location()
+		DB.Fetch(l).Exits = remove_first(DB.Fetch(l).Exits, action)
+		DB.Fetch(l).Touch()
 	} else {
-		switch Typeof(oldsrc) {
-		case TYPE_PLAYER, TYPE_ROOM, TYPE_THING:
-			DB.Fetch(oldsrc).Exits = remove_first(DB.Fetch(oldsrc).Exits, action)
-			DB.Fetch(oldsrc).flags |= OBJECT_CHANGED
+		switch o := DB.Fetch(oldsrc); o.(type) {
+		case Player, Room, Object:
+			o.Exits = remove_first(o.Exits, action)
+			o.Touch()
 		default:
-			log_status("PANIC: source of action #%d was type: %d.", action, Typeof(oldsrc));
+			log_status("PANIC: source of action #%d was type: %T.", action, o)
 			return false
 		}
 	}
@@ -914,15 +911,15 @@ func do_action(descr int, player ObjectID, action_name, source_name string) {
 						notify_fmt(player, "Sorry, you don't have enough %s to make an action.", tp_pennies)
 					} else {
 						action := new_object()
-						DB.Fetch(action).name = action_name
-						DB.Fetch(action).Location = NOTHING
-						DB.Fetch(action).Owner = DB.Fetch(player).Owner
+						DB.Fetch(action).NowCalled(action_name)
+						DB.Fetch(action).MoveTo(NOTHING)
+						DB.Fetch(action).GiveTo(DB.Fetch(player).Owner)
 						DB.Fetch(action).(Exit).Destinations = nil
 						DB.Fetch(action).flags = TYPE_EXIT
 
 						set_source(player, action, source)
 						notify(player, fmt.Sprintf("Action created with number %d and attached.", action))
-						DB.Fetch(action).flags |= OBJECT_CHANGED
+						DB.Fetch(action).Touch()
 
 						if rname != "" {
 							notify(player, fmt.Sprintf("Registered as $%s", rname))

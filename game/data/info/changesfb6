@@ -359,9 +359,6 @@ Reverted some clever Makefile changes that didn't work on all systems.
 
 
 2.2fb6.00rc7
-Changed spawn_resolver behavior -- now prints to status log if it can't spawn
-  the resolver properly.  Previously used perror(), and didn't send it to
-  error.log properly if it failed.
 Changed FMTSTRING and ARRAY_FMTSTRINGS MUF prims to be ANSI-aware.
 Changed parsing so commands starting with ';' exit delimiters will now trigger
   actions named 'delimiter', similar to how ':' triggers pose actions.

@@ -108,7 +108,7 @@ func list_top_4k_words(void) {
 	for node := head; node != nil && count > 0; node = node.next {
 		count--
 		printf("%s\n", node.word)
-		fflush(stdout)
+		os.Stdout.Sync()
 		if lastval < node.val {
 			abort()
 		}
@@ -150,9 +150,9 @@ func add_to_list(word string) {
 	}
 
 	buf = word
-	if (buf[len(buf) - 1] == ' ') {
-		buf[len(buf) - 1] = '\0';
-		spcflag++;
+	if buf[len(buf) - 1] == ' ' {
+		buf = buf[:len(buf) - 1]
+		spcflag++
 	}
 	if node := wordhash[buf]; exp == nil {
 		if spcflag {
@@ -162,7 +162,6 @@ func add_to_list(word string) {
 		}
 		queue_promote(node)
 	} else {
-		/* printf("%s\n", buf); */
 		queue_add_node(word, 1)
 		total_words++
 	}
@@ -236,8 +235,8 @@ func main() {
 	queue_add_node("ed ", 99999999);
 	queue_add_node("er ", 99999999);
 
-	for !feof(stdin) {
-		fgets(buf, sizeof(buf), stdin)
+	for !feof(os.Stdin) {
+		fgets(buf, sizeof(buf), os.Stdin)
 		if p = strchr(buf, ':'); p != nil {
 			if p = strchr(p + 1, ':'); p != nil {
 				remember_words_in_string(p + 1);

@@ -2,12 +2,6 @@ package fbmuck
 
 import "github.com/feyeleanor/slices"
 
-struct tuning_parameter {
-	group string
-	security int
-	label string
-}
-
 var (
 	tp_dumpwarn_mesg = DUMPWARN_MESG
 	tp_deltawarn_mesg = DELTAWARN_MESG
@@ -32,42 +26,6 @@ var (
 	tp_pcreate_flags = PCREATE_FLAGS
 	tp_reserved_names = RESERVED_NAMES
 	tp_reserved_player_names = RESERVED_PLAYER_NAMES
-)
-
-struct tuning_str_entry {
-	tuning_parameter
-	str *string
-	isnullable bool
-	isdefault bool
-}
-
-var tune_str_table = map[string] *tune_str_entry{
-	"autolook_cmd": 			&tune_str_entry{ "Commands", &tp_autolook_cmd, 0, "Room entry look command", 0, 1 },
-	"penny":					&tune_str_entry{ "Currency", &tp_penny, 0, "Currency name", 0, 1 },
-	"pennies":					&tune_str_entry{ "Currency", &tp_pennies, 0, "Currency name, plural", 0, 1 },
-	"cpenny":					&tune_str_entry{ "Currency", &tp_cpenny, 0, "Currency name, capitalized", 0, 1 },
-	"cpennies":					&tune_str_entry{ "Currency", &tp_cpennies, 0, "Currency name, capitalized, plural", 0, 1 },
-	"dumpwarn_mesg":			&tune_str_entry{ "DB Dumps", &tp_dumpwarn_mesg, 0, "Full dump warning mesg", 1, 1 },
-	"deltawarn_mesg":			&tune_str_entry{ "DB Dumps", &tp_deltawarn_mesg, 0, "Delta dump warning mesg", 1, 1 },
-	"dumping_mesg":				&tune_str_entry{ "DB Dumps", &tp_dumping_mesg, 0, "Full dump start mesg", 1, 1 },
-	"dumpdeltas_mesg":			&tune_str_entry{ "DB Dumps", &tp_dumpdeltas_mesg, 0, "Delta dump start mesg", 1, 1 },
-	"dumpdone_mesg":			&tune_str_entry{ "DB Dumps", &tp_dumpdone_mesg, 0, "Dump completion message", 1, 1 },
-	"idle_boot_mesg":			&tune_str_entry{ "Idle Boot", &tp_idle_mesg, 0, "Boot message for idling out", 0, 1 },
-	"playermax_warnmesg":		&tune_str_entry{ "Player Max", &tp_playermax_warnmesg, 0, "Max. players login warning", 0, 1 },
-	"playermax_bootmesg":		&tune_str_entry{ "Player Max", &tp_playermax_bootmesg, 0, "Max. players boot message", 0, 1 },
-	"proplist_counter_fmt":		&tune_str_entry{ "Properties", &tp_proplist_counter_fmt, 0, "Proplist counter name format", 0, 1 },
-	"proplist_entry_fmt":		&tune_str_entry{ "Properties", &tp_proplist_entry_fmt, 0, "Proplist entry name format", 0, 1 },
-	"register_mesg":			&tune_str_entry{ "Registration", &tp_register_mesg, 0, "Login registration mesg", 0, 1 },
-	"muckname":					&tune_str_entry{ "Misc", &tp_muckname, 0, "Muck name", 0, 1 },
-	"leave_mesg":				&tune_str_entry{ "Misc", &tp_leave_mesg, 0, "Logoff message", 0, 1 },
-	"huh_mesg":					&tune_str_entry{ "Misc", &tp_huh_mesg, 0, "Command unrecognized warning", 0, 1 },
-	"ssl_keyfile_passwd":		&tune_str_entry{ "SSL", &tp_ssl_keyfile_passwd, MLEV_GOD, "Password for SSL keyfile", 1, 1 },
-	"pcreate_flags":			&tune_str_entry{ "Database", &tp_pcreate_flags, 0, "Initial Player Flags", 1, 1 },
-	"reserved_names":			&tune_str_entry{ "Database", &tp_reserved_names, 0, "Reserved names smatch", 1, 1 },
-	"reserved_player_names":	&tune_str_entry{ "Database", &tp_reserved_player_names, 0, "Reserved player names smatch", 1, 1 },
-}
-
-var (
 	tp_dump_interval = DUMP_INTERVAL
 	tp_dump_warntime = DUMP_WARNTIME
 	tp_monolithic_interval = MONOLITHIC_INTERVAL
@@ -75,24 +33,6 @@ var (
 	tp_aging_time = AGING_TIME
 	tp_maxidle = MAXIDLE
 	tp_idle_ping_time = IDLE_PING_TIME
-)
-
-struct tune_time_entry {
-	tuning_parameter
-	tim *int
-}
-
-var tune_time_table = map[string] *tune_time_entry {
-	"aging_time":			&tune_time_entry{ "Database", &tp_aging_time, 0, "When to considered an object old and unused" },
-	"dump_interval":		&tune_time_entry{ "DB Dumps", &tp_dump_interval, 0, "Interval between delta dumps" },
-	"dump_warntime":		&tune_time_entry{ "DB Dumps", &tp_dump_warntime, 0, "Interval between warning and dump" },
-	"monolithic_interval":	&tune_time_entry{ "DB Dumps", &tp_monolithic_interval, 0, "Interval between full dumps" },
-	"maxidle":				&tune_time_entry{ "Idle Boot", &tp_maxidle, 0, "Maximum idle time before booting" },
-	"idle_ping_time":		&tune_time_entry{ "Idle Boot", &tp_idle_ping_time, 0, "Server side keepalive time in seconds" },
-	"clean_interval":		&tune_time_entry{ "Tuning", &tp_clean_interval, 0, "Interval between memory cleanups." },
-}
-
-var (
 	tp_max_object_endowment = MAX_OBJECT_ENDOWMENT
 	tp_object_cost = OBJECT_COST
 	tp_exit_cost = EXIT_COST
@@ -127,67 +67,8 @@ var (
 	tp_movepennies_muf_mlev = MOVEPENNIES_MUF_MLEV
 	tp_addpennies_muf_mlev = ADDPENNIES_MUF_MLEV
 	tp_pennies_muf_mlev = PENNIES_MUF_MLEV
-)
-
-struct tune_val_entry {
-	tuning_parameter
-	val *int
-}
-
-var tune_val_table[] = map[string] *tune_val_entry {
-	"max_object_endowment":		&tune_val_entry{ "Costs", &tp_max_object_endowment, 0, "Max value of object" },
-	"object_cost":				&tune_val_entry{ "Costs", &tp_object_cost, 0, "Cost to create thing" },
-	"exit_cost":				&tune_val_entry{ "Costs", &tp_exit_cost, 0, "Cost to create exit" },
-	"link_cost":				&tune_val_entry{ "Costs", &tp_link_cost, 0, "Cost to link exit" },
-	"room_cost":				&tune_val_entry{ "Costs", &tp_room_cost, 0, "Cost to create room" },
-	"lookup_cost":				&tune_val_entry{ "Costs", &tp_lookup_cost, 0, "Cost to lookup playername" },
-	"max_pennies":				&tune_val_entry{ "Currency", &tp_max_pennies, 0, "Player currency cap" },
-	"penny_rate":				&tune_val_entry{ "Currency", &tp_penny_rate, 0, "Moves between finding currency, avg" },
-	"start_pennies": 			&tune_val_entry{ "Currency", &tp_start_pennies, 0, "Player starting currency count" },
-	"kill_base_cost":			&tune_val_entry{ "Killing", &tp_kill_base_cost, 0, "Cost to guarentee kill" },
-	"kill_min_cost":			&tune_val_entry{ "Killing", &tp_kill_min_cost, 0, "Min cost to kill" },
-	"kill_bonus":				&tune_val_entry{ "Killing", &tp_kill_bonus, 0, "Bonus to killed player" },
-	"kill_bonus":				&tune_val_entry{ "Listeners", &tp_listen_mlev, 0, "Mucker Level required for Listener progs" },
-	"cmd_log_threshold_msec":	&tune_val_entry{ "Logging", &tp_cmd_log_threshold_msec, 0, "Log commands that take longer than X millisecs" },
-	"max_force_level":			&tune_val_entry{ "Misc", &tp_max_force_level, MLEV_GOD, "Maximum number of forces processed within a command" },
-	"max_process_limit":		&tune_val_entry{ "MUF", &tp_max_process_limit, 0, "Max concurrent processes on system" },
-	"max_plyr_processes": 		&tune_val_entry{ "MUF", &tp_max_plyr_processes, 0, "Max concurrent processes per player" },
-	"max_instr_count":			&tune_val_entry{ "MUF", &tp_max_instr_count, 0, "Max MUF instruction run length for ML1" },
-	"max_ml4_preempt_count":	&tune_val_entry{ "MUF", &tp_max_ml4_preempt_count, 0, "Max MUF preempt instruction run length for ML4, (0 = no limit)" },
-	"instr_slice": 				&tune_val_entry{ "MUF", &tp_instr_slice, 0, "Instructions run per timeslice" },
-	"process_timer_limit":		&tune_val_entry{ "MUF", &tp_process_timer_limit, 0, "Max timers per process" },
-	"mcp_muf_mlev":				&tune_val_entry{ "MUF", &tp_mcp_muf_mlev, 0, "Mucker Level required to use MCP" },
-	"userlog_mlev":				&tune_val_entry{ "MUF", &tp_userlog_mlev, 0, "Mucker Level required to write to userlog" },
-	"movepennies_muf_mlev":		&tune_val_entry{ "MUF", &tp_movepennies_muf_mlev, 0, "Mucker Level required to move pennies non-destructively" },
-	"addpennies_muf_mlev":		&tune_val_entry{ "MUF", &tp_addpennies_muf_mlev, 0, "Mucker Level required to create/destroy pennies" },
-	"pennies_muf_mlev":			&tune_val_entry{ "MUF", &tp_pennies_muf_mlev, 0, "Mucker Level required to read the value of pennies, settings above 1 disable {money}" },
-	"mpi_max_commands":			&tune_val_entry{ "MPI", &tp_mpi_max_commands, 0, "Max MPI instruction run length" },
-	"playermax_limit":			&tune_val_entry{ "Player Max", &tp_playermax_limit, 0, "Max player connections allowed" },
-	"command_burst_size": 		&tune_val_entry{ "Spam Limits", &tp_command_burst_size, 0, "Commands before limiter engages" },
-	"commands_per_time":		&tune_val_entry{ "Spam Limits", &tp_commands_per_time, 0, "Commands allowed per time period" },
-	"command_time_msec": 		&tune_val_entry{ "Spam Limits", &tp_command_time_msec, 0, "Millisecs per spam limiter time period" },
-	"max_output":				&tune_val_entry{ "Spam Limits", &tp_max_output, 0, "Max output buffer size" },
-	"pause_min":				&tune_val_entry{ "Tuning", &tp_pause_min, 0, "Min ms to pause between MUF timeslices" },
-	"max_delta_objs":			&tune_val_entry{ "Tuning", &tp_max_delta_objs, 0, "Percentage changed objects to force full dump" },
-}
-
-var (
 	tp_player_start ObjectID = PLAYER_START
 	tp_default_room_parent ObjectID = GLOBAL_ENVIRONMENT
-)
-
-struct tune_ref_entry {
-	tuning_parameter
-	typ int
-	ref *ObjectID
-}
-
-var tune_ref_table = map[string] *tune_ref_entry {
-	"default_room_parent":	&tune_ref_entry{ "Database", TYPE_ROOM, &tp_default_room_parent, 0, "Place to parent new rooms to" },
-	"player_start":			&tune_ref_entry{ "Database", TYPE_ROOM, &tp_player_start, 0, "Place where new players start" },
-}
-
-var (
 	tp_hostnames = HOSTNAMES
 	tp_log_commands = LOG_COMMANDS
 	tp_log_failed_commands = LOG_FAILED_COMMANDS
@@ -240,496 +121,475 @@ var (
 	tp_recognize_null_command = RECOGNIZE_NULL_COMMAND
 )
 
-struct tune_bool_entry {
-	tuning_parameter
-	boolval *int
+type tuning_entry struct {
+	group string
+	label string
+	MLevel
+	variable interface{}
+	isnullable bool
+	isdefault bool
 }
 
-var tune_bool_table = map[string] *tune_bool_entry {
-	"enable_home":				&tune_bool_entry{ "Commands", &tp_allow_home, 4, "Enable 'home' command"},
-	"enable_prefix":			&tune_bool_entry{ "Commands", &tp_enable_prefix, 4, "Enable prefix actions"},
-	"enable_match_yield":		&tune_bool_entry{ "Commands", &tp_enable_match_yield, 4, "Enable yield/overt flags on rooms and things"},
-	"verbose_clone":			&tune_bool_entry{ "Commands", &tp_verbose_clone, 4, "Verbose @clone command"},
-	"recognize_null_command":	&tune_bool_entry{ "Commands", &tp_recognize_null_command, 4, "Recognize null command"},
-	"exit_darking":				&tune_bool_entry{ "Dark", &tp_exit_darking, 0, "Allow setting exits dark"},
-	"thing_darking":			&tune_bool_entry{ "Dark", &tp_thing_darking, 0, "Allow setting things dark"},
-	"dark_sleepers":			&tune_bool_entry{ "Dark", &tp_dark_sleepers, 0, "Make sleeping players dark"},
-	"who_hides_dark":			&tune_bool_entry{ "Dark", &tp_who_hides_dark, 4, "Hide dark players from WHO list"},
-	"realms_control":			&tune_bool_entry{ "Database", &tp_realms_control, 0, "Enable Realms control"},
-	"compatible_priorities":	&tune_bool_entry{ "Database", &tp_compatible_priorities, 0, "Use legacy exit priority levels on things"},
-	"dbdump_warning":			&tune_bool_entry{ "DB Dumps", &tp_dbdump_warning, 0, "Enable warning messages for full DB dumps"},
-	"deltadump_warning":		&tune_bool_entry{ "DB Dumps", &tp_deltadump_warning, 0, "Enable warning messages for delta DB dumps"},
-	"dumpdone_warning":			&tune_bool_entry{ "DB Dumps", &tp_dumpdone_warning, 0, "Enable notification of DB dump completion"},
-	"idleboot":					&tune_bool_entry{ "Idle Boot", &tp_idleboot, 0, "Enable booting of idle players"},
-	"idle_ping_enable":			&tune_bool_entry{ "Idle Boot", &tp_idle_ping_enable, 0, "Enable server side keepalive"},
-	"restrict_kill":			&tune_bool_entry{ "Killing", &tp_restrict_kill, 0, "Restrict kill command to players set Kill_OK"},
-	"allow_listeners":			&tune_bool_entry{ "Listeners", &tp_listeners, 0, "Enable programs to listen to player output"},
-	"allow_listeners_obj":		&tune_bool_entry{ "Listeners", &tp_listeners_obj, 0, "Allow listeners on things"},
-	"allow_listeners_env":		&tune_bool_entry{ "Listeners", &tp_listeners_env, 0, "Allow listeners down environment"},
-	"log_commands":				&tune_bool_entry{ "Logging", &tp_log_commands, 4, "Enable logging of player commands"},
-	"log_failed_commands":		&tune_bool_entry{ "Logging", &tp_log_failed_commands, 4, "Enable logging of unrecognized commands"},
-	"log_interactive":			&tune_bool_entry{ "Logging", &tp_log_interactive, 4, "Enable logging of text sent to MUF"},
-	"log_programs":				&tune_bool_entry{ "Logging", &tp_log_programs, 4, "Log programs every time they are saved"},
-	"teleport_to_player":		&tune_bool_entry{ "Movement", &tp_teleport_to_player, 0, "Allow teleporting to a player"},
-	"secure_teleport":			&tune_bool_entry{ "Movement", &tp_secure_teleport, 0, "Restrict actions to Jump_OK or controlled rooms"},
-	"secure_thing_movement":	&tune_bool_entry{ "Movement", &tp_thing_movement, 4, "Moving things act like player"},
-	"do_mpi_parsing":			&tune_bool_entry{ "MPI", &tp_do_mpi_parsing, 0, "Enable parsing of mesgs for MPI"},
-	"lazy_mpi_istype_perm":		&tune_bool_entry{ "MPI", &tp_lazy_mpi_istype_perm, 0, "Enable looser legacy perms for MPI {istype}"},
-	"optimize_muf":				&tune_bool_entry{ "MUF", &tp_optimize_muf, 0, "Enable MUF bytecode optimizer"},
-	"expanded_debug_trace":		&tune_bool_entry{ "MUF", &tp_expanded_debug, 0, "MUF debug trace shows array contents"},
-	"force_mlev1_name_notify":	&tune_bool_entry{ "MUF", &tp_force_mlev1_name_notify, 0, "MUF notify prepends username at ML1"},
-	"muf_comments_strict":		&tune_bool_entry{ "MUF", &tp_muf_comments_strict, 0, "MUF comments are strict and not recursive"},
-	"playermax":				&tune_bool_entry{ "Player Max", &tp_playermax, 0, "Limit number of concurrent players allowed"},
-	"look_propqueues":			&tune_bool_entry{ "Properties", &tp_look_propqueues, 0, "When a player looks, trigger _look/ propqueues"},
-	"lock_envcheck":			&tune_bool_entry{ "Properties", &tp_lock_envcheck, 0, "Locks check environment for properties"},
-	"proplist_int_counter":		&tune_bool_entry{ "Properties", &tp_proplist_int_counter, 0, "Proplist counter uses an integer property"},
-	"registration":				&tune_bool_entry{ "Registration", &tp_registration, 0, "Require new players to register manually"},
-	"periodic_program_purge":	&tune_bool_entry{ "Tuning", &tp_periodic_program_purge, 0, "Periodically free unused MUF programs"},
-	"use_hostnames":			&tune_bool_entry{ "WHO", &tp_hostnames, 0, "Resolve IP addresses into hostnames"},
-	"secure_who":				&tune_bool_entry{ "WHO", &tp_secure_who, 0, "Disallow WHO command from login screen and programs"},
-	"who_doing":				&tune_bool_entry{ "WHO", &tp_who_doing, 0, "Show '_/do' property value in WHO lists"},
-	"allow_zombies":			&tune_bool_entry{ "Misc", &tp_zombies, 0, "Enable Zombie things to relay what they hear"},
-	"wiz_vehicles":				&tune_bool_entry{ "Misc", &tp_wiz_vehicles, 0, "Only let Wizards set vehicle bits"},
-	"ignore_support":			&tune_bool_entry{ "Misc", &tp_ignore_support, 3, "Enable support for @ignoring players"},
-	"ignore_bidirectional":		&tune_bool_entry{ "Misc", &tp_ignore_bidirectional, 3, "Enable bidirectional @ignore"},
-	"m3_huh":					&tune_bool_entry{ "Misc", &tp_m3_huh, 3, "Enable huh? to call an exit named \"huh?\" and set M3, with full command string"},
-	"starttls_allow":			&tune_bool_entry{ "SSL", &tp_starttls_allow, 3, "Enable TELNET STARTTLS encryption on plaintext port"},
-	"7bit_thing_names":			&tune_bool_entry{ "Charset", &tp_7bit_thing_names, 4, "Thing names may contain only 7-bit characters"},
-	"7bit_other_names":			&tune_bool_entry{ "Charset", &tp_7bit_other_names, 4, "Exit/room/muf names may contain only 7-bit characters"},
+type TuningTable map[string] *tuning_entry
+
+func (t TuningTable) GetAs(security int, name string) (r string) {
+	if t, ok := t[name]; ok {
+		if t.MLevel <= security {
+			r = fmt.Sprintf("%v", t.variable)
+		}
+	}
+	return
 }
 
-
-static const char *
-timestr_full(long dtime)
-{
-	static char buf[32];
-	int days, hours, minutes, seconds;
-
-	days = dtime / 86400;
-	dtime %= 86400;
-	hours = dtime / 3600;
-	dtime %= 3600;
-	minutes = dtime / 60;
-	seconds = dtime % 60;
-
-	buf = fmt.Sprintf("%3dd %2d:%02d:%02d", days, hours, minutes, seconds)
-
-	return buf;
-}
-
-func tune_count_parms() int {
-	return len(tune_str_table) + len(tune_time_table) + len(tune_val_table) + len(tune_ref_table) + len(tune_bool_table)
-}
-
-func tune_display_parms(player ObjectID, name string, security int) {
-	for k, v := range tune_str_table {
-		switch {
-		case v.security > security:
-		case name == "" || !smatch(name, k)
-			notify(player, fmt.Sprintf("(str)  %-20s = %.4096s", k, *(v.str)))
-		}
-	}
-
-	for k, v := range tune_time_table {
-		switch {
-		case v.security > security:
-		case name == "" || !smatch(name, k)
-			notify(player, fmt.Sprintf("(time) %-20s = %d", k, timestr_full(*vtim)))
-		}
-	}
-
-	for k, v := range tune_val_table {
-		switch {
-		case v.security > security:
-		case name == "" || !smatch(name, k)
-			notify(player, fmt.Sprintf("(time) %-20s = %d", k, *(tval.val)))
-		}
-	}
-
-	for k, v := range tune_ref_table {
-		switch {
-		case v.security > security:
-		case name == "" || !smatch(name, k)
-			notify(player, fmt.Sprintf("(time) %-20s = %d", k, unparse_object(player, *v.ref)))
-		}
-	}
-
-	for k, v := range tune_ref_table {
-		switch {
-		case v.security > security:
-		case name == "" || !smatch(name, k)
-			if *(tbool.boolval) {
-				notify(player, fmt.Sprintf("(bool) %-20s = yes", k))
-			} else {
-				notify(player, fmt.Sprintf("(bool) %-20s = no", k))
+func (t TuningTable) SetAs(security MLevel, name, val string) (r int) {
+	r = TUNESET_UNKNOWN
+	if t, ok := t[name]; ok {
+		if t.MLevel > security {
+			r = TUNESET_DENIED
+		} else {
+			switch v := t.variable.(type) {
+			case *string:
+				if !t.isnullable && val == "":
+					r = TUNESET_BADVAL
+				default:
+					if val[0] == '-' {
+						val = val[1:]
+					}
+					*v = val
+					t.isdefault = false
+					r = TUNESET_SUCCESS
+				}
+			case *time.Time:
+				var days, hrs, mins, secs, result int
+				switch val[len(val) - 1] {
+				case 's', 'S':
+					if !unicode.IsNumber(al) {
+						r = TUNESET_SYNTAX
+					} else {
+						secs = strconv.Atoi(val)
+					}
+				case 'm', 'M':
+					if !unicode.IsNumber(val) {
+						return TUNESET_SYNTAX
+					} else {
+						mins = strconv.Atoi(val)
+					}
+				case 'h', 'H':
+					if !unicode.IsNumber(val) {
+						r = TUNESET_SYNTAX
+					} else {
+						hrs = strconv.Atoi(val)
+					}
+				case 'd', 'D':
+					if !unicode.IsNumber(val) {
+						r = TUNESET_SYNTAX
+					} else {
+						days = strconv.Atoi(val)
+					}
+				default:
+					if result = sscanf(val, "%dd %2d:%2d:%2d", &days, &hrs, &mins, &secs); result != 4 {
+						r = TUNESET_SYNTAX
+					}
+				}
+				*v = (days * 86400) + (hrs * 3600) + (mins * 60) + secs
+					r = TUNESET_SUCCESS
+				}
+			case *int:
+				if !unicode.IsNumber(val[0]) {
+					r = TUNESET_SYNTAX
+				 } else {
+					*v = strconv.Atoi(val)
+					r = TUNESET_SUCCESS
+				}
+			case *ObjectID:
+				switch {
+				case val[0] != NUMBER_TOKEN:
+					r = TUNESET_SYNTAX
+				case !unicode.IsNumber(val[1]):
+					r = TUNESET_SYNTAX
+				default:
+					if obj := strconv.Atoi(val[1:]); !obj.IsValid() {
+						r = TUNESET_SYNTAX
+					} else {
+						r = TUNESET_SUCCESS
+					}
+				}
+			case *bool:
+				switch val {
+				case 'y', 'Y':
+					*v = true
+					r = TUNESET_SUCCESS
+				case 'n', 'N':
+					*v = false
+					r = TUNESET_SUCCESS
+				default:
+					r = TUNESET_SYNTAX
+				}
 			}
+		}
+	}
+	return
+}
+
+
+type TuningParamType int
+const (
+	COMMANDS = iota
+	COSTS
+	CURRENCY
+	DARK
+	DB_DUMPS
+	DATABASE
+	IDLE_BOOT
+	KILLING
+	LISTENERS
+	LOGGING
+	MISC
+	MPI
+	MUF
+	PROPERTIES
+	PLAYER_MAX
+	REGISTRATION
+	SPAM_LIMITS
+	SSL
+	TUNING
+)
+
+func RestrictedTuningParameter(level int, t TuningParamType, variable interface{}, label string) (r *tuning_entry) {
+	switch t {
+	case CHARSET:
+		r = &tuning_entry{ "Charset", param, level, label, false, true }
+	case COMMANDS:
+		r = &tuning_entry{ "Commands", param, level, label, false, true }
+	case COSTS:
+		r = &tuning_entry{ "Costs", param, level, label, false, true }
+	case CURRENCY:
+		r = &tuning_entry{ "Currency", param, level, label, false, true }
+	case DARK:
+		r = &tuning_entry{ "Dark", param, level, label, false, true }
+	case DB_DUMPS:
+		r = &tuning_entry{ "DB Dumps", param, level, label, true, true }
+	case DATABASE:
+		r = &tuning_entry{ "Database", param, level, label, true, true }
+	case IDLE_BOOT:
+		r = &tuning_entry{ "Idle Boot", param, level, label, false, true }
+	case KILLING:
+		r = &tuning_entry{ "Killing", param, level, label, false, true }
+	case LISTENERS:
+		r = &tuning_entry{ "Listeners", param, level, label, false, true }
+	case LOGGING:
+		r = &tuning_entry{ "Logging", param, level, label, false, true }
+	case MISC:
+		r = &tuning_entry{ "Misc", param, level, label, false, true }
+	case MOVEMENT:
+		r = &tuning_entry{ "Movement", param, level, label, false, true }
+	case MPI:
+		r = &tuning_entry{ "MPI", param, level, label, false, true }
+	case MUF:
+		r = &tuning_entry{ "MUF", param, level, label, false, true }
+	case PROPERTIES:
+		r = &tuning_entry{ "Properties", param, level, label, false, true }
+	case PLAYER_MAX:
+		r = &tuning_entry{ "Player Max", param, level, label, false, true }
+	case REGISTRATION:
+		r = &tuning_entry{ "Registration", param, level, label, false, true }
+	case SPAM_LIMITS:
+		r = &tuning_entry{ "Spam Limits", param, level, label, false, true }
+	case SSL:
+		r = &tuning_entry{ "SSL", param, MLEV_GOD, label, true, true }
+	case TUNING:
+		r = &tuning_entry{ "Tuning", param, level, label, false, true },
+	case WHO:
+		r = &tuning_entry{ "WHO", param, level, label, false, true },
+	}
+	return
+}
+
+func TuningParameter(t TuningParamType, variable interface{}, label string) *tuning_entry {
+	return RestrictedTuningParameter(0, t, variable, label)
+}
+
+var Tuneables = TuningTable {
+	"7bit_thing_names":			RestrictedTuningParameter(MLEV_GOD, CHARSET, &tp_7bit_thing_names, "Thing names may contain only 7-bit characters"),
+	"7bit_other_names":			RestrictedTuningParameter(MLEV_GOD, CHARSET, &tp_7bit_other_names, "Exit/room/muf names may contain only 7-bit characters"),
+
+	"autolook_cmd": 			TuningParameter(COMMANDS, &tp_autolook_cmd, "Room entry look command"),
+	"enable_home":				RestrictedTuningParameter(MLEV_GOD, COMMANDS, &tp_allow_home, "Enable 'home' command"),
+	"enable_prefix":			RestrictedTuningParameter(MLEV_GOD, COMMANDS, &tp_enable_prefix, "Enable prefix actions"),
+	"enable_match_yield":		RestrictedTuningParameter(MLEV_GOD, COMMANDS, &tp_enable_match_yield, "Enable yield/overt flags on rooms and things"),
+	"verbose_clone":			RestrictedTuningParameter(MLEV_GOD, COMMANDS, &tp_verbose_clone, "Verbose @clone command"),
+	"recognize_null_command":	RestrictedTuningParameter(MLEV_GOD, COMMANDS, &tp_recognize_null_command, "Recognize null command"),
+
+	"max_object_endowment":		TuningParameter(COSTS, &tp_max_object_endowment, "Max value of object"),
+	"object_cost":				TuningParameter(COSTS, &tp_object_cost, "Cost to create thing"),
+	"exit_cost":				TuningParameter(COSTS, &tp_exit_cost, "Cost to create exit"),
+	"link_cost":				TuningParameter(COSTS, &tp_link_cost, "Cost to link exit"),
+	"room_cost":				TuningParameter(COSTS, &tp_room_cost, "Cost to create room"),
+	"lookup_cost":				TuningParameter(COSTS, &tp_lookup_cost, "Cost to lookup playername"),
+
+	"penny":					TuningParameter(CURRENCY, &tp_penny, "Currency name"),
+	"pennies":					TuningParameter(CURRENCY, &tp_pennies, "Currency name, plural"),
+	"cpenny":					TuningParameter(CURRENCY, &tp_cpenny, "Currency name, capitalized"),
+	"cpennies":					TuningParameter(CURRENCY, &tp_cpennies, "Currency name, capitalized, plural"),
+	"max_pennies":				TuningParameter(CURRENCY, &tp_max_pennies, "Player currency cap"),
+	"penny_rate":				TuningParameter(CURRENCY, &tp_penny_rate, "Moves between finding currency, avg"),
+	"start_pennies": 			TuningParameter(CURRENCY, &tp_start_pennies, "Player starting currency count"),
+
+	"exit_darking":				TuningParameter(DARK, &tp_exit_darking, "Allow setting exits dark"),
+	"thing_darking":			TuningParameter(DARK, &tp_thing_darking, "Allow setting things dark"),
+	"dark_sleepers":			TuningParameter(DARK, &tp_dark_sleepers, "Make sleeping players dark"),
+	"who_hides_dark":			RestrictedTuningParameter(MLEV_GOD, DARK, &tp_who_hides_dark, "Hide dark players from WHO list"),
+
+	"realms_control":			TuningParameter(DATABASE, &tp_realms_control, "Enable Realms control"),
+	"compatible_priorities":	TuningParameter(DATABASE, &tp_compatible_priorities, "Use legacy exit priority levels on things"),
+	"pcreate_flags":			TuningParameter(DATABASE, &tp_pcreate_flags, "Initial Player Flags"),
+	"reserved_names":			TuningParameter(DATABASE, &tp_reserved_names, "Reserved names smatch"),
+	"reserved_player_names":	TuningParameter(DATABASE, &tp_reserved_player_names, "Reserved player names smatch"),
+	"aging_time":				TuningParameter(DATABASE, &tp_aging_time, "When to considered an object old and unused"),
+	"default_room_parent":		TuningParameter(DATABASE, &tp_default_room_parent, "Place to parent new rooms to"),
+	"player_start":				TuningParameter(DATABASE, &tp_player_start, "Place where new players start"),
+
+	"dumpwarn_mesg":			TuningParameter(DB_DUMPS, &tp_dumpwarn_mesg, "Full dump warning mesg"),
+	"deltawarn_mesg":			TuningParameter(DB_DUMPS, &tp_deltawarn_mesg, "Delta dump warning mesg"),
+	"dumping_mesg":				TuningParameter(DB_DUMPS, &tp_dumping_mesg, "Full dump start mesg"),
+	"dumpdeltas_mesg":			TuningParameter(DB_DUMPS, &tp_dumpdeltas_mesg, "Delta dump start mesg"),
+	"dumpdone_mesg":			TuningParameter(DB_DUMPS, &tp_dumpdone_mesg, "Dump completion message"),
+	"dump_interval":			TuningParameter(DB_DUMPS, &tp_dump_interval, "Interval between delta dumps"),
+	"dump_warntime":			TuningParameter(DB_DUMPS, &tp_dump_warntime, "Interval between warning and dump"),
+	"monolithic_interval":		TuningParameter(DB_DUMPS, &tp_monolithic_interval, "Interval between full dumps"),
+	"dbdump_warning":			TuningParameter(DB_DUMPS, &tp_dbdump_warning, "Enable warning messages for full DB dumps"),
+	"deltadump_warning":		TuningParameter(DB_DUMPS, &tp_deltadump_warning, "Enable warning messages for delta DB dumps"),
+	"dumpdone_warning":			TuningParameter(DB_DUMPS, &tp_dumpdone_warning, "Enable notification of DB dump completion"),
+
+	"idle_boot_mesg":			TuningParameter(IDLE_BOOT, &tp_idle_mesg, "Boot message for idling out"),
+	"maxidle":					TuningParameter(IDLE_BOOT, &tp_maxidle, "Maximum idle time before booting"),
+	"idle_ping_time":			TuningParameter(IDLE_BOOT, &tp_idle_ping_time, "Server side keepalive time in seconds"),
+	"idleboot":					TuningParameter(IDLE_BOOT, &tp_idleboot, "Enable booting of idle players"),
+	"idle_ping_enable":			TuningParameter(IDLE_BOOT, &tp_idle_ping_enable, "Enable server side keepalive"),
+
+	"restrict_kill":			TuningParameter(KILLING, &tp_restrict_kill, "Restrict kill command to players set Kill_OK"),
+	"kill_base_cost":			TuningParameter(KILLING, &tp_kill_base_cost, "Cost to guarentee kill"),
+	"kill_min_cost":			TuningParameter(KILLING, &tp_kill_min_cost, "Min cost to kill"),
+	"kill_bonus":				TuningParameter(KILLING, &tp_kill_bonus, "Bonus to killed player"),
+
+	"listen_mlev":				TuningParameter(LISTENERS, &tp_listen_mlev, "Mucker Level required for Listener progs"),
+	"allow_listeners":			TuningParameter(LISTENERS, &tp_listeners, "Enable programs to listen to player output"),
+	"allow_listeners_obj":		TuningParameter(LISTENERS, &tp_listeners_obj, "Allow listeners on things"),
+	"allow_listeners_env":		TuningParameter(LISTENERS, &tp_listeners_env, "Allow listeners down environment"),
+
+	"cmd_log_threshold_msec":	TuningParameter(LOGGING, &tp_cmd_log_threshold_msec, "Log commands that take longer than X millisecs"),
+	"log_commands":				RestrictedTuningParameter(MLEV_GOD, LOGGING, &tp_log_commands, "Enable logging of player commands"),
+	"log_failed_commands":		RestrictedTuningParameter(MLEV_GOD, LOGGING, &tp_log_failed_commands, "Enable logging of unrecognized commands"),
+	"log_interactive":			RestrictedTuningParameter(MLEV_GOD, LOGGING, &tp_log_interactive, "Enable logging of text sent to MUF"),
+	"log_programs":				RestrictedTuningParameter(MLEV_GOD, LOGGING, &tp_log_programs, "Log programs every time they are saved"),
+
+	"max_force_level":			RestrictedTuningParameter(MLEV_GOD, MISC, &tp_max_force_level, "Maximum number of forces processed within a command"),
+	"muckname":					TuningParameter(MISC, &tp_muckname, "Muck name"),
+	"leave_mesg":				TuningParameter(MISC, &tp_leave_mesg, "Logoff message"),
+	"huh_mesg":					TuningParameter(MISC, &tp_huh_mesg, "Command unrecognized warning"),
+	"allow_zombies":			TuningParameter(MISC, &tp_zombies, "Enable Zombie things to relay what they hear"),
+	"wiz_vehicles":				TuningParameter(MISC, &tp_wiz_vehicles, "Only let Wizards set vehicle bits"),
+	"ignore_support":			RestrictedTuningParameter(MLEV_MASTER, MISC, &tp_ignore_support, "Enable support for @ignoring players"),
+	"ignore_bidirectional":		RestrictedTuningParameter(MLEV_MASTER, MISC, &tp_ignore_bidirectional, "Enable bidirectional @ignore"),
+	"m3_huh":					RestrictedTuningParameter(MLEV_MASTER, MISC, &tp_m3_huh, "Enable huh? to call an exit named \"huh?\" and set M3, with full command string"),
+
+	"teleport_to_player":		TuningParameter(MOVEMENT, &tp_teleport_to_player, "Allow teleporting to a player"),
+	"secure_teleport":			TuningParameter(MOVEMENT, &tp_secure_teleport, "Restrict actions to Jump_OK or controlled rooms"),
+	"secure_thing_movement":	RestrictedTuningParameter(MLEV_GOD, MOVEMENT, &tp_thing_movement, "Moving things act like player"),
+
+	"mpi_max_commands":			TuningParameter(MPI, &tp_mpi_max_commands, "Max MPI instruction run length"),
+	"do_mpi_parsing":			TuningParameter(MPI, &tp_do_mpi_parsing, "Enable parsing of mesgs for MPI"),
+	"lazy_mpi_istype_perm":		TuningParameter(MPI, &tp_lazy_mpi_istype_perm, "Enable looser legacy perms for MPI {istype}"),
+
+	"max_process_limit":		TuningParameter(MUF, &tp_max_process_limit, "Max concurrent processes on system" },
+	"max_plyr_processes": 		TuningParameter(MUF, &tp_max_plyr_processes, "Max concurrent processes per player" },
+	"max_instr_count":			TuningParameter(MUF, &tp_max_instr_count, "Max MUF instruction run length for ML1" },
+	"max_ml4_preempt_count":	TuningParameter(MUF, &tp_max_ml4_preempt_count, "Max MUF preempt instruction run length for ML4, (0 = no limit)" },
+	"instr_slice": 				TuningParameter(MUF, &tp_instr_slice, "Instructions run per timeslice" },
+	"process_timer_limit":		TuningParameter(MUF, &tp_process_timer_limit, "Max timers per process" },
+	"mcp_muf_mlev":				TuningParameter(MUF, &tp_mcp_muf_mlev, "Mucker Level required to use MCP" },
+	"userlog_mlev":				TuningParameter(MUF, &tp_userlog_mlev, "Mucker Level required to write to userlog" },
+	"movepennies_muf_mlev":		TuningParameter(MUF, &tp_movepennies_muf_mlev, "Mucker Level required to move pennies non-destructively" },
+	"addpennies_muf_mlev":		TuningParameter(MUF, &tp_addpennies_muf_mlev, "Mucker Level required to create/destroy pennies" },
+	"pennies_muf_mlev":			TuningParameter(MUF, &tp_pennies_muf_mlev, "Mucker Level required to read the value of pennies, settings above 1 disable {money}" },
+	"optimize_muf":				TuningParameter(MUF, &tp_optimize_muf, "Enable MUF bytecode optimizer"),
+	"expanded_debug_trace":		TuningParameter(MUF, &tp_expanded_debug, "MUF debug trace shows array contents"),
+	"force_mlev1_name_notify":	TuningParameter(MUF, &tp_force_mlev1_name_notify, "MUF notify prepends username at ML1"),
+	"muf_comments_strict":		TuningParameter(MUF, &tp_muf_comments_strict, "MUF comments are strict and not recursive"),
+
+	"playermax_warnmesg":		TuningParameter(PLAYER_MAX, &tp_playermax_warnmesg, "Max. players login warning"),
+	"playermax_bootmesg":		TuningParameter(PLAYER_MAX, &tp_playermax_bootmesg, "Max. players boot message"),
+	"playermax_limit":			TuningParameter(PLAYER_MAX, &tp_playermax_limit, "Max player connections allowed"),
+	"playermax":				TuningParameter(PLAYER_MAX, &tp_playermax, "Limit number of concurrent players allowed"),
+
+	"proplist_counter_fmt":		TuningParameter(PROPERTIES, &tp_proplist_counter_fmt, "Proplist counter name format"),
+	"proplist_entry_fmt":		TuningParameter(PROPERTIES, &tp_proplist_entry_fmt, "Proplist entry name format"),
+	"look_propqueues":			TuningParameter(PROPERTIES, &tp_look_propqueues, "When a player looks, trigger _look/ propqueues"},
+	"lock_envcheck":			TuningParameter(PROPERTIES, &tp_lock_envcheck, "Locks check environment for properties"},
+	"proplist_int_counter":		TuningParameter(PROPERTIES, &tp_proplist_int_counter, "Proplist counter uses an integer property"},
+
+	"register_mesg":			TuningParameter(REGISTRATION, &tp_register_mesg, "Login registration mesg"),
+	"registration":				TuningParameter(REGISTRATION, &tp_registration, "Require new players to register manually"),
+
+	"command_burst_size": 		TuningParameter(SPAM_LIMITS, &tp_command_burst_size, "Commands before limiter engages"),
+	"commands_per_time":		TuningParameter(SPAM_LIMITS, &tp_commands_per_time, "Commands allowed per time period"),
+	"command_time_msec": 		TuningParameter(SPAM_LIMITS, &tp_command_time_msec, "Millisecs per spam limiter time period"),
+	"max_output":				TuningParameter(SPAM_LIMITS, &tp_max_output, "Max output buffer size"),
+
+	"ssl_keyfile_passwd":		RestrictedTuningParameter(MLEV_GOD, SSL, &tp_ssl_keyfile_passwd, "Password for SSL keyfile"),
+	"starttls_allow":			RestrictedTuningParameter(MLEV_MASTER, SSL, &tp_starttls_allow, "Enable TELNET STARTTLS encryption on plaintext port"),
+
+	"clean_interval":			TuningParameter(TUNING, &tp_clean_interval, "Interval between memory cleanups."),
+	"pause_min":				TuningParameter(TUNING, &tp_pause_min, "Min ms to pause between MUF timeslices"),
+	"max_delta_objs":			TuningParameter(TUNING, &tp_max_delta_objs, "Percentage changed objects to force full dump"),
+	"periodic_program_purge":	TuningParameter(TUNING, &tp_periodic_program_purge, "Periodically free unused MUF programs"),
+
+
+	"use_hostnames":			TuningParameter(WHO, &tp_hostnames, "Resolve IP addresses into hostnames"),
+	"secure_who":				TuningParameter(WHO, &tp_secure_who, "Disallow WHO command from login screen and programs"),
+	"who_doing":				TuningParameter(WHO, &tp_who_doing, "Show '_/do' property value in WHO lists"),
+}
+
+func (t TuningTable) Display(security int, player ObjectID, name string, security int) {
+	for k, v := range t {
+		switch {
+		case v.MLevel > security:
+		case name == "", smatch(name, k) == 0:
+			notify(player, fmt.Sprintf("%v = %v", k, *(v.variable)))
 		}
 	}
 	notify(player, "*done*")
 }
 
-func tune_save_parms_to_file(f *FILE) {
-	for k, v := range tune_str_table {
-		fprintf(f, "%s=%.4096s\n", k, (*v.str))
-	}
-
-	for k, v := range tune_time_table {
-		fprintf(f, "%s=%s\n", k, timestr_full(*v.tim))
-	}
-
-	for k, v := range tune_val_table {
-		fprintf(f, "%s=%s\n", k, timestr_full(*v.val))
-	}
-
-	for k, v := range tune_ref_table {
-		fprintf(f, "%s=#%d\n", k, *(v.ref))
-	}
-
-	for k, v := range tune_bool_table {
-		if *(v.boolval) {
-			fprintf(f, "%s=yes\n", k)
-		} else {
-			fprintf(f, "%s=no\n", k)
+func (t TuningTable) SaveTo(f *FILE) {
+	for k, v := range t {
+		switch v := v.variable.(type) {
+		case *string:
+			fmt.Fprintf(f, "%v=%v\n", k, *v)
+		case *int:
+			fmt.Fprintf(f, "%v=%v\n", k, *v)
+		case *bool:
+			fmt.Fprintf(f, "%v=%v\n", k, *v)
+		case *time.Time:
+			fmt.Fprintf(f, "%v=%v\n", k, *v)
+		case *ObjectID:
+			fmt.Fprintf(f, "%v=%v\n", k, *v)
 		}
 	}
 }
 
-func tune_parms_array(pattern string, mlev int) (r Array) {
-	for name, tbool := range tune_bool_table {
-		if tbool.security <= mlev {
-			if pattern == "" || !smatch(pattern, name) {
-				item := Dictionary{
-					"type": "boolean",
-					"group": tbool.group,
-					"name":  name
-					"mlev":  tbool.security,
-					"label": tbool.label,
-				}
-				if tbool.boolval {
+func (t TuningTable) ArrayAs(security int, name string) (r Array) {
+	for k, v := range t {
+		switch {
+		case v.MLevel > security:
+		case name == "", smatch(name, k) == 0:
+			item := Dictionary{
+				"group": v.group,
+				"name": v.name,
+				"value": *v.variable,
+				"mlev": v.MLevel,
+				"label": v.label,
+			}
+			switch v := v.variable.(type) {
+			case *bool:
+				item["type"] ="boolean"
+				if *v {
 					item["value"] = 1
 				} else {
 					item["value"] = 0
 				}
-				r = append(r, item)
-			}
-		}
-	}
-
-	for name, ttim := range tune_time_table {
-		if ttim.security <= mlev {
-			if pattern == "" || !smatch(pattern, name) {
-				r = append(r, Dictionary{
-					"type": "timespan",
-					"group": ttim.group,
-					"name":  name,
-					"value": *(ttim.tim),
-					"mlev":  ttim.security,
-					"label": ttim.label,
-				})
-			}
-		}
-	}
-
-	for name, tval := range tune_val_table {
-		if tval.security <= mlev {
-			if pattern == "" || !smatch(pattern, name) {
-				r = append(r, Dictionary{
-					"type": "integer",
-					"group": tval.group,
-					"name":  name,
-					"value": *(tval.val),
-					"mlev":  tval.security,
-					"label": tval.label,
-				})
-			}
-		}
-	}
-
-	for name, tref := range tune_ref_table {
-		if tref.security <= mlev {
-			if pattern == "" || !smatch(pattern, name) {
-				item := Dictionary{
-					"type": "ObjectID",
-					"group": tref.group,
-					"name":  name,
-					"value": *(tref.ref),
-					"mlev":  tref.security,
-					"label": tref.label,
-				}
-				switch tref.typ {
+			case *time.Time:
+				item["type"] = "timespan"
+			case *int:
+				item["type"] = "integer"
+			case *string:
+				item["type"] = "string"
+			case *ObjectID:
+				item["type"] = "ObjectID"
+				switch Typeof(*v) {
 				case NOTYPE:
 					item["objtype"] = "any"
-				case TYPE_PLAYER:
+				case Player:
 					item["objtype"] = "player"
-				case TYPE_THING:
+				case Object:
 					item["objtype"] = "thing"
-				case TYPE_ROOM:
+				case Room:
 					item["objtype"] = "room"
-				case TYPE_EXIT:
+				case Exit:
 					item["objtype"] = "exit"
-				case TYPE_PROGRAM:
+				case Program:
 					item["objtype"] = "program"
+				case Lock:
+					item["objtype"] = "lock"
 				default:
 					item["objtype"] = "unknown"
 				}
-				r = append(r, item)
 			}
-		}
-	}
-
-	for name, tstr := range tune_str_table {
-		if tstr.security <= mlev {
-			if pattern == "" || !smatch(pattern, name) {
-				r = append(r, Dictionary{
-					"type": "string",
-					"group": tstr.group,
-					"name":  tstr.name,
-					"value": *(tstr.str),
-					"mlev":  tstr.security,
-					"label": tstr.label,
-				})
-			}
+			r = append(r, item)
 		}
 	}
 	return
 }
 
-func tune_save_parmsfile(void) {
-	if f := fopen(PARMFILE_NAME, "wb"); f == nil {
-		log_status("Couldn't open file %s!", PARMFILE_NAME)
+func (t TuningTable) Save(name string) {
+	if f, e := os.OpenFile(name, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e == nil {
+		t.SaveTo(f)
+		f.Close()
 	} else {
-		tune_save_parms_to_file(f)
-		fclose(f)
-	}
-}
-
-func tune_get_parmstring(name string, mlev int) string {
-	if tstr, ok := tune_str_table[parmname]; ok {
-		if tstr.security <= mlev {
-			r = *(tstr.str)
-		}
-		return
-	}
-
-	if ttim, ok := tune_time_table[parmname]; ok {
-		if ttim.security <= mlev {
-			r = fmt.Sprint(*(ttim.tim))
-		}
-		return
-	}
-
-	if tval, ok := tune_val_table[parmname]; ok {
-		if ttim.security <= mlev {
-			r = fmt.Sprint(*(tval.val))
-		}
-		return
-	}
-
-	if tref, ok := tune_ref_table[parmname]; ok {
-		if ttim.security <= mlev {
-			r = fmt.Sprint(*(tref.ref))
-		}
-		return
-	}
-
-	if tbool, ok := tune_bool_table[parmname]; ok {
-		if ttim.security <= mlev {
-			if *(tbool.boolval) {
-				r = "yes"
-			} else {
-				r = "no"
-			}
-		}
-		return
-	}
-	return
-}
-
-func tune_freeparms() {
-	if tstr, ok := tune_str_table[parmname]; ok {
-		if !tstr.isdefault {
-			*(tstr.str) = ""
-		}
-	}
-}
-
-func tune_setparm(parmname, val string, security int) (r int) {
-	parmval := val
-	r = TUNESET_UNKNOWN
-
-	if tstr, ok := tune_str_table[parmname]; ok {
-		switch {
-		case tstr.security > security:
-			r = TUNESET_DENIED
-		case !tstr.isnullable && parmval == "":
-			r = TUNESET_BADVAL
-		default:
-			if parmval[0] == '-' {
-				parmval = parmval[1:]
-			}
-			*(tstr.str) = parmval
-			tstr.isdefault = false
-			r = TUNESET_SUCCESS
-		}
-		return
-	}
-
-	for name, ttim := range tune_time_table {
-		if parmname == name {
-			if ttim.security > security {
-				r = TUNESET_DENIED
-			} else {
-				var days, hrs, mins, secs, result int
-				char *end;
-
-				end = parmval + len(parmval) - 1;
-				switch *end {
-				case 's', 'S':
-					*end = '\0'
-					if !unicode.IsNumber(parmval) {
-						r = TUNESET_SYNTAX
-					} else {
-						secs = strconv.Atoi(parmval)
-					}
-				case 'm', 'M':
-					*end = '\0';
-					if !unicode.IsNumber(parmval) {
-						return TUNESET_SYNTAX
-					} else {
-						mins = strconv.Atoi(parmval)
-					}
-				case 'h', 'H':
-					*end = '\0'
-					if !unicode.IsNumber(parmval) {
-						r = TUNESET_SYNTAX
-					} else {
-						hrs = strconv.Atoi(parmval)
-					}
-				case 'd', 'D':
-					*end = '\0'
-					if !unicode.IsNumber(parmval) {
-						r = TUNESET_SYNTAX
-					} else {
-						days = strconv.Atoi(parmval)
-					}
-				default:
-					if result = sscanf(parmval, "%dd %2d:%2d:%2d", &days, &hrs, &mins, &secs); result != 4 {
-						r = TUNESET_SYNTAX
-					}
-				}
-				ttim.tim = (days * 86400) + (3600 * hrs) + (60 * mins) + secs
-				r = TUNESET_SUCCESS
-			}
-			return
-		}
-	}
-
-	for name, tval := range tune_val_table {
-		if parmname == name {
-			switch {
-			case tval.security > security:
-				r = TUNESET_DENIED
-			case !unicode.IsNumber(parmval):
-				r = TUNESET_SYNTAX
-			default:
-				tval.val = strconv.Atoi(parmval)
-				r = TUNESET_SUCCESS
-			}
-			return
-		}
-	}
-
-	for name, tref := range tune_ref_table {
-		if parmname == name {
-			switch {
-			case tref.security > security:
-				r = TUNESET_DENIED
-			case parmval[0] != NUMBER_TOKEN:
-				r = TUNESET_SYNTAX
-			case !unicode.IsNumber(parmval[1]):
-				r = TUNESET_SYNTAX
-			default:
-				if obj := strconv.Atoi(parmval[1:]); !obj.IsValid() {
-					r = TUNESET_SYNTAX
-				} else {
-					switch tref.(type) {
-					case NOTYPE, Typeof(obj):
-						r = TUNESET_BADVAL
-					default:
-						*tref.ref = obj
-						r = TUNESET_SUCCESS
-					}
-				}
-			}
-			return
-		}
-	}
-
-	for name, tbool := range tune_bool_table {
-		if parmname == name {
-			switch {
-			case tbool.security > security:
-				r = TUNESET_DENIED
-			case parmval == 'y', parmval == 'Y':
-				tbool.boolval = true
-				r = TUNESET_SUCCESS
-			case parmval == 'n', parmval == 'N':
-				tbool.boolval = false
-				r = TUNESET_SUCCESS
-			default:
-				r = TUNESET_SYNTAX
-			}
-			return
-		}
-	}
-	return
-}
-
-func tune_load_parms_from_file(f *FILE, player ObjectID, cnt int) {
-	for result := 0; !feof(f) && (cnt < 0 || cnt != 0); cnt-- {
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			switch line := scanner.Text(); {
-			case line == "":
-			case line[0] != "#":
-				if terms := strings.SplitN(line, "=", 2); len(terms) == 2 {
-					term[0] = strings.TrimSpace(term[0])
-					term[1] = strings.TrimSpace(term[1])
-					switch result = tune_setparm(term[0], term[1], MLEV_GOD); result {
-					case TUNESET_SUCCESS:
-						line += ": Parameter set."
-					case TUNESET_UNKNOWN:
-						line += ": Unknown parameter."
-					case TUNESET_SYNTAX:
-						line += ": Bad parameter syntax."
-					case TUNESET_BADVAL:
-						line += ": Bad parameter value."
-					case TUNESET_DENIED:
-						line += ": Permission denied."
-					}
-					if result != 0 && player != NOTHING {
-						notify(player, line)
-					}
-				}
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading tuning configuration file:", err)
-		}
-	}
-}
-
-func tune_load_parmsfile(player ObjectID) {
-	f := fopen(PARMFILE_NAME, "rb")
-	if (!f) {
 		log_status("Couldn't open file %s!", PARMFILE_NAME)
-		return
 	}
-	tune_load_parms_from_file(f, player, -1)
-	fclose(f)
 }
 
-func do_tune(player ObjectID, parmname, parmval string, full_command_has_delimiter int) {
+func (t TuningTable) LoadFrom(f *FILE, player ObjectID, cnt int) {
+	var e error
+	for scanner := bufio.NewScanner(f); scanner.Scan() && cnt != 0; {
+		switch line := scanner.Text(); {
+		case line == "":
+		case line[0] != "#":
+			if terms := strings.SplitN(line, "=", 2); len(terms) == 2 {
+				term[0] = strings.TrimSpace(term[0])
+				term[1] = strings.TrimSpace(term[1])
+				switch result := Tuneables.SetAs(MLEV_GOD, term[0], term[1]); result {
+				case TUNESET_SUCCESS:
+					line += ": Parameter set."
+				case TUNESET_UNKNOWN:
+					line += ": Unknown parameter."
+				case TUNESET_SYNTAX:
+					line += ": Bad parameter syntax."
+				case TUNESET_BADVAL:
+					line += ": Bad parameter value."
+				case TUNESET_DENIED:
+					line += ": Permission denied."
+				}
+				if result != 0 && player != NOTHING {
+					notify(player, line)
+				}
+			}
+		}
+		if cnt > 0 {
+			cnt--
+		}
+	}		
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading tuning configuration file:", err)
+	}
+}
+
+func (t TuningTable) Load(name string, player ObjectID) {
+	if f, e := os.Open(name); e == nil {
+		defer func() {
+			if e := f.Close(); e != nil {
+				log.Fatal(e)
+			}
+		}()
+		Tuneables.LoadFrom(f, player, -1)
+	} else {
+		log_status("Couldn't open file %s!", PARMFILE_NAME)
+	}
+}
+
+func (t TuningTable) Tune(player ObjectID, name string, val interface{}, has_delimiter bool) {
+func do_tune(player ObjectID, name, val string, full_command_has_delimiter int) {
 	if Wizard(player) {
 		var security int
 		if player == GOD {
@@ -738,17 +598,16 @@ func do_tune(player ObjectID, parmname, parmval string, full_command_has_delimit
 			security = MLEV_WIZARD
 		}
 		switch {
-		case parmname != "" && full_command_has_delimiter {
-			if force_level {
+		case name != "" && has_delimiter {
+			if force_level > 0 {
 				notify(player, "You cannot force setting a @tune.")
-				return;
 			} else {
-		 		oldvalue := tune_get_parmstring(parmname, security)
-				switch result := tune_setparm(parmname, parmval, security); result {
+		 		oldvalue := t.GetAs(security, name)
+				switch result := t.SetAs(security, name, val); result {
 				case TUNESET_SUCCESS:
-					log_status("TUNED: %s(%d) tuned %s from '%s' to '%s'", DB.Fetch(player).name, player, parmname, oldvalue, parmval)
+					log_status("TUNED: %s(%d) tuned %s from '%s' to '%s'", DB.Fetch(player).name, player, name, oldvalue, val)
 					notify(player, "Parameter set.")
-					tune_display_parms(player, parmname, security)
+					Tuneables.Display(player, name, security)
 				case TUNESET_UNKNOWN:
 					notify(player, "Unknown parameter.")
 				case TUNESET_SYNTAX:
@@ -759,19 +618,14 @@ func do_tune(player ObjectID, parmname, parmval string, full_command_has_delimit
 					notify(player, "Permission denied.")
 				}
 			}
-		case parmname != "":
-			switch parname {
-			case "save":
-				tune_save_parmsfile()
-				notify(player, "Saved parameters to configuration file.")
-			case "load":
-				tune_load_parmsfile(player)
-				notify(player, "Restored parameters from configuration file.")
-			default:
-				tune_display_parms(player, parmname, security);
-			}
-		case parmval == "":
-			tune_display_parms(player, parmname, security)
+		case name == "save":
+			t.Save(PARMFILE_NAME)
+			notify(player, "Saved parameters to configuration file.")
+		case name == "load":
+			t.Load(PARMFILE_NAME, player)
+			notify(player, "Restored parameters from configuration file.")
+		case name != "", val == "":
+			t.Display(player, name, security)
 		default:
 			notify(player, "But what do you want to tune?")
 		}

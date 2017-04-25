@@ -129,10 +129,7 @@ func prim_force(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr 
 			process_command(ObjectID_first_descr(obj), obj, command)
 		})
 		for i := 1; i <= fr.caller.top; i++ {
-			if Typeof(fr.caller.st[i]) != TYPE_PROGRAM {
-#ifdef DEBUG
-				notify_nolisten(player, fmt.Sprintf("[debug] prim_force: fr->caller.st[%d] isn't a program.", i), true)
-#endif
+			if _, ok := fr.caller.st[i].(Program); !ok {
 				do_abort_silent()
 			}
 		}
@@ -338,9 +335,9 @@ func prim_sysparm(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 		CHECKOFLOW(1)
 		if parm := op[0].(string); parm != "" {
 			if player == GOD {
-				push(arg, top, tune_get_parmstring(parm, MLEV_GOD))
+				push(arg, top, Tuneables.GetAs(MLEV_GOD, parm))
 			} else {
-				push(arg, top, tune_get_parmstring(parm, MLEV_WIZARD))
+				push(arg, top, Tuneables.GetAs(MLEV_WIZARD, parm))
 			}
 		}
 	})
@@ -381,10 +378,10 @@ func prim_setsysparm(player, program ObjectID, mlev int, pc, arg *inst, top *int
 			panic("Cannot be forced.")
 		}
 		parm := op[0].(string)
-		security := TNUE_MLEV(player)
-		oldvalue := tune_get_parmstring(parm, security)
+		security := TUNE_MLEV(player)
+		oldvalue := Tuneables.GetAs(security, parm)
 		newvalue := op[1].(string)
-		switch result := tune_setparm(parm, newvalue, security); result {
+		switch result := Tuneables.SetAs(security, parm, newvalue); result {
 		case TUNESET_SUCCESS:
 			log_status("TUNED (MUF): %s(%d) tuned %s from '%s' to '%s'", DB.Fetch(player).name, player, parm, oldvalue, newvalue)
 		case TUNESET_UNKNOWN:
@@ -402,9 +399,9 @@ func prim_setsysparm(player, program ObjectID, mlev int, pc, arg *inst, top *int
 func prim_sysparm_array(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		if player == GOD {
-			push(arg, top, tune_parms_array(op[0].(string), MLEV_GOD))
+			push(arg, top, Tuneables.ArrayAs(MLEV_GOD, op[0].(string))
 		} else {
-			push(arg, top, tune_parms_array(op[0].(string), MLEV_WIZARD))
+			push(arg, top, Tuneables.ArrayAs(MLEV_WIZARD, op[0].(string)))
 		}
 	})
 }
@@ -612,12 +609,12 @@ func prim_ignore_del(player, program ObjectID, mlev int, pc, arg *inst, top *int
 
 func prim_debug_on(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	DB.Fetch(program).flags |= DARK
-	DB.Fetch(program).flags |= OBJECT_CHANGED
+	DB.Fetch(program).Touch()
 }
 
 func prim_debug_off(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	DB.Fetch(program).flags &= ~DARK
-	DB.Fetch(program).flags |= OBJECT_CHANGED
+	DB.Fetch(program).Touch()
 }
 
 func prim_debug_line(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {

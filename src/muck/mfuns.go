@@ -1206,7 +1206,7 @@ func mfn_nearby(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp i
 	case obj == PERMDENIED:
 		ABORT_MPI("NEARBY", "Permission denied (arg1).")
 	case obj == HOME:
-		obj = DB.FetchPlayer(player).home
+		obj = DB.FetchPlayer(player).Home
 	}
 	var obj2 ObjectID
 	if len(argv) > 1 {
@@ -1217,7 +1217,7 @@ func mfn_nearby(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp i
 		case obj2 == PERMDENIED:
 			ABORT_MPI("NEARBY", "Permission denied (arg2).")
 		case obj2 == HOME:
-			obj2 = DB.FetchPlayer(player).home
+			obj2 = DB.FetchPlayer(player).Home
 		}
 	} else {
 		obj2 = what

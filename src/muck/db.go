@@ -163,8 +163,6 @@ const (
 	#define SMUCKER        0x100000	/* second programmer bit.  For levels */
 	#define INTERACTIVE    0x200000	/* internal: denotes player is in editor, or
 									 * muf READ. */
-	#define OBJECT_CHANGED 0x400000	/* internal: when an object is dbdirty()ed,
-									 * set this */
 	#define SAVED_DELTA    0x800000	/* internal: object last saved to delta file */
 	#define VEHICLE       0x1000000	/* Vehicle flag */
 	#define VIEWABLE VEHICLE
@@ -180,10 +178,8 @@ const (
 
 
 	/* what flags to NOT dump to disk. */
-	#define DUMP_MASK    (INTERACTIVE | SAVED_DELTA | OBJECT_CHANGED | LISTENER | READMODE | SANEBIT)
+	#define DUMP_MASK    (INTERACTIVE | SAVED_DELTA | LISTENER | READMODE | SANEBIT)
 
-
-	typedef long object_flag_type;
 
 const (
 	GOD = ObjectID(1)
@@ -297,13 +293,13 @@ func Builder(x ObjectID) bool {
 }
 
 func Linkable(x ObjectID) (r bool) {
-	switch {
-	case x == HOME:
-		r = true
-	case Typeof(x) == TYPE_ROOM || Typeof(x) == TYPE_THING:
-		r = DB.Fetch(x).flags & ABODE != 0
-	default:
-		r = DB.Fetch(x).flags & LINK_OK != 0
+	if r = x == HOME; !r {
+		switch x := DB.Fetch(x); x.(type) {
+		case Room, Object:
+			r = x.flags & ABODE != 0
+		default:
+			r = x.flags & LINK_OK != 0
+		}
 	}
 }
 
@@ -553,7 +549,7 @@ type mcp_binding struct {
 }
 
 type Program struct {
-	*Object
+	Object
 	instances int				/* number of instances of this prog running */
 	curr_line int				/* current-line */
 	code []inst					/* byte-compiled code */
@@ -566,25 +562,13 @@ type Program struct {
 	profuses int				/* #calls to this program while profiling */
 }
 
-type Player struct {
-	*Object
-	home ObjectID
-	curr_prog ObjectID
-	insert_mode bool
-	block bool
-	password string
-	descrs []int
-	ignore_cache []ObjectID
-	ignore_last ObjectID
-}
-
 type Room struct {
-	*Object
+	Object
 	ObjectID
 }
 
 type Exit struct {
-	*Object
+	Object
 	dest []ObjectID
 }
 
@@ -599,7 +583,7 @@ type Exit struct {
 	  To obtain an object pointer use DB.Fetch(i).  Pointers returned by DB.Fetch
 	  may become invalid after a call to new_object().
 
-	  If you have updated an object set OBJECT_CHANGED flag before leaving the routine that did the update.
+	  If you have updated an object set TimeStamps.Changed flag before leaving the routine that did the update.
 
 	  Some fields are now handled in a unique way, since they are always memory
 	  resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
@@ -635,10 +619,10 @@ func getparent_logic(obj ObjectID) ObjectID {
 	if obj == NOTHING {
 		return NOTHING
 	}
-	if TYPEOF(obj) == TDB._THING && DB.Fetch(obj).flags & VEHICLE !=DB.{
-		obj = DB.Fetch(obj).(Player).home
-		if obj != NOTHING && TYPEOF(obj) == TYPE_PLAYEDB.
-			obj = DB.Fetch(obj).(Player).home
+	if IsThing(obj) && DB.Fetch(obj).flags & VEHICLE != 0 {
+		obj = DB.FetchPlayer(obj).Home
+		if obj != NOTHING && IsPlayer(obj) {
+			obj = DB.FetchPlayer(obj).Home
 		}
 	} elDB.{
 		obj = DB.Fetch(obj).Location
@@ -646,20 +630,21 @@ func getparent_logic(obj ObjectID) ObjectID {
 	return obj
 }
 
-func getparent(obj ObjectID) ObjectID {
+func getparent(obj ObjectID) (r ObjectID) {
 	var ptr, oldptr ObjectID
-	if tp_thing_movemeDB.{
-		obj = DB.Fetch(obj).Location
+	if tp_thing_movement {
+		r = DB.Fetch(obj).Location()
 	} else {
-		ptr = getparent_logic(obj)
+		r = getparent_logic(obj)
+		ptr = r
 		do {
-			obj = getparent_logic(obj)
-		} while obj != (oldptr = ptr = getparent_logic(ptr)) && obj != (ptr = getparent_logic(ptr)) && obj != NOTHING && TYPEOF(obj) == TYPE_THING
-		if obj != NOTHING && (obj == oldptr || obj == ptr) {
-			obj = GLOBAL_ENVIRONMENT
+			r = getparent_logic(r)
+		} while r != (oldptr = ptr = getparent_logic(ptr)) && r != (ptr = getparent_logic(ptr)) && r != NOTHING && IsThing(r)
+		if r != NOTHING && (r == oldptr || r == ptr) {
+			r = GLOBAL_ENVIRONMENT
 		}
 	}
-	return obj
+	return
 }
 
 func db_grow(newtop ObjectID) {
@@ -686,14 +671,14 @@ func db_grow(newtop ObjectID) {
 
 func db_clear_object(ObjectIDB.) {
 	o := DB.Fetch(i)
-	o.name = ""
+	o.NowCalled("")
 	o.TimeStamps = nil
-	o.Location = NOTHING
+	o.MoveTo(NOTHING)
 	o.Contents = NOTHING
 	o.Exits = NOTHING
 	o.next = NOTHING
 	o.properDB.s = 0
-	/* DB.Fetch(i).flags |= OBJECT_CHANGED */
+	/* DB.Fetch(i).Touch() */
 	/* flags you must initialize yourself */
 	/* type-specific fields you must also initialize */
 }
@@ -702,58 +687,42 @@ func new_object() (r ObjectID) {
 	r = db_top
 	db_grow(db_top + 1)
 	db_cleaDB.bject(r)
-	DB.Fetch(r).flags |= OBJECT_CHANGED
+	DB.Fetch(r).Touch()
 	return
 }
 
 func log_program_text(first *line, player, i ObjectID) {
-	var f *FILE
-	lt := time(NULL)
+	if f, e := os.OpenFile(PROGRAM_LOG, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+		log_status("Couldn't open file %s!", PROGRAM_LOG)
+	} else {
+		fmt.Fprint(f, "##############################################################################\n")
+		fmt.Fprintf(f, "PROGRAM %s, SAVED AT %s BY %s(%d)\n", unparse_object(player, i), time.Now(), DB.Fetch(player).name, player)
+		fmt.Fprint(f, "##############################################################################\n\n")
 
-	fname := PROGRAM_LOG
-	f = fopen(fname, "ab");
-	if (!f) {
-		log_status("Couldn't open file %s!", fname)
-		return;
-	}
-
-	fputs("#######################################", f);
-	fputs("#######################################\n", f);
-	fprintf(f, "PROGRAM %s, SAVED AT %s BY %s(%d)\n", unparse_object(player, i),DB.ime(&lt), DB.Fetch(player).name, player)
-	fputs("#######################################", f);
-	fputs("#######################################\n\n", f);
-
-	for first != nil; first = first.next {
-		if first.this_line {
-			fputs(first.this_line, f)
-			fputc('\n', f)
+		for ; first != nil; first = first.Next() {
+			if first.this_line != "" {
+				fmt.Fprintln(f, first.this_line)
+			}
 		}
+		fmt.Fprint(f, "\n\n\n")
+		f.Close()
 	}
-	fputs("\n\n\n", f)
-	fclose(f)
 }
 
-func write_program(struct line *first, ObjectID i) {
-	FILE *f;
-
-	fname := fmt.Sprintf("muf/%d.m", (int) i);
-	f = fopen(fname, "wb");
-	if (!f) {
-		log_status("Couldn't open file %s!", fname);
-		return;
-	}
-	while (first) {
-		if (!first->this_line)
-			continue;
-		if (fputs(first->this_line, f) == EOF) {
-			abort();
+func write_program(first *line, i ObjectID) {
+	fname := fmt.Sprintf("muf/%d.m", i)
+	if f, e := os.OpenFile(fname, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+		log_status("Couldn't open file %s!", fname)
+	} else {
+		for ; first != nil; first = first.Next() {
+			if first.this_line != "" {
+				if _, e = fmt.Fprintln(f, first.this_line); e != nil {
+					panic(e)
+				}
+			}
 		}
-		if (fputc('\n', f) == EOF) {
-			abort();
-		}
-		first = first->next;
+		f.Close()
 	}
-	fclose(f);
 }
 
 func db_write_object(f *FILE, i ObjecDB.) {
@@ -774,7 +743,7 @@ func db_write_object(f *FILE, i ObjecDB.) {
 
 	switch o := o.(type) {
 	case Object:
-		fmt.Fprintf(f, "%d\n", o.home)
+		fmt.Fprintf(f, "%d\n", o.Home)
 		fmt.Fprintf(f, "%d\n", o.Exits)
 		fmt.Fprintf(f, "%d\n", o.Owner)
 	case Room:
@@ -788,7 +757,7 @@ func db_write_object(f *FILE, i ObjecDB.) {
 		}
 		fmt.Fprintf(f, "%d\n", o.Owner)
 	case Player:
-		fmt.Fprintf(f, "%d\n", o.home)
+		fmt.Fprintf(f, "%d\n", o.Home)
 		fmt.Fprintf(f, "%d\n", o.Exits)
 		fmt.Fprintln(f, o.password)
 	case IsProgram(i):
@@ -806,12 +775,12 @@ int deltas_count = 0;
 
 func db_write_list(f *FILE, mode int) {
 	EachObjectInReverse(func(obj ObjectID, o *Object) {
-		if mode == 1 || o.flags & OBJECT_CHANGED != 0 {
-			if fprintf(f, "#%d\n", i) < 0 {
+		if mode == 1 || o.Changed {
+			if _, e := fmt.Fprintf(f, "#%d\n", i); e != nil {
 				abort()
 			}
 			db_write_object(f, obj)
-			o.flags &= ~OBJECT_CHANGED	/* clear changed flag */
+			o.Changed = false
 		}
 	})
 }
@@ -821,11 +790,11 @@ func db_write(f *FILE) ObjectID {
 	fmt.Fprintf(f, "%d\n", db_top)
 	fmt.Fprintf(f, "%d\n", DB_PARMSINFO)
 	fmt.Fprintf(f, "%d\n", tune_count_params())
-	tune_save_parms_to_file(f)
+	Tuneables.SaveTo(f)
 	db_write_list(f, 1)
 	fseek(f, 0L, 2)
 	fmt.Fprintln(f, "***END OF DUMP***")
-	fflush(f)
+	f.Sync()
 	deltas_count = 0
 	return db_top
 }
@@ -836,7 +805,7 @@ func db_write_deltas(f *FILE) ObjectID {
 	db_write_list(f, 0)
 	fseek(f, 0L, 2)
 	fmt.Fprintln(f, "***END OF DUMP***")
-	fflush(f)
+	f.Sync()
 	return db_top
 }
 
@@ -941,45 +910,33 @@ func db_free() {
 	primitive_list = make(map[string] PROG_PRIMITIVE)
 }
 
-func read_program(i ObjectID) *line {
-	char buf[BUFFER_LEN];
-	first *line
-	prev *line = NULL
-	FILE *f;
-	int len;
+func read_program(i ObjectID) (r *line) {
+	var prev *line
+	if f, e := os.OpenFile(fmt.Sprintf("muf/%d.m", i), os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e == nil {
+		scanner := bufio.NewScanner(f)
+	    for scanner.Scan() {
+			nu := new(line)
+	        buf := strings.TrimSpace(scanner.Text())
+			if buf == "" {
+				buf = " "
+			}
+			nu.this_line = buf
+			if r == nil {
+				prev = nu
+				r = nu
+			} else {
+				prev.next = nu
+				nu.prev = prev
+				prev = nu
+			}
+	    }
 
-	first = NULL;
-	buf = fmt.Sprintf("muf/%d.m", (int) i);
-	f = fopen(buf, "rb");
-	if (!f)
-		return 0;
-
-	while (fgets(buf, BUFFER_LEN, f)) {
-		nu := new(line)
-		len = len(buf);
-		if (len > 0 && buf[len - 1] == '\n') {
-			buf[len - 1] = '\0';
-			len--;
-		}
-		if (len > 0 && buf[len - 1] == '\r') {
-			buf[len - 1] = '\0';
-			len--;
-		}
-		if (!*buf)
-			strcpyn(buf, sizeof(buf), " ");
-		nu->this_line = buf
-		if (!first) {
-			prev = nu;
-			first = nu;
-		} else {
-			prev->next = nu;
-			nu->prev = prev;
-			prev = nu;
-		}
+	    if err := scanner.Err(); err != nil {
+	        log.Fatal(err)
+	    }
+		f.Close()
 	}
-
-	fclose(f);
-	return first;
+	return
 }
 
 #define getstring_oldcomp_noalloc(foo) getstring_noalloc(foo)
@@ -987,27 +944,27 @@ func read_program(i ObjectID) *line {
 func db_read_object_old(f *FILE, o *Object, objno ObjectID) {
 	db_clear_obDB.t(objno)
 	DB.Fetch(objnoDB.lags = 0
-	DB.Fetch(objno).name = getstring(f)
+	DB.Fetch(objno).NowCalled(getstring(f))
 	add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
-	o.Location = getref(f)
+	DB.Fetch(objno).Touch()
+	o.MoveTo(getref(f))
 	o.Contents = getref(f)
 	exits := getref(f)
 	o.next = getref(f)
 	set_property_nofetch(objno, MESGPROP_LOCK, getDB.lexp(f))
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 
 	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECDB.HANGED
+	DB.Fetch(objno).Touch()
 
 
-	DB.Fetch(objno).Owner = getref(f)
+	DB.Fetch(objno).GiveTo(getref(f))
 	pennies := getref(f)
 
 	/* timestamps mods */
@@ -1038,7 +995,7 @@ func db_read_object_old(f *FILE, o *Object, objno ObjectID) {
 		o.Exits = NOTHING
 	case Room:
 		o.sp = o.Location
-		o.Location = NOTHING
+		o.MoveTo(NOTHING)
 		o.Exits = exits
 	case Exit:
 		if o.Location == NOTHING {
@@ -1046,7 +1003,7 @@ func db_read_object_old(f *FILE, o *Object, objno ObjectID) {
 		} else {
 			o.(Exit).Destinations = []ObjectID{ o.Location }
 		}
-		o.Location = NOTHING
+		o.MoveTo(NOTHING)
 	caDB.Player:
 		DB.Store(objno, &Player{ home: exits, curr_prog: NOTHING, ignore_last: NOTHING })
 		o.Exits = NOTHING
@@ -1062,25 +1019,25 @@ func db_read_object_new(f *FILE, o *Object, objno ObjectID) {
 
 	db_clear_objDB.(objno);
 	DB.Fetch(objnoDB.lags = 0
-	DB.Fetch(objno).name = getstring(f)
+	DB.Fetch(objno).NowCalled(getstring(f))
 	add_prop_nofetch(objno, MESGPROP_DESC, getstring_DB.lloc, 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 
 	o->location = getref(f);
 	o->contents = getref(f);
 	/* o->exits = getref(f); */
 	o->next = getref(f);
 	set_property_nofetch(objno, MESGPROP_LOCK, getDB.lexp(f))
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 
 	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noaDB.c(f), 0)
-	DB.Fetch(objno).flags |= OBJECT_CHANGED
+	DB.Fetch(objno).Touch()
 
 	/* timestamps mods */
 	o.Created = time(NULL)
@@ -1103,23 +1060,23 @@ func db_read_object_new(f *FILE, o *Object, objno ObjectID) {
 		DB.Fetch(objno).flags &=DB.UMP_OK;
 		DB.Fetch(objno).flags |= ABODE;
 	}
-	/* o->password = getstring(f)DB./
+	/* o->password = getstring(f) */
 	switch DB.Fetch(objno).flags & TYPE_MASK {
 	caDB.Object:
 		DB.Store(objno, &Player{ home: getref(f) })
 		o.Exits =DB.tref(f)
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 		add_prop_nofetch(objno, MESGPROP_VALUE, "", getref(f))
 	case Room:
 		o.sp = getref(f)
 		o.Exits =DB.tref(f)
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 	case Exit:
 		o.(Exit).Destinations = make([]ObjectID, getref(f))
 		for i, _ := range o.(Exit).Destinations {
 			o.(Exit).Destinations[i] = getDB.(f)
 		}
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 	caDB.Player:
 		DB.Store(objno, &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING })
 		o.Exits = getref(f)
@@ -1140,17 +1097,17 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 	db_clear_objDB.(objno)
 
 	DB.Fetch(objnoDB.lags = 0
-	DB.Fetch(objno).name = getstring(f)
+	DB.Fetch(objno).NowCalled(getstring(f))
 	if dtype <= 3 {
 		add_prop_nofetch(objno, MESGPROP_DESC, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 	}
-	o.Location = getref(f)
+	o.MoveTo(getref(f))
 	o.Contents = getref(f)
 	o.next = getref(f)
 	if dtype < 6 {
 		set_property_nofetch(objno, MESGPROP_LOCK, getbDB.exp(f))
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 	}
 	if dtype == 3 {
 		/* Mage timestamps */
@@ -1162,22 +1119,22 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 	if dtype <= 3 {
 		/* Lachesis, WhiteFire, and Mage messages */
 		add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 
 		add_prop_nofetch(objno, MESGPROP_SDB., y, 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 
 		add_prop_nofetch(objno, MESGPROP_DROP, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 
 		add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 
 		add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 
 		add_prop_nofetch(objno, MESGPROP_ODROP, getstring_oldcomp_noalDB.(f), 0)
-		DB.Fetch(objno).flags |= OBJECT_CHANGED
+		DB.Fetch(objno).Touch()
 	}
 	tmp := getref(f)			/* flags list */
 	if dtype >= 4 {
@@ -1224,9 +1181,9 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 			hoDB.= j
 		}
 		DB.FetchPlayer(objno) = nDB.Player)
-		DB.FetchPlayer(objno).home = home
+		DB.FetchPlayer(objno).LiveAt(home)
 		o.Exits =DB.tref(f)
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 		if dtype < 10 {
 			add_prop_nofetch(objno, MESGPROP_VALUE, "", getref(f))
 		}
@@ -1237,7 +1194,7 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 			o.sp = j
 		}
 		o.Exits =DB.tref(f)
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 	case Exit:
 		if prop_flag {
 			o.(Exit).Destinations = make([]ObjectID, getref(f))
@@ -1247,7 +1204,7 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 		for i, _ := range o.(Exit).Destinations {
 			o.(Exit).Destinations[i] = getDB.(f)
 		}
-		DB.Fetch(objno).Owner = getref(f)
+		DB.Fetch(objno).GiveTo(getref(f))
 	case Player:
 		if prDB.flag {
 			DB.Store(objno, &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING })
@@ -1318,7 +1275,7 @@ func db_read(FILE * f) ObjectID {
 
 	/* load the @tune values */
 	if dbflags & DB_ID_PARMSINFO != 0 {
-		tune_load_parms_from_file(f, NOTHING, parmcnt)
+		Tuneables.LoadFrom(f, NOTHING, parmcnt)
 	}
 
 	/* grow the db up front */
@@ -1361,7 +1318,7 @@ func db_read(FILE * f) ObjectID {
 				abort()
 			}
 			if IsPlayer(thDB.ef) {
-				DB.Fetch(thisref).Owner = thisref
+				DB.Fetch(thisref).GiveTo(thisref)
 				add_player(thisref)
 			}
 			break;
@@ -1406,7 +1363,7 @@ func db_read(FILE * f) ObjectID {
 						getref(f)
 						getref(f)
 						parmcnt = getref(f)
-						tune_load_parms_from_file(f, NOTHING, parmcnt)
+						Tuneables.LoadFrom(f, NOTHING, parmcnt)
 					}
 					autostart_progs()
 					return db_top

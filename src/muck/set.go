@@ -38,18 +38,17 @@ func do_name(descr int, player ObjectID, name, newname string) {
 					log_status("NAME CHANGE: %s(#%d) to %s", DB.Fetch(thing).name, thing, newname)
 					delete_player(thing)
 					ts_modifyobject(thing)
-					DB.Fetch(thing).name = newname
+					DB.Fetch(thing).NowCalled(newname)
 					add_player(thing)
 					notify(player, "Name set.")
 				}
 			default:
-				switch thing.(type) {
-				case TYPE_THING:
+				if _, ok := thing.(Object); ok {
 					if !ok_ascii_thing(newname) {
 						notify(player, "Invalid 8-bit name.")
 						return
 					}
-				default:
+				 } else {
 					if !ok_ascii_other(newname) {
 						notify(player, "Invalid 8-bit name.")
 						return
@@ -58,12 +57,12 @@ func do_name(descr int, player ObjectID, name, newname string) {
 				if !ok_name(newname) {
 					notify(player, "That is not a reasonable name.")
 				} else {
-					ts_modifyobject(thing)
-					DB.Fetch(thing).name = newname
+					p := DB.Fetch(thing)
+					p.Touch()
+					p.NowCalled(newname)
 					notify(player, "Name set.")
-					DB.Fetch(thing).flags |= OBJECT_CHANGED
 					switch thing.(type) {
-					case TYPE_EXIT:
+					case IsExit:
 						if MLevRaw(thing) != NON_MUCKER {
 							SetMLevel(thing, NON_MUCKER)
 							notify(player, "Action priority Level reset to zero.")
@@ -80,7 +79,7 @@ func do_describe(descr int, player ObjectID, name, description string) {
 		if thing := MatchControlled(descr, player, name); thing != NOTHING {
 			ts_modifyobject(thing)
 			add_property(thing, MESGPROP_DESC, description, 0)
-			if(description && *description) {
+			if description != "" {
 				notify(player, "Description set.")
 			} else {
 				notify(player, "Description cleared.")
@@ -240,9 +239,8 @@ func setlockstr(descr int, player, thing ObjectID, keyname string) (r bool) {
 			set_property(thing, MESGPROP_LOCK, LOCKED)
 		}
 	} else {
-		ts_modifyobject(thing)
+		DB.Fetch(thing).Touch()
 		set_property(thing, MESGPROP_LOCK, UNLOCKED)
-		DB.Fetch(thing).flags |= OBJECT_CHANGED
 		r = true
 	}
 	return
@@ -365,10 +363,9 @@ func do_lock(descr int, player ObjectID, name, keyname string) {
 
 func do_unlock(descr int, player ObjectID, name string) {
 	NoGuest("@unlock", player, func() {
-		if thing = MatchControlled(descr, player, name); thing != NOTHING {
-			ts_modifyobject(thing)
+		if thing := MatchControlled(descr, player, name); thing != NOTHING {
+			DB.Fetch(thing).Touch()
 			set_property(thing, MESGPROP_LOCK, UNLOCKED)
-			DB.Fetch(thing).flags |= OBJECT_CHANGED
 			notify(player, "Unlocked.")
 		}
 	})
@@ -388,9 +385,9 @@ func controls_link(ObjectID who, ObjectID what) (r bool) {
 	case Room:
 		r = controls(who, p.ObjectID)
 	case Player:
-		r = controls(who, p.home)
+		r = controls(who, p.Home)
 	case Object:
-		r = controls(who, p.home)
+		r = controls(who, p.Home)
 	}
 	return
 }
@@ -412,47 +409,39 @@ func _do_unlink(int descr, ObjectID player, const char *name, int quiet) {
 		if !controls(player, exit) && !controls_link(player, exit) {
 			notify(player, "Permission denied. (You don't control the exit or its link)");
 		} else {
-			switch Typeof(exit) {
-			case TYPE_EXIT:
-				p := DB.Fetch(exit)
-				if len(p.(Exit).Destinations) != 0 {
+			switch p := DB.Fetc(exit).(type) {
+			case Exit:
+				if len(p.Destinations) > 0 {
 					add_property(p.Owner, MESGPROP_VALUE, nil, get_property_value(p.Owner, MESGPROP_VALUE) + tp_link_cost)
-					DB.Fetch(p.Owner).flags |= OBJECT_CHANGED
-				}
-				ts_modifyobject(exit)
-				if len(p.(Exit).Destinations) > 0 {
-					p.(Exit).Destinations = nil
-					p.flags |= OBJECT_CHANGED
+					DB.Fetch(p.Owner).Touch()
+					p.Destinations = nil
+					p.Touch()
 				}
 				if !quiet {
 					notify(player, "Unlinked.")
 				}
 				if MLevRaw(exit) != NON_MUCKER {
 					SetMLevel(exit, NON_MUCKER)
-					p.flags |= OBJECT_CHANGED
+					p.Touch()
 					if !quiet {
 						notify(player, "Action priority Level reset to 0.")
 					}
 				}
-			case TYPE_ROOM:
-				ts_modifyobject(exit)
-				DB.Fetch(exit).sp = NOTHING
-				DB.Fetch(exit).flags |= OBJECT_CHANGED
+			case Room:
+				p.Touch()
+				p.dbref = NOTHING
 				if !quiet {
 					notify(player, "Dropto removed.")
 				}
-			case TYPE_THING:
-				ts_modifyobject(exit)
-				DB.Fetch(exit).(Thing).home = DB.Fetch(exit).Owner
-				DB.Fetch(exit).(Thing).flags |= OBJECT_CHANGED
+			case Object:
+				p.Touch()
+				p.LiveAt(p.Owner)
 				if !quiet {
 					notify(player, "Thing's home reset to owner.")
 				}
-			case TYPE_PLAYER:
-				ts_modifyobject(exit)
-				p := DB.FetchPlayer(exit)
-				p.home = tp_player_start
-				p.flags |= OBJECT_CHANGED
+			case Player:
+				p.Touch()
+				p.LiveAt(tp_player_start)
 				if !quiet {
 					notify(player, "Player's home reset to default player start room.")
 				}
@@ -500,7 +489,7 @@ func do_relink(descr int, player ObjectID, thing_name, dest_name string) {
 		if thing := md.NoisyMatchResult(); thing != NOTHING {
 			/* first of all, check if the new target would be valid, so we can avoid breaking the old link if it isn't. */
 			switch thing.(type) {
-			case TYPE_EXIT:
+			case Exit:
 				/* we're ok, check the usual stuff */
 				if len(DB.Fetch(thing).(Exit).Destinations) != 0 {
 					if !controls(player, thing) {
@@ -527,14 +516,14 @@ func do_relink(descr int, player ObjectID, thing_name, dest_name string) {
 					notify(player, "Invalid target.")
 					return
 				}
-			case TYPE_THING, TYPE_PLAYER:
+			case Object, Player:
 				md := NewMatch(descr, player, dest_name, IsRoom).
 					MatchNeighbor().
 					MatchAbsolute().
 					MatchRegistered().
 					MatchMe().
 					MatchHere()
-				if Typeof(thing) == TYPE_THING {
+				if Isthing(thing) {
 					md.MatchPossession()
 				}
 				if dest = md.NoisyMatchResult()); dest != NOTHING {
@@ -549,7 +538,7 @@ func do_relink(descr int, player ObjectID, thing_name, dest_name string) {
 				} else {
 					return
 				}
-			case TYPE_ROOM:			/* room dropto's */
+			case Room:			/* room dropto's */
 				dest = NewMatch(descr, player, dest_name, IsRoom).
 					MatchNeighbor().
 					MatchPossession().
@@ -564,7 +553,7 @@ func do_relink(descr int, player ObjectID, thing_name, dest_name string) {
 					notify(player, "Permission denied. (You can't link to the dropto like that)")
 					return
 				}
-			case TYPE_PROGRAM:
+			case Program:
 				notify(player, "You can't link programs to things!")
 				return
 			default:
@@ -579,78 +568,78 @@ func do_relink(descr int, player ObjectID, thing_name, dest_name string) {
 	})
 }
 
-func do_chown(int descr, ObjectID player, const char *name, const char *newowner) {
-	ObjectID thing;
-	ObjectID owner;
-
-	if (!*name) {
+func do_chown(descr int, player ObjectID, name, newowner string) {
+	var owner ObjectID
+	if name == "" {
 		notify(player, "You must specify what you want to take ownership of.");
-		return;
-	}
-	md := NewMatch(descr, player, name, NOTYPE)
-	md.MatchEverything()
-	md.MatchAbsolute()
-	if ((thing = md.NoisyMatchResult()) == NOTHING)
-		return;
-
-	if newowner != "me" {
-		if ((owner = lookup_player(newowner)) == NOTHING) {
-			notify(player, "I couldn't find that player.");
-			return;
-		}
 	} else {
-		owner = DB.Fetch(player).Owner
-	}
-	if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(player).Owner != owner {
-		notify(player, "Only wizards can transfer ownership to others.");
-		return;
-	}
-	if Wizard(DB.Fetch(player).Owner) && player != GOD && owner == GOD {
-		notify(player, "God doesn't need an offering or sacrifice.");
-		return;
-	}
-	if !Wizard(DB.Fetch(player).Owner) {
-		if TYPEOF(thing) != TYPE_EXIT || (len(DB.Fetch(thing).(Exit).Destinations) != 0 && !controls_link(player, thing)) {
-			if DB.Fetch(thing).flags & CHOWN_OK == 0 || TYPEOF(thing) == TYPE_PROGRAM || !test_lock(descr, player, thing, "_/chlk") {
+		md := NewMatch(descr, player, name, NOTYPE)
+		md.MatchEverything()
+		md.MatchAbsolute()
+		if thing := md.NoisyMatchResult(); thing != NOTHING {
+			if newowner != "me" {
+				if owner = lookup_player(newowner); owner == NOTHING {
+					notify(player, "I couldn't find that player.")
+					return
+				}
+			} else {
+				owner = DB.Fetch(player).Owner
+			}
+			if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(player).Owner != owner {
+				notify(player, "Only wizards can transfer ownership to others.")
+				return
+			}
+			if Wizard(DB.Fetch(player).Owner) && player != GOD && owner == GOD {
+				notify(player, "God doesn't need an offering or sacrifice.")
+				return
+			}
+			if !Wizard(DB.Fetch(player).Owner) {
+				if !IsExit(thing) || (len(DB.Fetch(thing).(Exit).Destinations) != 0 && !controls_link(player, thing)) {
+					if DB.Fetch(thing).flags & CHOWN_OK == 0 || IsProgram(thing) || !test_lock(descr, player, thing, "_/chlk") {
+						notify(player, "You can't take possession of that.")
+						return
+					}
+				}
+			}
+			if tp_realms_control && !Wizard(DB.Fetch(player).Owner) && TrueWizard(thing) && IsRoom(thing) {
 				notify(player, "You can't take possession of that.")
 				return
 			}
-		}
-	}
 
-	if tp_realms_control && !Wizard(DB.Fetch(player).Owner) && TrueWizard(thing) && Typeof(thing) == TYPE_ROOM {
-		notify(player, "You can't take possession of that.");
-		return;
-	}
-
-	switch Typeof(thing) {
-	case TYPE_ROOM:
-		if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(player).Location != thing {
-			notify(player, "You can only chown \"here\".")
-			return
+			p := DB.Fetch(thing)
+			switch p := p.(type) {
+			case Room:
+				if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(player).Location != thing {
+					notify(player, "You can only chown \"here\".")
+					return
+				}
+				p.Touch()
+				p.GiveTo(DB.Fetch(owner).Owner)
+			case Object:
+				if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(thing).Location != player {
+					notify(player, "You aren't carrying that.")
+					return
+				}
+				p.Touch()
+				p.GiveTo(DB.Fetch(owner).Owner)
+			case Player:
+				notify(player, "Players always own themselves.")
+				return
+			case Exit:
+				p.Touch()
+				p.GiveTo(DB.Fetch(owner).Owner)
+			case Program:
+				p.Touch()
+				p.GiveTo(DB.Fetch(owner).Owner)
+			}
+			if owner == player {
+				notify(player, "Owner changed to you.")
+			} else {
+				notify(player, fmt.Sprintf("Owner changed to %s.", unparse_object(player, owner)))
+			}
+			DB.Fetch(thing).Touch()
 		}
-		ts_modifyobject(thing)
-		DB.Fetch(thing).Owner = DB.Fetch(owner).Owner
-	case TYPE_THING:
-		if !Wizard(DB.Fetch(player).Owner) && DB.Fetch(thing).Location != player {
-			notify(player, "You aren't carrying that.")
-			return
-		}
-		ts_modifyobject(thing)
-		DB.Fetch(thing).Owner = DB.Fetch(owner).Owner
-	case TYPE_PLAYER:
-		notify(player, "Players always own themselves.")
-		return
-	case TYPE_EXIT, TYPE_PROGRAM:
-		ts_modifyobject(thing);
-		DB.Fetch(thing).Owner = DB.Fetch(owner).Owner;
 	}
-	if owner == player {
-		notify(player, "Owner changed to you.")
-	} else {
-		notify(player, fmt.Sprintf("Owner changed to %s.", unparse_object(player, owner)))
-	}
-	DB.Fetch(thing).flags |= OBJECT_CHANGED
 }
 
 
@@ -669,9 +658,9 @@ func do_chown(int descr, ObjectID player, const char *name, const char *newowner
  */
 
 func do_set(descr int, player ObjectID, name, flag string) {
-	ObjectID thing;
-	const char *p;
-	object_flag_type f;
+	var thing ObjectID
+	var p string
+	var f int
 
 	NoGuest("@set", player, func() {
 		if ((thing = MatchControlled(descr, player, name)) == NOTHING)
@@ -703,17 +692,14 @@ func do_set(descr int, player ObjectID, name, flag string) {
 
 			if *type == PROP_DELIMITER {
 				/* clear all properties */
-				type = strings.TrimLeftFunc(type, unicode.IsSpace)
-				if type != "clear" {
-					notify(player, "Use '@set <obj>=:clear' to clear all props on an object");
-					free((void *)x);
-					return;
+				if strings.TrimLeftFunc(type, unicode.IsSpace) != "clear" {
+					notify(player, "Use '@set <obj>=:clear' to clear all props on an object")
+				} else {
+					remove_property_list(thing, Wizard(DB.Fetch(player).Owner))
+					ts_modifyobject(thing)
+					notify(player, "All user-owned properties removed.")
 				}
-				remove_property_list(thing, Wizard(DB.Fetch(player).Owner));
-				ts_modifyobject(thing);
-				notify(player, "All user-owned properties removed.");
-				free((void *) x);
-				return;
+				return
 			}
 			/* get rid of trailing spaces and slashes */
 			for (temp = pname - 1; temp >= type && unicode.IsSpace(*temp); temp--) ;
@@ -728,16 +714,14 @@ func do_set(descr int, player ObjectID, name, flag string) {
 
 			if Prop_System(type) || (!Wizard(DB.Fetch(player).Owner) && (Prop_SeeOnly(type) || Prop_Hidden(type))) {
 				notify(player, "Permission denied. (The property is hidden from you.)")
-				free((void *)x)
 				return
 			}
 
-			if !(*pname) {
-				ts_modifyobject(thing)
+			ts_modifyobject(thing)
+			if pname == "" {
 				remove_property(thing, type)
 				notify(player, "Property removed.")
 			} else {
-				ts_modifyobject(thing)
 				if ival != 0 {
 					add_property(thing, type, nil, ival)
 				} else {
@@ -745,7 +729,6 @@ func do_set(descr int, player ObjectID, name, flag string) {
 				}
 				notify(player, "Property set.")
 			}
-			free((void *) x)
 			return
 		}
 		/* identify flag */
@@ -821,7 +804,7 @@ func do_set(descr int, player ObjectID, name, flag string) {
 		case strings.Prefix(p, "ZOMBIE"):
 			f = ZOMBIE
 		case strings.Prefix(p, "VEHICLE"), strings.Prefix(p, "VIEWABLE"):
-			if (*flag == NOT_TOKEN && Typeof(thing) == TYPE_THING) {
+			if *flag == NOT_TOKEN && IsThing(thing) {
 				for obj := DB.Fetch(thing).Contents; obj != NOTHING; obj = DB.Fetch(obj).next {
 					if TYPEOF(obj) == TYPE_PLAYER {
 						notify(player, "That vehicle still has players in it!")
@@ -862,9 +845,9 @@ func do_set(descr int, player ObjectID, name, flag string) {
 			f = HAVEN
 		case strings.Prefix(p, "ABODE"), strings.Prefix(p, "AUTOSTART"), strings.Prefix(p, "ABATE"):
 			f = ABODE
-		case strings.Prefix(p, "YIELD") && tp_enable_match_yield && (Typeof(thing) == TYPE_ROOM || Typeof(thing) == TYPE_THING):
+		case strings.Prefix(p, "YIELD") && tp_enable_match_yield && (IsRoom(thing) || IsThing(thing)):
 			f = YIELD
-		case strings.Prefix(p, "OVERT") && tp_enable_match_yield && (Typeof(thing) == TYPE_ROOM || Typeof(thing) == TYPE_THING):
+		case strings.Prefix(p, "OVERT") && tp_enable_match_yield && (IsRoom(thing) || IsThing(thing)):
 			f = OVERT
 		default:
 			notify(player, "I don't recognize that flag.")
@@ -879,14 +862,13 @@ func do_set(descr int, player ObjectID, name, flag string) {
 			/* check for stupid wizard */
 			notify(player, "You cannot make yourself mortal.")
 		case *flag == NOT_TOKEN:
-			ts_modifyobject(thing)
-			DB.Fetch(thing).flags &= ~f
-			DB.Fetch(thing).flags |= OBJECT_CHANGED
+			p := DB.Fetch(thing)
+			p.flags &= ~f
+			p.Touch()
 			notify(player, "Flag reset.")
 		default:
-			ts_modifyobject(thing)
-			DB.Fetch(thing).flags |= f
-			DB.Fetch(thing).flags |= OBJECT_CHANGED
+			p := DB.Fetch(thing)
+			p.Touch()
 			notify(player, "Flag set.")
 		}
 	})
@@ -958,7 +940,8 @@ func do_propset(descr int, player ObjectID, name, prop string) {
 }
 
 func set_flags_from_tunestr(obj ObjectID, tunestr string) {
-	for f := DB.Fetch(obj).flags; len(tunestr) > 0; tunestr = tunestr[1:] {
+	o := DB.Fetch(obj)
+	for f := o.flags; len(tunestr) > 0; tunestr = tunestr[1:] {
 		switch pcc := strings.ToUpper(tunestr[0]); pcc {
 		case '\n', '\r':
 			break
@@ -1006,6 +989,5 @@ func set_flags_from_tunestr(obj ObjectID, tunestr string) {
 			f |= ZOMBIE
 		}
 	}
-	ts_modifyobject(obj)
-	f |= OBJECT_CHANGED
+	o.Touch()
 }

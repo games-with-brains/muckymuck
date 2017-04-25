@@ -17,7 +17,7 @@ func set_property_nofetch(player ObjectID, name string, dat interface{}) {
 			buf = [0]
 		}
 		if buf != "" {
-			p := DB.Fetch(player).properties.propdir_new_elem(name)
+			p := DB.Fetch(player).Properties().propdir_new_elem(name)
 			p.clear_propnode()
 			SetPFlagsRaw(p, dat.flags)
 			switch dat.(type) {
@@ -66,7 +66,7 @@ func set_property_nofetch(player ObjectID, name string, dat interface{}) {
 
 func set_property(player ObjectID, name string, dat interface{}) {
 	set_property_nofetch(player, name, dat)
-	DB.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).Touch()
 }
 
 func set_lock_property(player ObjectID, pname, lock string) {
@@ -92,7 +92,7 @@ func add_prop_nofetch(player ObjectID, pname, strval string, value int) {
 /* adds a new property to an object */
 func add_property(player ObjectID, pname, strval string, value int) {
 	add_prop_nofetch(player, pname, strval, value)
-	DB.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).Touch()
 }
 
 func remove_proplist_item(player ObjectID, p *Plist, all bool) {
@@ -110,22 +110,22 @@ func remove_proplist_item(player ObjectID, p *Plist, all bool) {
 
 /* removes property list --- if it's not there then ignore */
 func remove_property_list(player ObjectID, all int) {
-	if l := DB.Fetch(player).properties; l != nil {
+	if l := DB.Fetch(player).Properties(); l != nil {
 		p := l.first_node()
 		for p != nil {
 			n := l.next_node(p.key)
 			remove_proplist_item(player, p, all)
-			l = DB.Fetch(player).properties
+			l = DB.Fetch(player).Properties()
 			p = n
 		}
 	}
-	DB.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).Touch()
 }
 
 /* removes property --- if it's not there then ignore */
 func remove_property_nofetch(player ObjectID, name string) {
-	DB.Fetch(player).properties = DB.Fetch(player).properties.propdir_delete_elem(name)
-	DB.Fetch(player).flags |= OBJECT_CHANGED
+	DB.Fetch(player).Properties() = DB.Fetch(player).Properties().propdir_delete_elem(name)
+	DB.Fetch(player).Touch()
 }
 
 func remove_property(player ObjectID, pname string) {
@@ -133,7 +133,7 @@ func remove_property(player ObjectID, pname string) {
 }
 
 func get_property(player ObjectID, name string) (p *Plist) {
-	return DB.Fetch(player).properties.propdir_get_elem(name)
+	return DB.Fetch(player).Properties().propdir_get_elem(name)
 }
 
 /* checks if object has property, returning true if it or any of its contents has the property stated */
@@ -259,7 +259,7 @@ func set_property_flags(player ObjectID, name string, flags int) {
 }
 
 func copy_prop(old ObjectID) *Plist {
-	return DB.Fetch(old).properties.copy_proplist(old)
+	return DB.Fetch(old).Properties().copy_proplist(old)
 }
 
 /* Return a pointer to the first property in a propdir and duplicates the
@@ -267,13 +267,13 @@ func copy_prop(old ObjectID) *Plist {
    or does not exist. */
 func (list *Plist) first_prop_nofetch(player ObjectID, dir, name string) (n string, p *Plist) {
 	if dir = strings.TrimLeft(dir, PROPDIR_DELIMITER); dir = "" {
-		*list = DB.Fetch(player).properties
+		*list = DB.Fetch(player).Properties()
 		if p = *list.first_node(); p != nil {
 			n = p.key
 		}
 	} else {
 		buf := dir
-		p = DB.Fetch(player).properties.propdir_get_elem(buf)
+		p = DB.Fetch(player).Properties().propdir_get_elem(buf)
 		*list = p
 		if p != nil {
 			*list = p.dir
@@ -320,11 +320,11 @@ func (prop *Plist) next_prop(list *Plist) (p *Plist, name string) {
 func next_prop_name(player ObjectID, name string) (r string) {
 	switch buf := name; {
 	case len(name) == 0, name[len(name) - 1] == PROPDIR_DELIMITER:
-		if p := propdir_first_elem(DB.Fetch(player).properties, name); p != nil {
+		if p := propdir_first_elem(DB.Fetch(player).Properties(), name); p != nil {
 			r = name + p.key
 		}
 	} else {
-		if p := DB.Fetch(player).properties.propdir_next_elem(buf); p != nil {
+		if p := DB.Fetch(player).Properties().propdir_next_elem(buf); p != nil {
 			ptr := strrchr(name, PROPDIR_DELIMITER)
 			if ptr == nil {
 				ptr = name
@@ -336,7 +336,7 @@ func next_prop_name(player ObjectID, name string) (r string) {
 }
 
 func is_propdir(player ObjectID, name string) bool {
-	return DB.Fetch(player).properties.propdir_get_elem(name).IsPropDir()
+	return DB.Fetch(player).Properties().propdir_get_elem(name).IsPropDir()
 }
 
 func envprop(where ObjectID, propname string) (obj ObjectID, p *Plist) {
@@ -403,94 +403,95 @@ func db_get_single_prop(f *FILE, obj ObjectID, pos int, pnode *Plist, pdir strin
 	r = 1
 	var tpos int
 	if pos != 0 {
-		fseek(f, pos, 0)
+		f.Seek(pos, 0)
 	}
 
-	var getprop_buf string
-	switch name := fgets(getprop_buf, sizeof(getprop_buf), f); {
-	case len(name) == 0:
-		corrupt_property_warning("Failed to read property from disk: Failed disk read.  obj = #%d, pos = %ld, pdir = %s", obj, pos, pdir)
-		r = -1
-	case name[0] == '*' && name != "*End*\n":
-		r = 0
-	default:
-		switch flags := strchr(name, PROP_DELIMITER); {
-		case len(flags) == 0:
-			corrupt_property_warning("Failed to read property from disk: Corrupt property, flag delimiter not found.  obj = #%d, pos = %ld, pdir = %s, data = %s", obj, pos, pdir, name)
+	if scanner := bufio.NewScanner(f); scanner.Scan() {
+		switch name := scanner.Text(); {
+		case len(name) == 0:
+			corrupt_property_warning("Failed to read property from disk: Failed disk read.  obj = #%d, pos = %ld, pdir = %s", obj, pos, pdir)
 			r = -1
-		case !unicode.IsNumber(flags):
-			corrupt_property_warning("Failed to read property from disk: Corrupt property flags.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
-			r = -1
+		case name[0] == '*' && name != "*End*\n":
+			r = 0
 		default:
-			switch value := strchr(flags, PROP_DELIMITER); {
-			case len(value) == 0:
-				corrupt_property_warning()
-				log_sanity("Failed to read property from disk: Corrupt property, value delimiter not found.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s", obj, pos, pdir, name, flags)
+			switch flags := strchr(name, PROP_DELIMITER); {
+			case len(flags) == 0:
+				corrupt_property_warning("Failed to read property from disk: Corrupt property, flag delimiter not found.  obj = #%d, pos = %ld, pdir = %s, data = %s", obj, pos, pdir, name)
+				r = -1
+			case !unicode.IsNumber(flags):
+				corrupt_property_warning("Failed to read property from disk: Corrupt property flags.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
 				r = -1
 			default:
-				p := strchr(value, '\n')
-				switch flg := strconv.Atoi(flags); flg & PROP_TYPMASK {
-				case PROP_STRTYP:
-					if pos != 0 {
-						if pnode != nil {
-							pnode.data = value
-							SetPFlagsRaw(pnode, flg)
-						} else {
-							set_property_nofetch(obj, name, value)
-						}
-					} else {
-						set_property_nofetch(obj, name, tpos)
-					}
-				case PROP_LOKTYP:
-					if pos != 0 {
-						if lock := ParseLock(-1, 1, value, 32767); pnode != nil {
-							pnode.data = lock
-							SetPFlagsRaw(pnode, flg)
-						} else {
-							set_property_nofetch(obj, name, lock)
-						}
-					} else {
-						set_property_nofetch(obj, name, tpos)
-					}
-				case PROP_INTTYP:
-					if i, e := strconv.Atoi(value); e == nil {
-						set_property_nofetch(obj, name, i)
-					} else {
-						corrupt_property_warning("Failed to read property from disk: Corrupt integer value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
-						r = -1
-					}
-				case PROP_FLTTYP:
-					var mydat float64
-					if !unicode.IsNumber(value) && ifloat(value) {
-						tpnt := value
-						var dtemp bool
-						switch tpnt[0] {
-						case '+':
-							tpnt = tpnt[1:]
-						case '-'
-							dtemp = true
-							tpnt = tpnt[1:]
-						}
-						tpnt = strings.ToUpper(tpnt)
-						switch {
-						case strings.HasPrefix(tpnt, "INF"):
-							if dtemp {
-								mydat = math.Inf(-1)
+				switch value := strchr(flags, PROP_DELIMITER); {
+				case len(value) == 0:
+					corrupt_property_warning()
+					log_sanity("Failed to read property from disk: Corrupt property, value delimiter not found.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s", obj, pos, pdir, name, flags)
+					r = -1
+				default:
+					p := strchr(value, '\n')
+					switch flg := strconv.Atoi(flags); flg & PROP_TYPMASK {
+					case PROP_STRTYP:
+						if pos != 0 {
+							if pnode != nil {
+								pnode.data = value
+								SetPFlagsRaw(pnode, flg)
 							} else {
+								set_property_nofetch(obj, name, value)
+							}
+						} else {
+							set_property_nofetch(obj, name, tpos)
+						}
+					case PROP_LOKTYP:
+						if pos != 0 {
+							if lock := ParseLock(-1, 1, value, 32767); pnode != nil {
+								pnode.data = lock
+								SetPFlagsRaw(pnode, flg)
+							} else {
+								set_property_nofetch(obj, name, lock)
+							}
+						} else {
+							set_property_nofetch(obj, name, tpos)
+						}
+					case PROP_INTTYP:
+						if i, e := strconv.Atoi(value); e == nil {
+							set_property_nofetch(obj, name, i)
+						} else {
+							corrupt_property_warning("Failed to read property from disk: Corrupt integer value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
+							r = -1
+						}
+					case PROP_FLTTYP:
+						var mydat float64
+						if !unicode.IsNumber(value) && ifloat(value) {
+							tpnt := value
+							var dtemp bool
+							switch tpnt[0] {
+							case '+':
+								tpnt = tpnt[1:]
+							case '-'
+								dtemp = true
+								tpnt = tpnt[1:]
+							}
+							tpnt = strings.ToUpper(tpnt)
+							switch {
+							case strings.HasPrefix(tpnt, "INF"):
+								if dtemp {
+									mydat = math.Inf(-1)
+								} else {
+									mydat = math.Inf(1)
+								}
+							case strings.HasPrefix(tpnt, "NAN"):
+								/* FIXME: This should be NaN. */
 								mydat = math.Inf(1)
 							}
-						case strings.HasPrefix(tpnt, "NAN"):
-							/* FIXME: This should be NaN. */
-							mydat = math.Inf(1)
+						} else {
+							sscanf(value, "%lg", &mydat)
 						}
-					} else {
-						sscanf(value, "%lg", &mydat)
-					}
-					set_property_nofetch(obj, name, mydat)
-				case PROP_REFTYP:
-					if !unicode.IsNumber(value) {
-						corrupt_property_warning("Failed to read property from disk: Corrupt ObjectID value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
-						r = -1
+						set_property_nofetch(obj, name, mydat)
+					case PROP_REFTYP:
+						if !unicode.IsNumber(value) {
+							corrupt_property_warning("Failed to read property from disk: Corrupt ObjectID value.  obj = #%d, pos = %ld, pdir = %s, data = %s:%s:%s", obj, pos, pdir, name, flags, value)
+							r = -1
+						}
 					}
 				}
 			}
@@ -548,7 +549,7 @@ func (p *Plist) db_dump_props_rec(obj ObjectID, f *FILE, dir string) (r int) {
 }
 
 func db_dump_props(f *FILE, obj ObjectID) {
-	DB.Fetch(obj).properties.db_dump_props_rec(obj, f, "/")
+	DB.Fetch(obj).Properties().db_dump_props_rec(obj, f, "/")
 }
 
 func reflist_add(ObjectID obj, const char* propname, ObjectID toadd) {

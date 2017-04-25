@@ -570,7 +570,7 @@ func do_examine(descr int, player ObjectID, name, dir string) {
 			}
 		case Object:
 			/* print home */
-			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.home)))	/* home */
+			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.Home)))	/* home */
 			/* print location if player can link to it */
 			if o.Location != NOTHING && (controls(player, o.Location) || can_link_to(player, NOTYPE, o.Location)) {
 				notify(player, fmt.Sprintf("Location: %s", unparse_object(player, o.Location)))
@@ -586,7 +586,7 @@ func do_examine(descr int, player ObjectID, name, dir string) {
 			}
 		case Player:
 			/* print home */
-			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.home)))
+			notify(player, fmt.Sprintf("Home: %s", unparse_object(player, o.Home)))
 
 			/* print location if player can link to it */
 			if o.Location != NOTHING && (controls(player, o.Location) || can_link_to(player, NOTYPE, o.Location)) {
@@ -919,9 +919,9 @@ func display_objinfo(player, obj ObjectID, output_type int) {
 				notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Destinations[0])))
 			}
 		case Player:
-			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.home)))
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Home)))
 		case Object:
-			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.home)))
+			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, unparse_object(player, o.Home)))
 		default:
 			notify(player, fmt.Sprintf("%-38.512s  %.512s", buf2, "N/A"))
 		}
@@ -1041,12 +1041,12 @@ func do_entrances(int descr, ObjectID player, const char *name, const char *flag
 						}
 					}
 				case Player:
-					if o.home == thing {
+					if o.Home == thing {
 						display_objinfo(player, obj, output_type)
 						total++
 					}
 				case Object:
-					if o.home == thing {
+					if o.Home == thing {
 						display_objinfo(player, obj, output_type)
 						total++
 					}

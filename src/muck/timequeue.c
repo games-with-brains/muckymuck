@@ -90,7 +90,7 @@ func free_timenode(ptr timequeue) {
 		free(ptr.called_data)
 		free(ptr.str3)
 		if ptr.fr != nil {
-			DEBUGPRINT("free_timenode: ptr.type = MUF? %d  ptr.subtyp = MUF_TIMER? %d", ptr.typ == TQ_MUF_TYP, ptr.subtyp == TQ_MUF_TIMER)
+			log.Printf("free_timenode: ptr.type = MUF? %d  ptr.subtyp = MUF_TIMER? %d", ptr.typ == TQ_MUF_TYP, ptr.subtyp == TQ_MUF_TIMER)
 			if ptr.typ != TQ_MUF_TYP || ptr.subtyp != TQ_MUF_TIMER {
 				if ptr.fr.multitask != BACKGROUND {
 					if p := DB.FetchPlayer(ptr.uid); p != nil {
@@ -723,86 +723,62 @@ func get_pidinfo(int pid) (r Dictionary) {
  *     1: kill all matching MUF processes
  *     2: kill all matching foreground MUF processes
  */
-int
-dequeue_prog_real(ObjectID program, int killmode, const char *file, const int line)
-{
+func dequeue_prog_real(program ObjectID, killmode int, file string, line int) int {
 	int count = 0, ocount;
 	timequeue tmp, ptr;
 
-#ifdef DEBUG
-	fprintf(stderr,"[debug] dequeue_prog(#%d, %d) called from %s:%d\n",program,killmode,file,line);
-#endif /* DEBUG */
-	DEBUGPRINT("dequeue_prog: tqhead = %p\n",tqhead,0);
-	while (tqhead) {
-		DEBUGPRINT("dequeue_prog: tqhead->called_prog = #%d, has_refs = %d ",
-						tqhead->called_prog, has_refs(program,tqhead));
-		DEBUGPRINT("tqhead->uid = #%d\n", tqhead->uid,0);
-		if (tqhead->called_prog != program && !has_refs(program, tqhead) && tqhead->uid != program) {
-			break;
+	log.Printf("dequeue_prog: tqhead = %p\n",tqhead,0);
+	for tqhead != nil {
+		log.Printf("dequeue_prog: tqhead.called_prog = #%d, has_refs = %d ", tqhead.called_prog, has_refs(program, tqhead))
+		log.Printf("tqhead.uid = #%d\n", tqhead.uid, 0)
+		switch {
+		case tqhead.called_prog != program && !has_refs(program, tqhead) && tqhead.uid != program:
+			break
+		case killmode == 2 && tqhead.fr != nil && tqhead.fr.multitask == BACKGROUND:
+			break
+		case killmode == 1 && tqhead.fr == nil:
+			log.Printf("dequeue_prog: killmode 1, no frame\n", 0, 0)
+			break
+		default:
+			ptr = tqhead
+			tqhead = tqhead.next
+			free_timenode(ptr)
+			process_count--
+			count++
 		}
-		if (killmode == 2) {
-			if (tqhead->fr && tqhead->fr->multitask == BACKGROUND) {
-				break;
-			}
-		} else if (killmode == 1) {
-			if (!tqhead->fr) {
-				DEBUGPRINT("dequeue_prog: killmode 1, no frame\n",0,0);
-				break;
-			}
-		}
-		ptr = tqhead;
-		tqhead = tqhead->next;
-		free_timenode(ptr);
-		process_count--;
-		count++;
 	}
 
-	if (tqhead) {
-		for (tmp = tqhead, ptr = tqhead->next; ptr; tmp = ptr, ptr = ptr->next) {
-			DEBUGPRINT("dequeue_prog(2): ptr->called_prog=#%d, has_refs()=%d ", ptr->called_prog, has_refs(program, ptr));
-			DEBUGPRINT("ptr->uid=#%d.\n",ptr->uid,0);
-			if (ptr->called_prog != program && !has_refs(program, ptr) && ptr->uid != program) {
-				continue;
+	if tqhead != nil {
+		for tmp, ptr = tqhead, tqhead.next; ptr != nil; tmp, ptr = ptr, ptr.next {
+			log.Printf("dequeue_prog(2): ptr.called_prog=#%d, has_refs()=%d ", ptr.called_prog, has_refs(program, ptr))
+			log.Printf("ptr->uid=#%d.\n", ptr.uid, 0)
+			switch {
+			case ptr.called_prog != program && !has_refs(program, ptr) && ptr.uid != program:
+			case killmode == 2 && ptr.fr != nil && ptr.fr.multitask == BACKGROUND:
+			case killmode == 1 && ptr.fr == nil:
+				log.Printf("dequeue_prog(2): killmode 1, no frame.\n", 0, 0)
+			default:
+				tmp.next = ptr.next
+				free_timenode(ptr)
+				process_count--
+				count++
+				ptr = tmp
 			}
-			if (killmode == 2) {
-				if (ptr->fr && ptr->fr->multitask == BACKGROUND) {
-					continue;
-				}
-			} else if (killmode == 1) {
-				if (!ptr->fr) {
-					DEBUGPRINT("dequeue_prog(2): killmode 1, no frame.\n",0,0);
-					continue;
-				}
-			}
-			tmp->next = ptr->next;
-			free_timenode(ptr);
-			process_count--;
-			count++;
-			ptr = tmp;
 		}
 
-		DEBUGPRINT("dequeue_prog(3): about to muf_event_dequeue(#%d, %d)\n",program, killmode);
-		ocount = count;
-		count += muf_event_dequeue(program, killmode);
-		if (ocount < count && tqhead->fr)
-			prog_clean(tqhead->fr);
-		for (ptr = tqhead; ptr; ptr = ptr->next) {
+		log.Printf("dequeue_prog(3): about to muf_event_dequeue(#%d, %d)\n",program, killmode)
+		ocount = count
+		count += muf_event_dequeue(program, killmode)
+		if ocount < count && tqhead.fr != nil {
+			prog_clean(tqhead.fr)
+		}
+		for ptr = tqhead; ptr != nil; ptr = ptr.next {
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
 				DB.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
 			}
 		}
 	}
-#ifdef DEBUG
-	/* KLUDGE by premchai21 */
-	if Typeof(program) == TYPE_PROGRAM {
-		var i int
-		if p := DB.Fetch(program).(Program); p != nil {
-			i = p.instances
-		}
-		fmt.Fprintf(os.Stderr, "[debug] dequeue_prog: %d instances of #%d\n", i, program)
-	}
-#endif
-	return (count);
+	return count
 }
 
 func dequeue_process(pid int) (r bool) {

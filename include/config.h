@@ -183,16 +183,6 @@
 #include <ctype.h>
 #include <sys/types.h>
 
-#ifdef DEBUG
-# undef NDEBUG
-#include <assert.h>
-#define DEBUGPRINT(x,y,z) fprintf(stderr,x,y,z)
-#else
-# define NDEBUG
-#include <assert.h>
-#define DEBUGPRINT(x,y,z) ;
-#endif /* DEBUG */
-
 #ifdef STDC_HEADERS
 # include <stdlib.h>
 #endif

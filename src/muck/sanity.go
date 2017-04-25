@@ -8,12 +8,12 @@ var SanityViolated bool
 
 var san_linesprinted int
 func SanPrint(player ObjectID, format string, args ...interface{}) {
-	switch buf := fmt.Sprintf(format, args...); player {
+	switch m := fmt.Sprintf(format, args...); player {
 	case NOTHING:
-		fprintf(stdout, "%s\n", buf)
-		fflush(stdout)
+		fmt.Println(os.Stdout, m)
+		os.Stdout.Sync()
 	case AMBIGUOUS:
-		fprintf(stderr, "%s\n", buf)
+		log.Println(m)
 	default:
 		notify_nolisten(player, buf, true)
 		if san_linesprinted++ > 100 {
@@ -52,12 +52,12 @@ func sane_dump_object(player ObjectID, arg string) {
 
 	switch p := p.(type) {
 	case Object:
-		SanPrint(player, "  Home:           %s", unparse_object(GOD, p.home))
+		SanPrint(player, "  Home:           %s", unparse_object(GOD, p.Home))
 		SanPrint(player, "  Value:          %d", get_property_value(d, MESGPROP_VALUE))
 	case Room:
 		SanPrint(player, "  Drop-to:        %s", unparse_object(GOD, p.ObjectID))
 	case Player:
-		SanPrint(player, "  Home:           %s", unparse_object(GOD, p.home))
+		SanPrint(player, "  Home:           %s", unparse_object(GOD, p.Home))
 		SanPrint(player, "  Pennies:        %d", get_property_value(d, MESGPROP_VALUE))
 		if player < 0 {
 			SanPrint(player, "  Password MD5:   %s", p.password)
@@ -157,7 +157,7 @@ func check_room(player, obj ObjectID) {
 	switch i := DB.Fetch(obj).(ObjectID); {
 	case !i.IsValid() && v != NOTHING && i != HOME:
 		violate(player, obj, "has its dropto set to an invalid object")
-	case i >= 0 && TYPEOF(i) != TYPE_THING && TYPEOF(i) != TYPE_ROOM:
+	case i >= 0 && !IsThing(i) && !IsRoom(i):
 		violate(player, obj, "has its dropto set to a non-room, non-thing object")
 	}
 }
@@ -171,7 +171,7 @@ func check_exit(player, obj ObjectID) {
 }
 
 func check_player(player, obj ObjectID) {
-	i := DB.FetchPlayer(obj).home
+	i := DB.FetchPlayer(obj).Home
 	switch {
 	case !valid_obj(i):
 		violate(player, obj, "has its home set to an invalid object")
@@ -332,12 +332,12 @@ func cut_all_chains(obj ObjectID) {
 	if DB.Fetch(obj).Contents != NOTHING {
 		SanFixed(obj, "Cleared contents of %s")
 		DB.Fetch(obj).Contents = NOTHING
-		DB.Fetch(obj).flags |= OBJECT_CHANGED
+		DB.Fetch(obj).Touch()
 	}
 	if DB.Fetch(obj).Exits != NOTHING {
 		SanFixed(obj, "Cleared exits of %s")
 		DB.Fetch(obj).Exits = NOTHING
-		DB.Fetch(obj).flags |= OBJECT_CHANGED
+		DB.Fetch(obj).Touch()
 	}
 }
 
@@ -361,10 +361,10 @@ func cut_bad_contents(obj ObjectID) {
 			}
 			if prev != NOTHING {
 				DB.Fetch(prev).next = NOTHING
-				DB.Fetch(prev).flags |= OBJECT_CHANGED
+				DB.Fetch(prev).Touch()
 			} else {
 				DB.Fetch(obj).Contents = NOTHING
-				DB.Fetch(obj).flags |= OBJECT_CHANGED
+				DB.Fetch(obj).Touch()
 			}
 			return
 		}
@@ -391,10 +391,10 @@ func cut_bad_exits(obj ObjectID) {
 			}
 			if prev != NOTHING {
 				DB.Fetch(prev).next = NOTHING
-				DB.Fetch(prev).flags |= OBJECT_CHANGED
+				DB.Fetch(prev).Touch()
 			} else {
 				DB.Fetch(obj).Exits = NOTHING
-				DB.Fetch(obj).flags |= OBJECT_CHANGED
+				DB.Fetch(obj).Touch()
 			}
 			return
 		}
@@ -426,14 +426,14 @@ func rand_password() (password string) {
 func create_lostandfound(player, room *ObjectID) {
 	player_name = "lost+found"
 	*room = new_object()
-	DB.Fetch(*room).name = "lost+found"
-	DB.Fetch(*room).Location = GLOBAL_ENVIRONMENT
+	DB.Fetch(*room).NowCalled("lost+found")
+	DB.Fetch(*room).MoveTo(GLOBAL_ENVIRONMENT)
 	DB.Fetch(*room).Exits = NOTHING
 	DB.Fetch(*room).sp = NOTHING
 	DB.Fetch(*room).flags = TYPE_ROOM | SANEBIT
 
 	DB.Fetch(*room).next = DB.Fetch(GLOBAL_ENVIRONMENT.Contents)
-	DB.Fetch(*room).flags |= OBJECT_CHANGED
+	DB.Fetch(*room).Touch()
 	DB.Fetch(GLOBAL_ENVIRONMENT.Contents) = *room
 
 	SanFixed(*room, "Using %s to resolve unknown location")
@@ -441,24 +441,24 @@ func create_lostandfound(player, room *ObjectID) {
 		player_name = fmt.Sprintf("lost+found%d", i)
 	}
 	*player = new_object()
-	DB.Fetch(*player).name = player_name
-	DB.Fetch(*player).Location = *room
+	DB.Fetch(*player).NowCalled(player_name)
+	DB.Fetch(*player).MoveTo(*room)
 	DB.Fetch(*player).flags = TYPE_PLAYER | SANEBIT
-	DB.Fetch(*player).Owner = *player
+	DB.Fetch(*player).GiveTo(*player)
 	*player = &Player{ home: *room, exits: NOTHING, curr_prog: NOTHING }
 	add_property(*player, MESGPROP_VALUE, NULL, tp_start_pennies)
 	rpass := rand_password()
 	set_password(*player, rpass)
 	DB.Fetch(*player).next = DB.Fetch(*room).Contents
-	DB.Fetch(*player).flags |= OBJECT_CHANGED
+	DB.Fetch(*player).Touch()
 	DB.Fetch(*room).Contents = *player
-	DB.Fetch(*player).flags |= OBJECT_CHANGED
+	DB.Fetch(*player).Touch()
 	add_player(*player)
 	log2file("logs/sanfixed", "Using %s (with password %s) to resolve unknown owner", unparse_object(GOD, *player), rpass)
-	DB.Fetch(*room).Owner = *player
-	DB.Fetch(*room).flags |= OBJECT_CHANGED
-	DB.Fetch(*player).flags |= OBJECT_CHANGED
-	DB.Fetch(GLOBAL_ENVIRONMENT).flags |= OBJECT_CHANGED
+	DB.Fetch(*room).GiveTo(*player)
+	DB.Fetch(*room).Touch()
+	DB.Fetch(*player).Touch()
+	DB.Fetch(GLOBAL_ENVIRONMENT).Touch()
 }
 
 func fix_room(obj ObjectID) {
@@ -467,20 +467,20 @@ func fix_room(obj ObjectID) {
 	case !i.IsValid() && i != NOTHING && i != HOME:
 		SanFixed(obj, "Removing invalid drop-to from %s")
 		p.sp = NOTHING
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 	case i >= 0 && !IsThing(i) && !IsRoom(i):
 		SanFixed2(obj, i, "Removing drop-to on %s to %s")
 		p.sp = NOTHING
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 	}
 }
 
 func fix_thing(obj ObjectID) {
 	p := DB.Fetch(obj).(Object)
-	if i := p.home; !valid_obj(i) || (!IsRoom(i) && !IsThing(i) && !IsPlayer(i)) {
+	if i := p.Home; !valid_obj(i) || (!IsRoom(i) && !IsThing(i) && !IsPlayer(i)) {
 		SanFixed2(obj, p.Owner, "Setting the home on %s to %s, it's owner")
-		p.home = p.Owner
-		p.flags |= OBJECT_CHANGED
+		p.LiveAt(p.Owner)
+		p.Touch()
 	}
 }
 
@@ -490,7 +490,7 @@ func fix_exit(obj ObjectID) {
 	for i := 0; i < l; {
 		if o := valid_obj_or_home(dest[i], false); o == NOTHING {
 			SanFixed(obj, "Removing invalid destination from %s")
-			DB.Fetch(obj).flags |= OBJECT_CHANGED
+			DB.Fetch(obj).Touch()
 			for j := i; j < l; j++ {
 				dest[j:] = dest[j + 1:]
 			}
@@ -513,10 +513,10 @@ func fix_exit(obj ObjectID) {
 
 func fix_player(obj ObjectID) {
 	p := DB.FetchPlayer(obj)
-	if i := p.home; !valid_obj(i) || IsRoom(i) {
+	if i := p.Home; !valid_obj(i) || IsRoom(i) {
 		SanFixed2(obj, tp_player_start, "Setting the home on %s to %s")
-		p.home = tp_player_start
-		p.flags |= OBJECT_CHANGED
+		p.LiveAt(tp_player_start)
+		p.Touch()
 	}
 }
 
@@ -534,21 +534,21 @@ func find_misplaced_objects() {
 					for i := 1; lookup_player(name) != NOTHING; i++ {
 						name = fmt.Sprintf("Unnamed%d", i)
 					}
-					o.name = name
+					o.NowCalled(name)
 					add_player(obj)
 				} else {
-					o.name = "Unnamed"
+					o.NowCalled("Unnamed")
 				}
 				SanFixed(obj, "Gave a name to %s")
-				o.flags |= OBJECT_CHANGED
+				o.Touch()
 			}
 			if !valid_obj(o.Owner) || !IsPlayer(o.Owner) {
 				if player == NOTHING {
 					create_lostandfound(&player, &room)
 				}
 				SanFixed2(obj, player, "Set owner of %s to %s")
-				o.Owner = player
-				o.flags |= OBJECT_CHANGED
+				o.GiveTo(player)
+				o.Touch()
 			}
 		
 			if obj != GLOBAL_ENVIRONMENT && !valid_obj(o.Location) || IsExit(o.Location) || IsProgram(o.Location) || (IsPlayer(obj) && IsPlayer(o.Location)) {
@@ -557,36 +557,34 @@ func find_misplaced_objects() {
 						loc := o.Location
 						if loc.Contents == obj {
 							loc.Contents = o.next
-							loc.flags |= OBJECT_CHANGED
+							loc.Touch
 						} else {
 							for contents := loc.Contents; contents != NOTHING; contents = contents.next {
 								if contents.next == obj {
 									contents.next = o.next
-									contents.flags |= OBJECT_CHANGED
+									contents.Touch()
 									break
 								}
 							}
 						}
 					}
-					o.Location = tp_player_start
+					o.MoveTo(tp_player_start)
 				} else {
 					if player == NOTHING {
 						create_lostandfound(&player, &room)
 					}
-					o.Location = room
+					o.MoveTo(room)
 				}
-				o.flags |= OBJECT_CHANGED
-				DB.Fetch(o.Location).flags |= OBJECT_CHANGED
 				if IsExit(obj) {
 					o.next = DB.Fetch(o.Location).Exits
-					o.flags |= OBJECT_CHANGED
 					DB.Fetch(o.Location).Exits = obj
 				} else {
 					o.next = DB.Fetch(o.Location).Contents
-					o.flags |= OBJECT_CHANGED
 					DB.Fetch(o.Location).Contents = obj
 				}
+				DB.Fetch(o.Location).Touch()
 				o.flags |= SANEBIT
+				o.Touch()
 				SanFixed2(obj, o.Location, "Set location of %s to %s")
 			}
 			switch {
@@ -606,7 +604,7 @@ func find_misplaced_objects() {
 func adopt_orphans() {
 	EachObject(func(obj ObjectID, o *Object) (done bool) {
 		if o.flags & SANEBIT == 0 {
-			o.flags |= OBJECT_CHANGED
+			o.Touch()
 			switch TYPEOF(loop) {
 			case IsRoom(obj), IsThing(obj), IsPlayer(obj), IsProgram(obj):
 				o.next = DB.Fetch(o.Location).Contents
@@ -631,12 +629,12 @@ func clean_global_environment() {
 	if DB.Fetch(GLOBAL_ENVIRONMENT).next != NOTHING {
 		SanFixed(GLOBAL_ENVIRONMENT, "Removed the global environment %s from a chain")
 		DB.Fetch(GLOBAL_ENVIRONMENT).next = NOTHING
-		DB.Fetch(GLOBAL_ENVIRONMENT).flags |= OBJECT_CHANGED
+		DB.Fetch(GLOBAL_ENVIRONMENT).Touch()
 	}
 	if DB.Fetch(GLOBAL_ENVIRONMENT).Location != NOTHING {
 		SanFixed2(GLOBAL_ENVIRONMENT, DB.Fetch(GLOBAL_ENVIRONMENT).Location, "Removed the global environment %s from %s")
-		DB.Fetch(GLOBAL_ENVIRONMENT).Location = NOTHING
-		DB.Fetch(GLOBAL_ENVIRONMENT).flags |= OBJECT_CHANGED
+		DB.Fetch(GLOBAL_ENVIRONMENT).MoveTo(NOTHING)
+		DB.Fetch(GLOBAL_ENVIRONMENT).Touch()
 	}
 }
 
@@ -673,13 +671,13 @@ func sanfix(player ObjectID) {
 			notify_nolisten(player, "Database repair complete, however the database is still corrupt.  Please re-run @sanity.", true)
 		}
 	} else {
-		fprintf(stderr, "Database repair complete, ")
+		log.Print("Database repair complete, ")
 		if !SanityViolated {
-			fprintf(stderr, "please re-run sanity check.\n")
+			log.Println("please re-run sanity check.")
 		} else {}
-			fprintf(stderr, "however the database is still corrupt.\n Please re-run sanity check for details and fix it by hand.\n")
+			log.Println("however the database is still corrupt.\n Please re-run sanity check for details and fix it by hand.")
 		}
-		fprintf(stderr, "For details of repairs made, check logs/sanfixed.\n")
+		log.Println("For details of repairs made, check logs/sanfixed.")
 	}
 	if SanityViolated {
 		log2file("logs/sanfixed", "WARNING: The database is still corrupted, please repair by hand")
@@ -721,45 +719,45 @@ func sanechange(player ObjectID, command string) {
 		p := DB.Fetch(d)
 		buf2 = unparse_object(GOD, p.next))
 		p.next = v
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		SanPrint(player, "## Setting #%d's next field to %s", d, unparse_object(GOD, v))
 	case "exits":
 		p := DB.Fetch(d)
 		buf2 = unparse_object(GOD, p.Exits)
 		p.Exits = v
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		SanPrint(player, "## Setting #%d's Exits list start to %s", d, unparse_object(GOD, v))
 	case "contents":
 		p := DB.Fetch(d)
 		buf2 = unparse_object(GOD, p.Contents)
 		p.Contents = v
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		SanPrint(player, "## Setting #%d's Contents list start to %s", d, unparse_object(GOD, v))
 	case "location":
 		p := DB.Fetch(d)
 		buf2 = unparse_object(GOD, d.Location)
-		d.Location = v
-		d.flags |= OBJECT_CHANGED
+		d.MoveTo(v)
+		d.Touch()
 		SanPrint(player, "## Setting #%d's location to %s", d, unparse_object(GOD, v))
 	case "owner":
 		p := DB.Fetch(d)
 		buf2 = unparse_object(GOD, p.Owner)
-		p.Owner = v
-		p.flags |= OBJECT_CHANGED
+		p.GiveTo(v)
+		p.Touch()
 		SanPrint(player, "## Setting #%d's owner to %s", d, unparse_object(GOD, v))
 	case "home":
 		var ip *int
 		p := DB.Fetch(d)
 		switch p := p.(type) {
 		case Player, Object:
-			ip = &(p.home)
+			ip = &(p.Home)
 		default:
 			fmt.Printf("%s has no home to set.\n", unparse_object(GOD, d))
 			return
 		}
 		buf2 = unparse_object(GOD, *ip)
 		*ip = v
-		p.flags |= OBJECT_CHANGED
+		p.Touch()
 		printf("Setting home to: %s\n", unparse_object(GOD, v))
 	default:
 		if player > NOTHING {
@@ -828,7 +826,7 @@ func extract_props_rec(f *FILE, obj ObjectID, dir string, p *Plist) {
 }
 
 func extract_props(f *os.File, obj ObjectID) {
-	extract_props_rec(f, obj, "/", DB.Fetch(obj).properties)
+	extract_props_rec(f, obj, "/", DB.Fetch(obj).Properties())
 }
 
 func extract_program(f *os.File, obj ObjectID) {
@@ -864,12 +862,12 @@ func extract_object(f *FILE, d ObjectID) {
 
 	switch TYPEOF(d) {
 	case Object:
-		fmt.Fprintf(f, "  Home:           %s\n", unparse_object(GOD, p.home))
+		fmt.Fprintf(f, "  Home:           %s\n", unparse_object(GOD, p.Home))
 		fmt.Fprintf(f, "  Value:          %d\n", get_property_value(d, MESGPROP_VALUE))
 	case Room:
 		fmt.Fprintf(f, "  Drop-to:        %s\n", unparse_object(GOD, p.ObjectID))
 	case Player:
-		fmt.Fprintf(f, "  Home:           %s\n", unparse_object(GOD, p.home))
+		fmt.Fprintf(f, "  Home:           %s\n", unparse_object(GOD, p.Home))
 		fmt.Fprintf(f, "  Pennies:        %d\n", get_property_value(d, MESGPROP_VALUE))
 	case Exit:
 		fmt.Fprintf(f, "  Links:         ")
@@ -882,7 +880,7 @@ func extract_object(f *FILE, d ObjectID) {
 		extract_program(f, d)
 	}
 
-	if p.properties {
+	if p.Properties() != nil {
 		fmt.Fprintf(f, "  Properties:\n")
 		extract_props(f, d)
 	} else {
@@ -893,28 +891,30 @@ func extract_object(f *FILE, d ObjectID) {
 
 func extract() {
 	var filename string
-	var d ObjectID
+	var player ObjectID
 	i := sscanf(cbuf, "%*s %d %s", &d, filename)
-	if !valid_obj(d) {
-		printf("%d is an invalid ObjectID.\n", d)
+	if !valid_obj(player) {
+		fmt.Printf("%d is an invalid ObjectID.\n", player)
 	} else {
-		var f *FILE
 		if i == 2 {
-			if f = fopen(filename, "wb"); f == nil {
-				printf("Could not open file %s\n", filename);
+			if f, e := os.OpenFile(filename, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+				fmt.Printf("Writing to file %s\n", filename)
+				EachObject(func(obj ObjectID) {
+					if DB.Fetch(obj).Owner == player {
+						extract_object(f, obj)
+					}
+				})
+				f.Close()
+			} else {
+				fmt.Println("Could not open file", filename)
 				return
 			}
-			printf("Writing to file %s\n", filename)
 		} else {
-			f = stdout
-		}
-		EachObject(func(obj ObjectID) {
-			if DB.Fetch(obj).Owner == d {
-				extract_object(f, obj)
-			}
-		})
-		if f != stdout {
-			fclose(f)
+			EachObject(func(obj ObjectID) {
+				if DB.Fetch(obj).Owner == player {
+					extract_object(os.Stdout, obj)
+				}
+			})
 		}
 		printf("\nDone.\n")
 	}
@@ -922,87 +922,88 @@ func extract() {
 
 func extract_single() {
 	var filename string
-	var d ObjectID
-	i := sscanf(cbuf, "%*s %d %s", &d, filename)
-	if !valid_obj(d) {
-		printf("%d is an invalid ObjectID.\n", d);
+	var player ObjectID
+	i := sscanf(cbuf, "%*s %d %s", &player, &filename)
+	if !valid_obj(player) {
+		fmt.Printf("%d is an invalid ObjectID.\n", player)
 	} else {
-		var f *FILE
 		if i == 2 {
-			if f = fopen(filename, "wb"); f == nil {
-				printf("Could not open file %s\n", filename)
-				return;
+			if f, e := os.OpenFile(filename, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+				fmt.Println("Writing to file", filename)
+				extract_object(f, player)
+				f.Close()
+			} else {
+				fmt.Println("Could not open file", filename)
+				return
 			}
-			printf("Writing to file %s\n", filename)
 		} else {
-			f = stdout
+			extract_object(os.Stdout, player)
 		}
-		extract_object(f, d)
-		/* extract only objects owned by this player */
-		if f != stdout {
-			fclose(f)
-		}
-		printf("\nDone.\n")
+		fmt.Printf("\nDone.\n")
 	}
 }
 
 func hack_it_up() {
-	var ptr string
-	do {
-		printf("\nCommand: (? for help)\n")
-		fgets(cbuf, sizeof(cbuf), stdin)
-
-		switch strings.ToLower(cbuf[0]) {
-		case 's':
-			printf("Running Sanity...\n")
-			sanity(NOTHING);
-		case 'f':
-			printf("Running Sanfix...\n")
-			sanfix(NOTHING)
-		case 'p':
-			if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
-				ptr = cbuf[i:]
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Println("\nCommand: (? for help)")
+		if scanner.Scan() {
+			switch cbuf := scanner.Text(); strings.ToLower(cbuf[0]) {
+			case 'q':
+				break
+			case 's':
+				fmt.Println("Running Sanity...")
+				sanity(NOTHING)
+			case 'f':
+				fmt.Println("Running Sanfix...")
+				sanfix(NOTHING)
+			case 'p':
+				if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
+					cbuf = cbuf[i:]
+				}
+				if len(cbuf) > 0 {
+					cbuf = cbuf[1:]
+				}
+				sane_dump_object(NOTHING, cbuf)
+			case 'w':
+				if sscanf(cbuf, "%*s %s", buf2); buf2 != "" {
+					fmt.Printf("Writing database to %s...\n", buf2)
+				} else {
+					fmt.Println("Writing database...")
+				}
+				do_dump(GOD, buf2)
+				fmt.Println("Done.")
+			case 'c':
+				if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
+					cbuf = cbuf[i:]
+				}
+				if len(cbuf) > 0 {
+					cbuf = cbuf[1:]
+				}
+				sanechange(NOTHING, cbuf)
+			case 'x':
+				extract()
+			case 'y':
+				extract_single()
+			case 'h', '?':
+				fmt.Println()
+				fmt.Println("s                           Run Sanity checks on database")
+				fmt.Println("f                           Automatically fix the database")
+				fmt.Println("p <ObjectID>                   Print an object")
+				fmt.Println("q                           Quit")
+				fmt.Println("w <file>                    Write database to file.")
+				fmt.Println("c <ObjectID> <field> <value>   Change a field on an object.")
+				fmt.Println("                              (\"c ? ?\" for list)")
+				fmt.Println("x <ObjectID> [<filename>]      Extract all objects belonging to <ObjectID>")
+				fmt.Println("y <ObjectID> [<filename>]      Extract the single object <ObjectID>")
+				fmt.Println("?                           Help! (Displays this screen.")
 			}
-			if len(ptr) > 0 {
-				ptr = ptr[1:]
-			}
-			sane_dump_object(NOTHING, ptr);
-		case 'w':
-			if sscanf(cbuf, "%*s %s", buf2); buf2 != "" {
-				printf("Writing database to %s...\n", buf2)
-			} else {
-				printf("Writing database...\n")
-			}
-			do_dump(GOD, buf2)
-			printf("Done.\n")
-		case 'c':
-			if i := strings.IndexFunc(cbuf, unicode.IsSpace); i != -1 {
-				ptr = cbuf[i:]
-			}
-			if len(ptr) > 0 {
-				ptr = ptr[1:]
-			}
-			sanechange(NOTHING, ptr)
-		case 'x':
-			extract()
-		case 'y':
-			extract_single()
-		case 'h':
-		case '?':
-			printf("\n")
-			printf("s                           Run Sanity checks on database\n");
-			printf("f                           Automatically fix the database\n");
-			printf("p <ObjectID>                   Print an object\n");
-			printf("q                           Quit\n");
-			printf("w <file>                    Write database to file.\n");
-			printf("c <ObjectID> <field> <value>   Change a field on an object.\n");
-			printf("                              (\"c ? ?\" for list)\n");
-			printf("x <ObjectID> [<filename>]      Extract all objects belonging to <ObjectID>\n");
-			printf("y <ObjectID> [<filename>]      Extract the single object <ObjectID>\n");
-			printf("?                           Help! (Displays this screen.\n");
 		}
-	} while cbuf[0] != 'q'
-	printf("Quitting.\n\n")
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Quitting.\n")
 }
 
 func san_main() {

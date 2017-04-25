@@ -522,9 +522,9 @@ func prog_clean(fr *frame) {
 			fr.argument.st[i] = nil
 		}
 
-		DEBUGPRINT("prog_clean: fr.caller.top=%d\n", fr.caller.top, 0)
+		log.Printf("prog_clean: fr.caller.top=%d\n", fr.caller.top, 0)
 		for i := 1; i <= fr.caller.top; i++ {
-			DEBUGPRINT("Decreasing instances of fr.caller.st[%d](#%d)\n", i, fr.caller.st[i])
+			log.Printf("Decreasing instances of fr.caller.st[%d](#%d)\n", i, fr.caller.st[i])
 			DB.Fetch(fr.caller.st[i]).(Program).instances--
 		}
 
@@ -1392,19 +1392,18 @@ func is_home(oper *inst) (r bool) {
 	return
 }
 
-func permissions(player, thing ObjectID) bool {
+func permissions(player, thing ObjectID) (ok bool) {
 	if thing == player || thing == HOME {
-		return true
+		ok = true
+	} else {
+		switch t := DB.Fetch(thing); .(type) {
+		case Exit:
+			ok = t.Owner == DB.Fetch(player).Owner || t.Owner == NOTHING
+		case Room, Object, Program:
+			ok = t.Owner == DB.Fetch(player).Owner
+		}
 	}
-	switch Typeof(thing) {
-	case TYPE_PLAYER:
-		return false
-	case TYPE_EXIT:
-		return DB.Fetch(thing).Owner == DB.Fetch(player).Owner || DB.Fetch(thing).Owner == NOTHING
-	case TYPE_ROOM, TYPE_THING, TYPE_PROGRAM:
-		return DB.Fetch(thing).Owner == DB.Fetch(player).Owner
-	}
-	return false
+	return
 }
 
 func find_mlev(prog ObjectID, fr *frame, st int) ObjectID {

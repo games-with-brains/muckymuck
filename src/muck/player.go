@@ -1,5 +1,14 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/src/player.c,v 1.13 2006/04/19 02:58:54 premchai21 Exp $ */
+package fbmuck
 
+type Player struct {
+	Object
+	curr_prog ObjectID
+	insert_mode bool
+	block bool
+	password string
+	ignore_cache []ObjectID
+	ignore_last ObjectID
+}
 
 var player_list map[string] ObjectID
 
@@ -39,7 +48,7 @@ func check_password(player ObjectID, password string) (ok bool) {
 func set_password_raw(player ObjectID, password string) {
 	p := DB.FetchPlayer(player)
 	p.password = password
-	p.flags |= OBJECT_CHANGED
+	p.Touch()
 }
 
 func set_password(player ObjectID, password string) {
@@ -73,6 +82,7 @@ func create_player(name, password string) (r ObjectID) {
 	if ok_player_name(name) && ok_password(password) {
 		r = new_object()
 		start := DB.Fetch(tp_player_start)
+		// FIXME: should use a NewPlayer style call to set up defaults, create timestamps and mark as changed
 		DB.Store(r, &Player{
 			name: name,
 			home: tp_player_start,
@@ -83,14 +93,13 @@ func create_player(name, password string) (r ObjectID) {
 			Location: tp_player_start,
 			Owner: r,
 			next: start.Contents,
-			p.flags: OBJECT_CHANGED,
 		})
 		add_property(r, MESGPROP_VALUE, nil, tp_start_pennies)
 		set_password(r, password)
 		start.Contents = r
 		add_player(r)
-		DB.Fetch(r).flags |= OBJECT_CHANGED
-		start.flags |= OBJECT_CHANGED
+		DB.Fetch(r).Touch()
+		start.Touch()
 		set_flags_from_tunestr(r, tp_pcreate_flags)		
 	} else {
 		r = NOTHING
@@ -107,7 +116,7 @@ func do_password(player ObjectID, old, newobj string) {
 			notify(player, "Bad new password (no spaces allowed).")
 		default:
 			set_password(player, newobj)
-			p.flags |= OBJECT_CHANGED
+			p.Touch()
 			notify(player, "Password changed.")
 		}
 	})

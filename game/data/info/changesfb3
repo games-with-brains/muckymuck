@@ -333,8 +333,6 @@ Fixed:
   Bug with unparsing locks to >4096 character strings.
   Bug with the PRONOUN_SUB part of dispatch() in interp.c
   Bug that allowed wizards to be @toaded if QUELLed.
-  Bug where RMATCH would not match on the contents of TYPE_THING objects.
-  Bug where RMATCH or MATCH in a program lock blew away command line args.
   
 Primitives added:
   SMATCH      ( s s -- i )   Takes a string and a string pattern to check

@@ -45,8 +45,7 @@ Arguments:	none
 Returns:	static void
 Called from:	dump_database	(game.c)
 		fork_and_dump	(game.c)		
-Calls:		wall_and_flush, sprintf, unlink, fopen, db_write, fclose,
-		rename, perror, free, sync
+Calls:		wall_and_flush, sprintf, unlink, db_write, rename, free, sync
 Does:		Writes out the DB and macros, notifying at start and end if set.
 #ifdefs:	FLUSHCHANGED
 Notes:
@@ -108,9 +107,9 @@ Arguments:	const char *	(infile)
 		const char *	(outfile)
 Returns:	int		(boolean)
 Called from:	main		(interface.c)
-Calls:		fopen, log_status, fclose, db_free,
+Calls:		log_status, db_free,
 		init_primitives, mesg_init, SRANDOM, tune_load_parmsfile,
-		fprintf, db_read, free, add_property
+		db_read, free, add_property
 Does:		Loads macros, frees the DB, initializes MUF compiler and
 		MPI interpreter, seeds the random number generator, loads
 		@tune paramters, and initializes #0 _sys/ properties.

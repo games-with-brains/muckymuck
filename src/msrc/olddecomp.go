@@ -15,26 +15,18 @@ func main() {
 
 	/* See where input and output are coming from */
 	if len(os.Args) > 2 {
-		fmt.Fprintln(stderr, "Usage: ", os.Args[0], " [infile]")
+		log.Println("Usage: ", os.Args[0], " [infile]")
 		return 0
 	}
 
+	var e error
 	if len(os.Args) < 2 {
-		infile = stdin
+		infile = os.Stdin
 	} else {
-		in_filename = os.Args[1]
-		if infile = fopen(in_filename, "rb"); infil == nil {
-			fprintf(stderr, "%s: unable to open input file.\n", os.Args[0])
+		if infile, e = os.Open(os.Args[1]); e != nil {
+			log.Printf("%s: unable to open input file.\n", os.Args[0])
 			return 0
 		}
-	}
-
-	/* Now, reopen stdout with binary mode so Windows doesn't add the \r */
-	outfile = fdopen(1,"wb")
-	if outfile == nil {
-		perror("Cannot open stdout as binary, line endings may be wrong")
-		outfile = os.Stdout
-		/* Not a fatal error */
 	}
 
 	/* read the db header */

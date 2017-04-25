@@ -945,11 +945,11 @@ func prim_notify_exclude(player, program ObjectID, mlev int, pc, arg *inst, top 
 		}
 		checkop(1, top)
 		switch where := POP().data.(ObjectID).ValidRemoteObject(player, mlev).(type) {
-		case TYPE_ROOM, TYPE_THING, TYPE_PLAYER:
+		case Room, Object, Player:
 			what := DB.Fetch(where).Contents
 			if buf != "" {
 				for ; what != NOTHING; what = DB.Fetch(what).next {
-					if what, ok := what.(TYPE_ROOM); ok {
+					if what, ok := what.(Room); ok {
 						tmp = true
 					} else {
 						for tmp, i = 0, count; i > 0; i-- {

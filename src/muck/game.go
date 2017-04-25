@@ -1,180 +1,145 @@
-/* $Header: /cvsroot/fbmuck/fbmuck/src/game.c,v 1.50 2011/02/26 10:21:19 revar Exp $ */
+package fbmuck
 
-#include "copyright.h"
-#include "config.h"
+import (
+	"time"
+)
 
-#include <stdio.h>
-#include <ctype.h>
-#include <signal.h>
+var (
+	dumpfile string
+	epoch int
+	last_monolithic_time time.Time
+	forked_dump_process_flag bool
+	input_file *FILE
+	delta_infile *FILE
+	delta_outfile *FILE
+	in_filename string
+)
 
-#include <sys/wait.h>
-
-#include "DB.h"
-#include "props.h"
-#include "params.h"
-#include "tune.h"
-#include "interface.h"
-#include "match.h"
-#include "externs.h"
-#include "fbstrings.h"
-
-/* declarations */
-static const char *dumpfile = 0;
-static int epoch = 0;
-time_t last_monolithic_time = 0;
-static int forked_dump_process_flag = 0;
-FILE *input_file;
-FILE *delta_infile;
-FILE *delta_outfile;
-char *in_filename = NULL;
-
-void
-do_dump(ObjectID player, const char *newfile)
-{
-	char buf[BUFFER_LEN];
-
-	if (Wizard(player)) {
-		if (global_dumper_pid != 0) {
+func do_dump(player ObjectID, newfile string) {
+	if Wizard(player) {
+		if global_dumper_pid != 0 {
 			notify(player, "Sorry, there is already a dump currently in progress.");
-			return;
-		}
-		if *newfile && player == GOD {
-			if dumpfile {
-				free((void *) dumpfile);
-			}
-			dumpfile = newfile
-			buf = fmt.Sprintf("Dumping to file %s...", dumpfile);
 		} else {
-			buf = fmt.Sprintf("Dumping...");
+			if newfile != "" && player == GOD {
+				dumpfile = newfile
+				notify(player, fmt.Sprintf("Dumping to file %s...", dumpfile))
+			} else {
+				notify(player, fmt.Sprintf("Dumping..."))
+			}
+			dump_db_now()
 		}
-		notify(player, buf);
-		dump_db_now();
 	} else {
-		notify(player, "Sorry, you are in a no dumping zone.");
+		notify(player, "Sorry, you are in a no dumping zone.")
 	}
 }
 
-void
-do_delta(ObjectID player)
-{
-	if (Wizard(player)) {
-		notify(player, "Dumping deltas...");
-		delta_dump_now();
+func do_delta(player ObjectID) {
+	if Wizard(player) {
+		notify(player, "Dumping deltas...")
+		delta_dump_now()
 	} else {
-		notify(player, "Sorry, you are in a no dumping zone.");
+		notify(player, "Sorry, you are in a no dumping zone.")
 	}
 }
 
-void
-do_shutdown(ObjectID player)
-{
-	if (Wizard(player)) {
-		log_status("SHUTDOWN: by %s", unparse_object(player, player));
-		shutdown_flag = 1;
-		restart_flag = 0;
+func do_shutdown(player ObjectID) {
+	if Wizard(player) {
+		log_status("SHUTDOWN: by %s", unparse_object(player, player))
+		shutdown_flag = true
+		restart_flag = false
 	} else {
-		notify(player, "Your delusions of grandeur have been duly noted.");
-		log_status("ILLEGAL SHUTDOWN: tried by %s", unparse_object(player, player));
+		notify(player, "Your delusions of grandeur have been duly noted.")
+		log_status("ILLEGAL SHUTDOWN: tried by %s", unparse_object(player, player))
 	}
 }
 
-void
-do_restart(ObjectID player)
-{
-	if (Wizard(player)) {
-		log_status("SHUTDOWN & RESTART: by %s", unparse_object(player, player));
-		shutdown_flag = 1;
-		restart_flag = 1;
+func do_restart(player ObjectID) {
+	if Wizard(player) {
+		log_status("SHUTDOWN & RESTART: by %s", unparse_object(player, player))
+		shutdown_flag = true
+		restart_flag = true
 	} else {
-		notify(player, "Your delusions of grandeur have been duly noted.");
-		log_status("ILLEGAL RESTART: tried by %s", unparse_object(player, player));
+		notify(player, "Your delusions of grandeur have been duly noted.")
+		log_status("ILLEGAL RESTART: tried by %s", unparse_object(player, player))
 	}
 }
 
+func dump_database_internal() {
+	var e error
+	tmpfile := fmt.Sprintf("%s.#%d#", dumpfile, epoch - 1)
+	os.Remove(tmpfile)
 
-static void
-dump_database_internal(void)
-{
-	char tmpfile[2048];
-	FILE *f;
+	tmpfile = fmt.Sprintf("%s.#%d#", dumpfile, epoch)
+	if f, e = os.OpenFile(tmpfile, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0755); e == nil {
+		db_write(f)
+		f.Close()
+		delta_outfile.Close()
+		delta_infile.Close()
 
-	tmpfile = fmt.Sprintf("%s.#%d#", dumpfile, epoch - 1);
-	(void) unlink(tmpfile);		/* nuke our predecessor */
+		if e := os.Rename(tmpfile, dumpfile); e != nil {
+			fmt.Fprintf(os.Stderr, "%v: %v\n", tmpfile, e)
+		}
 
-	tmpfile = fmt.Sprintf("%s.#%d#", dumpfile, epoch);
-
-	if ((f = fopen(tmpfile, "wb")) != NULL) {
-		db_write(f);
-		fclose(f);
-		fclose(delta_outfile);
-		fclose(delta_infile);
-
-		if (rename(tmpfile, dumpfile) < 0)
-			perror(tmpfile);
-
-		if ((delta_outfile = fopen(DELTAFILE_NAME, "wb")) == NULL)
-			perror(DELTAFILE_NAME);
-
-		if ((delta_infile = fopen(DELTAFILE_NAME, "rb")) == NULL)
-			perror(DELTAFILE_NAME);
-
+		if delta_outfile, e = os.OpenFile(DELTAFILE_NAME, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0755); e != nil {
+			log.Println(DELTAFILE_NAME)
+		}
+		if delta_infile, e = os.Open(DELTAFILE_NAME); e != nil {
+			log.Println(DELTAFILE_NAME)
+		}
 	} else {
-		perror(tmpfile);
+		log.Println(tmpfile)
 	}
 
 	/* Write out the macros */
 
-	tmpfile = fmt.Sprintf("%s.#%d#", MACRO_FILE, epoch - 1);
-	(void) unlink(tmpfile);
+	tmpfile = fmt.Sprintf("%s.#%d#", MACRO_FILE, epoch - 1)
+	os.Remove(tmpfile)
 
-	tmpfile = fmt.Sprintf("%s.#%d#", MACRO_FILE, epoch);
-
-	if ((f = fopen(tmpfile, "wb")) != NULL) {
+	tmpfile = fmt.Sprintf("%s.#%d#", MACRO_FILE, epoch)
+	if f, e := os.OpenFile(tmpfile, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0755); e == nil {
 		Macros.Dump(f)
-		fclose(f);
-		if (rename(tmpfile, MACRO_FILE) < 0)
-			perror(tmpfile);
+		f.Close()
+		if e := os.Rename(tmpfile, MACRO_FILE); e != nil {
+			log.Printf("%v: %v\n", tmpfile, e)
+		}
 	} else {
-		perror(tmpfile);
+		os.Println(tmpfile)
 	}
-	sync();
+	sync()
 }
 
 func panic(message string) {
-	char panicfile[2048];
-	FILE *f;
-
 	log_status("PANIC: %s", message)
-	fprintf(stderr, "PANIC: %s\n", message);
+	log.Println("PANIC:", message)
 
 	/* shut down interface */
-	if (!forked_dump_process_flag) {
+	if !forked_dump_process_flag {
 		close_sockets("\r\nEmergency shutdown due to server crash.")
 	}
 
 	/* dump panic file */
-	panicfile = fmt.Sprintf("%s.PANIC", dumpfile);
-	if ((f = fopen(panicfile, "wb")) == NULL) {
-		perror("CANNOT OPEN PANIC FILE, YOU LOSE");
+	panicfile := fmt.Sprintf("%s.PANIC", dumpfile)
+	if f, e := os.OpenFile(panicfile, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0755); e != nil {
+		fmt.Fprintln(os.Stderr, "CANNOT OPEN PANIC FILE, YOU LOSE")
 		sync()
 		exit(135)
 	} else {
-		log_status("DUMPING: %s", panicfile);
-		fprintf(stderr, "DUMPING: %s\n", panicfile);
-		db_write(f);
-		fclose(f);
-		log_status("DUMPING: %s (done)", panicfile);
-		fprintf(stderr, "DUMPING: %s (done)\n", panicfile);
-		(void) unlink(DELTAFILE_NAME);
+		log_status("DUMPING: %s", panicfile)
+		log.Println("DUMPING:", panicfile)
+		db_write(f)
+		f.Close()
+		log_status("DUMPING: %s (done)", panicfile)
+		log.Println("DUMPING:", panicfile, "(done)"
+		os.Remove(DELTAFILE_NAME)
 	}
 
 	/* Write out the macros */
-	panicfile = fmt.Sprintf("%s.PANIC", MACRO_FILE);
-	if ((f = fopen(panicfile, "wb")) != NULL) {
+	panicfile = fmt.Sprintf("%s.PANIC", MACRO_FILE)
+	if f, e := os.OpenFile(panicfile, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
 		Macros.Dump(f)
-		fclose(f);
+		f.Close()
 	} else {
-		perror("CANNOT OPEN MACRO PANIC FILE, YOU LOSE");
+		log.Println("CANNOT OPEN MACRO PANIC FILE, YOU LOSE")
 		sync()
 		exit(135)
 	}
@@ -235,7 +200,7 @@ func time_for_monolithic() bool {
 
 	var count int
 	EachObject(func(o *Object) {
-		if o.flags & (SAVED_DELTA | OBJECT_CHANGED) != 0 {
+		if o.Changed && o.flags & (SAVED_DELTA) != 0 {
 			count++
 		}
 	})
@@ -282,39 +247,38 @@ func dump_deltas() {
 }
 
 func init_game(infile, outfile string) int {
-	var f *FILE
-
-	if f = fopen(MACRO_FILE, "rb"); f == nil {
+	if f, e := os.Open(MACRO_FILE); e != nil {
 		log_status("INIT: Macro storage file %s is tweaked.", MACRO_FILE)
 	} else {
 		Macros = LoadMacros(f)
-		fclose(f)
+		f.Close()
 	}
 
+	var e error
 	in_filename = infile
-	if input_file = fopen(infile, "rb"); input_file == nil {
+	if input_file, e = os.Open(infile); e != nil {
 		return NOTHING
 	}
-	if delta_outfile = fopen(DELTAFILE_NAME, "wb"); delta_outfile == nil {
+	if delta_outfile, e = os.OpenFile(DELTAFILE_NAME, os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
 		return NOTHING
 	}
-	if delta_infile = fopen(DELTAFILE_NAME, "rb"); delta_infile == nil {
+	if delta_infile, e = os.Open(DELTAFILE_NAME); e != nil {
 		return NOTHING
 	}
 	db_free()
 	init_primitives()				/* init muf compiler */
 	mesg_init()						/* init mpi interpreter */
-	SRANDOM(getpid())				/* init random number generator */
-	tune_load_parmsfile(NOTHING)	/* load @tune parms from file */
+	SRANDOM(os.Getpid())			/* init random number generator */
+	Tuneables.Load(PARMFILE_NAME, NOTHING)	/* load @tune parms from file */
 
 	/* ok, read the db in */
 	log_status("LOADING: %s", infile)
-	fprintf(stderr, "LOADING: %s\n", infile)
+	log.Println("LOADING:", infile)
 	if db_read(input_file) < 0 {
 		return NOTHING
 	}
 	log_status("LOADING: %s (done)", infile)
-	fmt.Fprintf(os.Stderr, "LOADING: %s (done)\n", infile)
+	log.Println("LOADING:", infile, "(done)")
 	dumpfile = outfile
 	if !db_conversion_flag {
 		/* initialize the _sys/startuptime property */
@@ -488,7 +452,7 @@ func process_command(descr int, player ObjectID, command string) {
 			}
 		}
 	} else {
-	  bad_pre_command:
+bad_pre_command:
 		if TrueWizard(DB.Fetch(player).Owner && (ommand == OVERIDE_TOKEN) {
 			command++
 		}
@@ -517,12 +481,12 @@ func process_command(descr int, player ObjectID, command string) {
 		arg1 = strings.TrimLeftFunc(arg1, unicode.IsSpace)
 
 		/* find end of arg1, start of arg2 */
-		for (arg2 = arg1; *arg2 && *arg2 != ARG_DELIMITER; arg2++) ;
+		for arg2 = arg1; arg2 != "" && arg2[0] != ARG_DELIMITER; arg2++ ;
 
 		/* truncate arg1 */
-		for (p = arg2 - 1; p >= arg1 && unicode.IsSpace(*p); p--)
-			*p = '\0';
-
+		for p = arg2 - 1; p >= arg1 && unicode.IsSpace(*p); p-- {
+			*p = '\0'
+		}
 		/* go past delimiter if present */
 		if (*arg2)
 			*arg2++ = '\0';
@@ -961,7 +925,7 @@ func process_command(descr int, player ObjectID, command string) {
 					if !strings.Prefix(command, "@tune") {
 						goto bad
 					}
-					do_tune(player, arg1, arg2, !!strchr(full_command, ARG_DELIMITER));
+					Tunables.Tune(player, arg1, arg2, strings.Index(full_command, ARG_DELIMITER) != -1)
 				default:
 					goto bad;
 				}
@@ -1166,18 +1130,16 @@ func process_command(descr int, player ObjectID, command string) {
 				}
 				do_drop(descr, player, arg1, arg2);
 			default:
-				goto bad;
+				goto bad
 			}
-			break;
 		case 'w', 'W':
 			if !strings.Prefix(command, "whisper") {
 				goto bad
 			}
 			do_whisper(descr, player, arg1, arg2)
 		default:
-		  bad:
-			if (tp_m3_huh != 0)
-			{
+bad:
+			if tp_m3_huh != 0 {
 				hbuf := fmt.Sprintf("HUH? %s", command);
 				if(can_move(descr, player, hbuf, 3)) {
 					do_move(descr, player, hbuf, 3);

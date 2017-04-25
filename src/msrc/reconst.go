@@ -77,10 +77,10 @@ func check_contents(obj ObjectID) {
 func check_common(id ObjectID) {
 	o := DB.Fetch(id)
 	if !o.name {
-		o.name = fmt.Sprintf("Unknown%d", id)
+		o.NowCalled(fmt.Sprintf("Unknown%d", id))
 	}
 	if o.Location >= db_top {
-		o.Location = tp_player_start
+		o.MoveTo(tp_player_start)
 	}
 	if o.Contents < db_top {
 		nexted[o.Contents] = id
@@ -106,7 +106,7 @@ func check_room(obj ObjectID) {
 	}
 
 	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
-		DB.Fetch(obj).Owner = GOD
+		DB.Fetch(obj).GiveTo(GOD)
 	}
 }
 
@@ -118,15 +118,15 @@ func check_exit(ref ObjectID) {
 		}
 	}
 	if obj.Owner >= db_top || (DB.Fetch(obj.Owner).flags & TYPE_MASK != TYPE_PLAYER) {
-		obj.Owner = GOD
+		obj.GiveTo(GOD)
 	}
 }
 
 func check_player(ref ObjectID) {
 	obj := DB.Fetch(ref)
 	player := obj.(Player)
-	if player.home >= db_top || (DB.Fetch(player.home).flags & TYPE_MASK != TYPE_ROOM) {
-		player.home = tp_player_start
+	if player.Home >= db_top || (DB.Fetch(player.Home).flags & TYPE_MASK != TYPE_ROOM) {
+		player.LiveAt(tp_player_start)
 	}
 
 	if obj.Exits < db_top {
@@ -138,7 +138,7 @@ func check_player(ref ObjectID) {
 
 func check_program(obj ObjectID) {
 	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
-		DB.Fetch(obj).Owner = GOD
+		DB.Fetch(obj).GiveTo(GOD)
 	}
 }
 
@@ -153,20 +153,17 @@ char *out_filename;
 func main() {
 	switch {
 	case len(os.Args) != 3:
-		fprintf(stderr, "Usage: %v infile outfile\n", argv[0])
+		log.Printf("Usage: %v infile outfile\n", argv[0])
 		return
 	case os.Args[1] == os.Args[2]:
-		fprintf(stderr, "%v: input and output files can't have same name.\n", os.Args[0])
+		log.Printf("%v: input and output files can't have same name.\n", os.Args[0])
 		return
 	default:
-		in_filename := os.Args[1]
-		if input_file := fopen(in_filename, "rb"); input_file == nil {
-			fprintf(stderr, "%v: unable to open input file.\n", os.Args[0])
+		if f, input_file := os.Open(os.Args[1]); e != nil {
+			log.Printf("%v: unable to open input file.\n", os.Args[1])
 		} else {
-			out_filename := os.Args[2]
-			if output_file := fopen(out_filename, "wb"); output_file == nil {
-				fprintf(stderr, "%v: unable to write to output file.\n", os.Args[0])
-				return
+			if output_file, e := os.OpenFile(os.Args[2], os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0755); e != nil {
+				log.Printf("%v: unable to write to output file.\n", os.Args[2])
 			} else {
 				db_free()
 				db_read(input_file)
@@ -200,12 +197,6 @@ func main() {
 
 /* dummy compiler */
 func do_compile(int descr, ObjectID p, ObjectID pr, int force_err_disp) {}
-
-func new_macro(name, definition string, player ObjectID) *macrotable {
-	return nil
-}
-
-func log_status(format, v ...string) {}
 
 func add_event(descr int, player, loc, trig ObjectID, dtime int, program ObjectID, fr *frame, strdata string) {}
 

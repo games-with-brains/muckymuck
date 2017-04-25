@@ -92,26 +92,28 @@ func do_page(player ObjectID, arg1, arg2 string) {
 
 func notify_listeners(who, xprog, obj, room ObjectID, msg string, isprivate bool) {
 	if obj != NOTHING {
-		if tp_listeners && (tp_listeners_obj || Typeof(obj) == TYPE_ROOM) {
+		if tp_listeners && (tp_listeners_obj || IsRoom(obj)) {
 			listenqueue(-1, who, room, obj, obj, xprog, "_listen", msg, tp_listen_mlev, 1, 0)
 			listenqueue(-1, who, room, obj, obj, xprog, "~listen", msg, tp_listen_mlev, 1, 1)
 			listenqueue(-1, who, room, obj, obj, xprog, "~olisten", msg, tp_listen_mlev, 0, 1)
 		}
 
-		if tp_zombies && Typeof(obj) == TYPE_THING && !isprivate {
-			if DB.Fetch(obj).flags & VEHICLE != 0 && df.Fetch(who).Location == df.Fetch(obj).Location {
-				prefix := do_parse_prop(-1, who, obj, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
-				if prefix = "" {
-					prefix = "Outside>"
-				}
-				buf := fmt.Sprint(prefix, " ", msg)
-				for ref := DB.Fetch(obj).Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
-					notify_filtered(who, ref, buf, isprivate)
+		switch o := DB.Fetch(obj); o.(type) {
+		case Player:
+			notify_filtered(who, obj, msg, isprivate)
+		case Object:
+			if tp_zombies && !isprivate {
+				if o.flags & VEHICLE != 0 && df.Fetch(who).Location == o.Location() {
+					prefix := do_parse_prop(-1, who, obj, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
+					if prefix = "" {
+						prefix = "Outside>"
+					}
+					buf := fmt.Sprint(prefix, " ", msg)
+					for ref := o.Contents; ref != NOTHING; ref = DB.Fetch(ref).next {
+						notify_filtered(who, ref, buf, isprivate)
+					}
 				}
 			}
-		}
-		switch obj.(type)
-		case TYPE_PLAYER, TYPE_THING:
 			notify_filtered(who, obj, msg, isprivate)
 		}
 	}

@@ -9,13 +9,13 @@ func unparse_flag(thing ObjectID, flag int, f string) (r string) {
 
 func unparse_flags(thing ObjectID) (r string) {
 	switch thing.(type) {
-	case TYPE_ROOM:
+	case Room:
 		r = "R"
-	case TYPE_EXIT:
+	case Exit:
 		r = "E"
-	case TYPE_PLAYER:
+	case Player:
 		r = "P"
-	case TYPE_PROGRAM:
+	case Program:
 		r = "F"
 	}
 
@@ -47,8 +47,8 @@ func unparse_flags(thing ObjectID) (r string) {
 
 func unparse_object(player, loc ObjectID) (r string) {
 	if player != NOTHING {
-		if _, ok := player.(TYPE_PLAYER); !ok {
-			player = DB.Fetch(player).Owner
+		if p, ok := DB.Fetch(player).(*Player); !ok {
+			player = p.Owner
 		}
 	}
 	switch loc {
@@ -61,7 +61,7 @@ func unparse_object(player, loc ObjectID) (r string) {
 	case !loc.IsValid():
 		r = "*INVALID*"
 	default:
-		if player == NOTHING || (DB.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (Typeof(loc) != TYPE_PLAYER && (controls_link(player, loc) || DB.Fetch(loc).flags & CHOWN_OK != 0)))) {
+		if player == NOTHING || (DB.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (!IsPlayer(loc) && (controls_link(player, loc) || DB.Fetch(loc).flags & CHOWN_OK != 0)))) {
 			r = fmt.Sprintf("%s(#%d%s)", DB.Fetch(loc).name, loc, unparse_flags(loc))
 		} else {
 			r = DB.Fetch(loc).name

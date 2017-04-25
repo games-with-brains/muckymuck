@@ -26,20 +26,6 @@ func interactive(descr int, player ObjectID, command string) {
 	}
 }
 
-func macro_expansion(node *macrotable, match string) (r string) {
-	if node != nil {
-		switch value := strings.Compare(match, node.name); value {
-		case -1:
-			r = macro_expansion(node.left, match)
-		case 0:
-			r = node.definition
-		case 1:
-			r = macro_expansion(node.right, match)
-		}
-	}
-	return
-}
-
 /* The editor itself --- this gets called each time every time to
  * parse a command.
  */
@@ -60,7 +46,7 @@ func editor(descr int, player ObjectID, command string) {
 				switch words[2] = strings.TrimLeftFunc(command, unicode.IsSpace); {
 				case words[2] == "":
 					notify(player, "Invalid definition syntax.")
-				case insert_macro(words[1], words[2], player, Macros):
+				case Macros.Create(words[1], words[2], player):
 					notify(player, "Entry created.")
 				default:
 					notify(player, "That macro already exists!")
@@ -72,23 +58,23 @@ func editor(descr int, player ObjectID, command string) {
 				return
 			}
 		}
-		for i--; i >= 0 && words[i] == 0; i-- {}
+		for i--; i >= 0 && words[i] == ""; i-- {}
 		if i > -1 {
 			switch words[i][0] {
 			case KILL_COMMAND:
 				if !Wizard(player) {
 					notify(player, "I'm sorry Dave, but I can't let you do that.")
 				} else {
-					if kill_macro(words[0], player, Macros) {
+					if Macros.Delete(words[0], player) {
 						notify(player, "Macro entry deleted.")
 					} else {
 						notify(player, "Macro to delete not found.")
 					}
 				}
 			case SHOW_COMMAND:
-				list_macros(words, i, player, 1)
+				m.Describe(words[:i], player)
 			case SHORTSHOW_COMMAND:
-				list_macros(words, i, player, 0)
+				m.List(words[:i], player)
 			case INSERT_COMMAND:
 				do_insert(player, program, args[0])
 				notify(player, "Entering insert mode.")
@@ -181,8 +167,8 @@ func do_quit(player, program ObjectID) {
 	DB.Fetch(program).flags &= ~INTERNAL
 	DB.Fetch(player).flags &= ~INTERACTIVE
 	DB.FetchPlayer(player).curr_prog = NOTHING
-	DB.Fetch(player).flags |= OBJECT_CHANGED
-	DB.Fetch(program).flags |= OBJECT_CHANGED
+	DB.Fetch(player).Touch()
+	DB.Fetch(program).Touch()
 }
 
 func MatchAndList(descr int, player ObjectID, name, linespec string) {

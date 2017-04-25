@@ -253,7 +253,7 @@ func size_pubs(mypubs *PublicAPI) (r int) {
 
 func expand_def(cstat *COMPSTATE, defname string) (r string) {
 	if r = cstat.defhash[defname]; r == "" && defname == BEGINMACRO {
-		r = macro_expansion(Macros, &defname[1])
+		r = Macros.Expand(defname)
 	}
 	return
 }

@@ -414,7 +414,7 @@ func (m *Match) MatchAllExits() *Match {
 	if loc != NOTHING {
 		/* if player is in a vehicle, use environment of vehicle's home */
 		if loc, ok := loc.(Object); ok {
-			if loc = DB.FetchPlayer(loc).home; loc == NOTHING {
+			if loc = DB.FetchPlayer(loc).Home; loc == NOTHING {
 				return
 			}
 			if m.exact != NOTHING {

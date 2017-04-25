@@ -84,32 +84,23 @@ comp_read_line(FILE * file)
 	return (i);
 }
 
-void
-clear_buffer(void)
-{
+func clear_buffer() {
 	int i;
 
 	for (c_index = i = 0; i < 32; i++)
 		buffer[i] = 0;
 }
 
-void
-save_compress_words_to_file(FILE * f)
-{
-	int i;
-
-	for (i = 0; i < 4096; i++) {
-		fprintf(f, "%s\n", dict2[i]);
+func save_compress_words_to_file(f *FILE) {
+	for i := 0; i < 4096; i++ {
+		fmt.Fprintln(f, dict2[i])
 	}
 }
 
-void
-free_compress_dictionary()
-{
-	int i;
-	for (i = 0; i < 4096; i++) {
-		free(dict[i]);
-		free(dict2[i]);
+func free_compress_dictionary() {
+	for i := 0; i < 4096; i++ {
+		free(dict[i])
+		free(dict2[i])
 	}
 }
 
@@ -133,7 +124,7 @@ init_compress_from_file(FILE * dicto)
 		i++;
 	}
 	if (i < 4096) {
-		fprintf(stderr, "Too few words in compression wordlist!  Aborting.\n");
+		log.Println("Too few words in compression wordlist!  Aborting.")
 		exit(1);
 	}
 	clear_buffer();
@@ -151,29 +142,23 @@ init_compress_from_file(FILE * dicto)
 	table_initialized = 1;
 }
 
-void
-init_compress(void)
-{
-	FILE *dicto;
-
-	if ((dicto = fopen(WORDLIST_FILE, "rb")) == NULL) {
-		fprintf(stderr, "Cannot open %s dictionary file.\n", WORDLIST_FILE);
-		exit(5);
+func init_compress() {
+	if dicto, e := os.Open(WORDLIST_FILE); e != nil {
+		log.Printf("Cannot open %s dictionary file.\n", WORDLIST_FILE)
+		exit(5)
+	} else {
+		init_compress_from_file(dicto)
+		dicto.Close()
 	}
-	init_compress_from_file(dicto);
-	fclose(dicto);
 }
 
-static int
-compressed(const char *s)
-{
-	if (!s)
-		return 0;
-	while (*s) {
-		if (*s++ & TOKEN_BIT)
-			return 1;
+func compressed(s string) (r bool) {
+	if s != "" {
+		for ; !r && s != ""; s = s[1:] {
+			r = s[0] & TOKEN_BIT != 0
+		}
 	}
-	return 0;
+	return
 }
 
 void

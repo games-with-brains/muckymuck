@@ -4,7 +4,7 @@ Function Name:	show_program_usage
 Arguments:	char * (name of program)
 Returns:	never
 Called from:	main (interface.c)
-Calls:		fprintf, exit
+Calls:		exit
 Does:		Prints program command usage to standard error, and exits
 		with error status (1).
 #ifdefs:	none
@@ -17,9 +17,9 @@ Arguments:	int (argument count)
 		char ** (environment values)
 Returns:	int (0 on success)
 Called from:	<init>
-Calls:		show_program_usage, chdir, atoi, fprintf,
-		fclose, fopen, log_status, freopen, setbuf, setsid,
-		spgrp, setpgid, getpid, open, ioctl, close, spawn_resolver,
+Calls:		show_program_usage, chdir, atoi,
+		log_status, freopen, setbuf, setsid,
+		spgrp, setpgid, open, ioctl, close, spawn_resolver,
 		do_setuid, mcp_initialize, gui_initialize, init_game,
 		set_signals, sanity, sanfix, shovechars, close_sockets,
 		do_dequeue, rwhocli_shutdown, san_main, dump_database,

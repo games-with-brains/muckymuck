@@ -86,7 +86,7 @@ func hostadd(long ip, const char *name) {
 	hostcache_list = ptr;
 	ptr->ipnum = ip;
 	ptr->time = 0;
-	ptr.name = name
+	ptr.NowCalled(name)
 	hostprune();
 }
 
@@ -125,7 +125,7 @@ func make_nonblocking(s int) {
 #endif
 
 	if fcntl(s, F_SETFL, O_NONBLOCK) == -1 {
-		perror("make_nonblocking: fcntl")
+		fmt.Fprintln(os.Stderr, "make_nonblocking: fcntl")
 		abort()
 	}
 }
@@ -140,12 +140,12 @@ const char *get_username(long a, int prt, int myprt)
 
 	struct sockaddr_in addr;
 
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("resolver ident socket");
-		return (0);
+	if fd = socket(AF_INET, SOCK_STREAM, 0); fd < 0 {
+		fmt.Fprintln(os.Stderr, "resolver ident socket")
+		return (0)
 	}
 
-	make_nonblocking(fd);
+	make_nonblocking(fd)
 
 	len = sizeof(addr);
 	addr.sin_family = AF_INET;
@@ -306,10 +306,10 @@ func do_resolve() int {
 				return 0;
 			}
 
-			result = fgets(buf, sizeof(buf), stdin);
+			result = fgets(buf, sizeof(buf), os.Stdin)
 
 			/* unlock input here. */
-			pthread_mutex_unlock(&input_mutex);
+			pthread_mutex_unlock(&input_mutex)
 
 			if (shutdown_was_requested) {
 				return 0;
@@ -319,20 +319,20 @@ func do_resolve() int {
 					doagain = 1;
 					sleep(1);
 				} else {
-					if (feof(stdin)) {
-						shutdown_was_requested = 1;
+					if (feof(os.Stdin)) {
+						shutdown_was_requested = true
 						return 0;
 					}
-					perror("fgets");
-					shutdown_was_requested = 1;
+					fmt.Fprintln(os.Stderr, "fgets")
+					shutdown_was_requested = true
 					return 0;
 				}
 			}
 		} while (doagain || buf == "\n")
 		if strings.HasPrefix("QUIT", buf) {
-			shutdown_was_requested = 1;
-			fclose(stdin);
-			return 0;
+			shutdown_was_requested = 1
+			os.Stdin.Close()
+			return 0
 		}
 
 		bufptr = NULL;
@@ -361,8 +361,8 @@ func do_resolve() int {
 			return 0;
 		}
 
-		fprintf(stdout, "%s\n", outbuf);
-		fflush(stdout);
+		fmt.Fprintln(os.Stdout, outbuf)
+		os.Stdout.Sync()
 
 		/* unlock output here. */
 		pthread_mutex_unlock(&output_mutex);
@@ -386,7 +386,7 @@ func main() {
 	var i int
 
 	if len(os.Args) > 1 {
-		fprintf(stderr, "Usage: %s\n", os.Args)
+		log.Println("Usage:", os.Args)
 		os.Exit(1)
 	}
 
@@ -406,6 +406,6 @@ func main() {
 	    pthread_join(threads[i], &retval)
 	}
 
-	fprintf(stderr, "Resolver exited.\n")
+	log.Println("Resolver exited.")
 }
 
