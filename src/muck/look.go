@@ -196,7 +196,7 @@ func do_look_at(int descr, ObjectID player, const char *name, const char *detail
 					notify(player, "Permission denied. (You're not in the same room as or carrying the object)")
 				} else {
 					look_simple(descr, player, thing)
-					if DB.Fetch(thing).flags & HAVEN == 0 {
+					if !DB.Fetch(thing).IsFlagged(HAVEN) {
 						look_contents(player, thing, "Contains:")
 						ts_useobject(thing)
 					}
@@ -261,50 +261,50 @@ func do_look_at(int descr, ObjectID player, const char *name, const char *detail
 #ifdef VERBOSE_EXAMINE
 func flag_description(thing ObjectID) (r string) {
 	r = "Type: "
-	switch Typeof(thing) {
-	case TYPE_ROOM:
+	switch {
+	case IsRoom(thing):
 		r += "ROOM"
-	case TYPE_EXIT:
+	case IsExit(thing):
 		r += "EXIT/ACTION"
-	case TYPE_THING:
+	case IsThing(thing):
 		r += "THING"
-	case TYPE_PLAYER:
+	case IsPlayer(thing):
 		r += "PLAYER"
-	case TYPE_PROGRAM:
+	case IsProgram(thing):
 		r += "PROGRAM"
 	default:
 		r += "***UNKNOWN TYPE***"
 	}
 
-	if DB.Fetch(thing).flags & ~TYPE_MASK != 0 {
+	if flags := DB.Fetch(thing).Bitset; flags & ~TYPE_MASK != 0 {
 		r += "  Flags:"
-		if DB.Fetch(thing).flags & WIZARD != 0 {
+		if flags.IsFlagged(WIZARD) {
 			r += " WIZARD"
 		}
-		if DB.Fetch(thing).flags & QUELL != 0 {
+		if flags.IsFlagged(QUELL) {
 			r += " QUELL"
 		}
-		if DB.Fetch(thing).flags & STICKY != 0 {
-			switch Typeof(thing) {
-			case TYPE_PROGRAM:
+		if flags.IsFlagged(STICKY) {
+			switch {
+			case IsProgram(thing):
 				r += " SETUID"
-			case TYPE_PLAYER:
+			case IsPlayer(thing):
 				r += " SILENT"
 			default:
 				r += " STICKY"
 			}
 		}
-		if DB.Fetch(thing).flags & DARK != 0 {
-			if Typeof(thing) == TYPE_PROGRAM {
+		if flags.IsFlagged(DARK) {
+			if IsProgram(thing) {
 				r += " DEBUGGING"
 			} else {
 				r += " DARK"
 			}
 		}
-		if DB.Fetch(thing).flags & LINK_OK != 0 {
+		if flags.IsFlagged(LINK_OK) {
 			r += " LINK_OK"
 		}
-		if DB.Fetch(thing).flags & KILL_OK != 0 {
+		if flags.IsFlagged(KILL_OK) {
 			r += " KILL_OK"
 		}
 		if MLevRaw(thing) != NON_MUCKER {
@@ -318,61 +318,61 @@ func flag_description(thing ObjectID) (r string) {
 				r += "3"
 			}
 		}
-		if DB.Fetch(thing).flags & BUILDER != 0 {
-			if Typeof(thing) == TYPE_PROGRAM {
+		if flags.IsFlagged(BUILDER) {
+			if IsProgram(thing) {
 				r += " BOUND"
 			} else {
 				r += " BUILDER"
 			}
 		}
-		if DB.Fetch(thing).flags & CHOWN_OK != 0 {
-			if Typeof(thing) == TYPE_PLAYER {
+		if flags.IsFlagged(CHOWN_OK) {
+			if IsPlayer(thing) {
 				r += " COLOR"
 			} else {
 				r += " CHOWN_OK"
 			}
 		}
-		if DB.Fetch(thing).flags & JUMP_OK != 0 {
+		if flags.IsFlagged(JUMP_OK) {
 			r += " JUMP_OK"
 		}
-		if DB.Fetch(thing).flags & VEHICLE != 0 {
-			if Typeof(thing) == TYPE_PROGRAM {
+		if flags.IsFlagged(VEHICLE) {
+			if IsProgram(thing) {
 				r += " VIEWABLE"
 			} else {
 				r += " VEHICLE"
 			}
 		}
-		if tp_enable_match_yield && DB.Fetch(thing).flags & YIELD != 0 {
+		if tp_enable_match_yield && flags.IsFlagged(YIELD) {
 			r += " YIELD"
 		}
-		if tp_enable_match_yield && DB.Fetch(thing).flags & OVERT != 0 {
+		if tp_enable_match_yield && flags.IsFlagged(OVERT) {
 			r += " OVERT"
 		}
-		if DB.Fetch(thing).flags & XFORCIBLE != 0 {
-			if Typeof(thing) == TYPE_EXIT {
+		if flags.IsFlagged(XFORCIBLE) {
+			if IsExit(thing) {
 				r += " XPRESS"
 			} else {
 				r += " XFORCIBLE"
 			}
 		}
-		if DB.Fetch(thing).flags & ZOMBIE != 0 {
+		if flags.IsFlagged(ZOMBIE) {
 			r += " ZOMBIE"
 		}
-		if DB.Fetch(thing).flags & HAVEN != 0 {
-			switch Typeof(thing) {
-			case TYPE_PROGRAM:
+		if flags.IsFlagged(HAVEN) {
+			switch {
+			case IsProgram(thing):
 				r += " HARDUID"
-			case TYPE_THING:
+			case IsThing(thing):
 				r += " HIDE"
 			default:
 				r += " HAVEN"
 			}
 		}
-		if DB.Fetch(thing).flags & ABODE != 0 {
-			switch Typeof(thing) {
-			case TYPE_PROGRAM:
+		if flags.IsFlagged(ABODE) {
+			switch {
+			case IsProgram(thing):
 				r += " AUTOSTART"
-			case TYPE_EXIT:
+			case IsExit(thing):
 				r += " ABATE"
 			default:
 				r += " ABODE"
@@ -711,41 +711,41 @@ func init_checkflags(player ObjectID, flags string) (output_type int, check *flg
 				check.forlevel = true
 				check.islevel = 0
 			case 'A':
-				check.clearflags |= ABODE
+				check.clearflags.FlagAs(ABODE)
 			case 'B':
-				check.clearflags |= BUILDER
+				check.clearflags.FlagAs(BUILDER)
 			case 'C':
-				check.clearflags |= CHOWN_OK
+				check.clearflags.FlagAs(CHOWN_OK)
 			case 'D':
-				check.clearflags |= DARK
+				check.clearflags.FlagAs(DARK)
 			case 'H':
-				check.clearflags |= HAVEN
+				check.clearflags.FlagAs(HAVEN)
 			case 'J':
-				check.clearflags |= JUMP_OK
+				check.clearflags.FlagAs(JUMP_OK)
 			case 'K':
-				check.clearflags |= KILL_OK
+				check.clearflags.FlagAs(KILL_OK)
 			case 'L':
-				check.clearflags |= LINK_OK
+				check.clearflags.FlagAs(LINK_OK)
 			case 'O':
 				if tp_enable_match_yield {
-					check.clearflags |= OVERT
+					check.clearflags.FlagAs(OVERT)
 				}
 			case 'Q':
-				check.clearflags |= QUELL
+				check.clearflags.FlagAs(QUELL)
 			case 'S':
-				check.clearflags |= STICKY
+				check.clearflags.FlagAs(STICKY)
 			case 'V':
-				check.clearflags |= VEHICLE
+				check.clearflags.FlagAs(VEHICLE)
 			case 'Y':
 				if tp_enable_match_yield {
-					check.clearflags |= YIELD
+					check.clearflags.FlagAs(YIELD)
 				}
 			case 'Z':
-				check.clearflags |= ZOMBIE
+				check.clearflags.FlagAs(ZOMBIE)
 			case 'W':
-				check.clearflags |= WIZARD
+				check.clearflags.FlagAs(WIZARD)
 			case 'X':
-				check.clearflags |= XFORCIBLE
+				check.clearflags.FlagAs(XFORCIBLE)
 			case ' ':
 				mode = 2
 			}
@@ -790,41 +790,41 @@ func init_checkflags(player ObjectID, flags string) (output_type int, check *flg
 			case 'M':
 				check.isnotzero = true
 			case 'A':
-				check.setflags |= ABODE
+				check.setflags.FlagAs(ABODE)
 			case 'B':
-				check.setflags |= BUILDER
+				check.setflags.FlagAs(BUILDER)
 			case 'C':
-				check.setflags |= CHOWN_OK
+				check.setflags.FlagAs(CHOWN_OK)
 			case 'D':
-				check.setflags |= DARK
+				check.setflags.FlagAs(DARK)
 			case 'H':
-				check.setflags |= HAVEN
+				check.setflags.FlagAs(HAVEN)
 			case 'J':
-				check.setflags |= JUMP_OK
+				check.setflags.FlagAs(JUMP_OK)
 			case 'K':
-				check.setflags |= KILL_OK
+				check.setflags.FlagAs(KILL_OK)
 			case 'L':
-				check.setflags |= LINK_OK
+				check.setflags.FlagAs(LINK_OK)
 			case 'O':
 				if tp_enable_match_yield {
-					check.setflags |= OVERT
+					check.setflags.FlagAs(OVERT)
 				}
 			case 'Q':
-				check.setflags |= QUELL
+				check.setflags.FlagAs(QUELL)
 			case 'S':
-				check.setflags |= STICKY
+				check.setflags.FlagAs(STICKY)
 			case 'V':
-				check.setflags |= VEHICLE
+				check.setflags.FlagAs(VEHICLE)
 			case 'Y':
 				if tp_enable_match_yield {
-					check.setflags |= YIELD
+					check.setflags.FlagAs(YIELD)
 				}
 			case 'Z':
-				check.setflags |= ZOMBIE
+				check.setflags.FlagAs(ZOMBIE)
 			case 'W':
-				check.setflags |= WIZARD
+				check.setflags.FlagAs(WIZARD)
 			case 'X':
-				check.setflags |= XFORCIBLE
+				check.setflags.FlagAs(XFORCIBLE)
 			case ' ':
 			}
 		}
@@ -862,23 +862,23 @@ func checkflags(ObjectID what, struct flgchkdat check) (r bool) {
 		fallthrough
 	case check.isnotthree && MLevRaw(what) == MASTER:
 		fallthrough
-	case DB.Fetch(what).flags & check.clearflags != 0:
+	case DB.Fetch(what).Bitset & check.clearflags != 0:
 		fallthrough
-	case ~DB.Fetch(what).flags & check.setflags != 0:
+	case ~DB.Fetch(what).Bitset & check.setflags != 0:
 		r = false
 	}
 
 	if check.forlink {
-		switch Typeof(what) {
-		case TYPE_ROOM:
+		switch {
+		case IsRoom(what):
 			if (DB.Fetch(what).sp == NOTHING) != !check.islinked {
 				r = false
 			}
-		case TYPE_EXIT:
+		case IsExit(what):
 			if (len(DB.Fetch(what).(Exit).Destinations) == 0) != !check.islinked {
 				r = false
 			}
-		case TYPE_PLAYER, TYPE_THING:
+		case IsPlayer(what), IsThing(what):
 			r = check.islinked
 		default:
 			r = !check.islinked
@@ -886,7 +886,8 @@ func checkflags(ObjectID what, struct flgchkdat check) (r bool) {
 	}
 
 	if check.forold {
-		if (((time(nil)) - DB.Fetch(what).LastUsed) < tp_aging_time) || (((time(nil)) - DB.Fetch(what),modified) < tp_aging_time) != !check.isold {
+		t := time.Now()
+		if (t - DB.Fetch(what).LastUsed < tp_aging_time) || ((t - DB.Fetch(what).modified) < tp_aging_time) != !check.isold {
 			r = false
 		}
 	}
@@ -1173,10 +1174,10 @@ func do_sweep(descr int, player ObjectID, name string) {
 					}
 				}
 			case TYPE_THING:
-				if DB.Fetch(ref).flags & (ZOMBIE | LISTENER) != 0 {
+				if DB.Fetch(ref).IsFlagged(ZOMBIE, LISTENER) {
 					var tellflag bool
 					buf := fmt.Sprintf("  %.255s is a", unparse_object(player, ref));
-					if DB.Fetch(ref).flags & ZOMBIE != 0 {
+					if DB.Fetch(ref).IsFlagged(ZOMBIE) {
 						tellflag = true
 						if !online(DB.Fetch(ref).Owner) {
 							tellflag = false
@@ -1184,7 +1185,7 @@ func do_sweep(descr int, player ObjectID, name string) {
 						}
 						buf += " zombie"
 					}
-					if DB.Fetch(ref).flags & LISTENER != 0 && (get_property(ref, "_listen") || get_property(ref, "~listen") || get_property(ref, "~olisten")) {
+					if DB.Fetch(ref).IsFlagged(LISTENER) && (get_property(ref, "_listen") || get_property(ref, "~listen") || get_property(ref, "~olisten")) {
 						buf += " listener"
 						tellflag = tell
 					}
@@ -1209,7 +1210,7 @@ func do_sweep(descr int, player ObjectID, name string) {
 				notify(player, "Listening rooms down the environment:")
 				flag = true
 			}
-			if DB.Fetch(loc).flags & LISTENER != 0 && (get_property(loc, "_listen") || get_property(loc, "~listen") || get_property(loc, "~olisten")) {
+			if DB.Fetch(loc).IsFlagged(LISTENER) && (get_property(loc, "_listen") || get_property(loc, "~listen") || get_property(loc, "~olisten")) {
 				notify(player, fmt.Sprintf("  %s is a listening room.", unparse_object(player, loc)))
 			}
 			ExitMatchExists(player, loc, "page", false)

@@ -1,7 +1,7 @@
 package fbmuck
 
 func unparse_flag(thing ObjectID, flag int, f string) (r string) {
-	if DB.Fetch(thing).flags & flag != 0 {
+	if DB.Fetch(thing).IsFlagged(flag) {
 		r = f
 	}
 	return
@@ -61,7 +61,7 @@ func unparse_object(player, loc ObjectID) (r string) {
 	case !loc.IsValid():
 		r = "*INVALID*"
 	default:
-		if player == NOTHING || (DB.Fetch(player).flags & STICKY == 0 && (can_link_to(player, NOTYPE, loc) || (!IsPlayer(loc) && (controls_link(player, loc) || DB.Fetch(loc).flags & CHOWN_OK != 0)))) {
+		if player == NOTHING || (!DB.Fetch(player).IsFlagged(STICKY) && (can_link_to(player, NOTYPE, loc) || (!IsPlayer(loc) && (controls_link(player, loc) || DB.Fetch(loc).IsFlagged(CHOWN_OK))))) {
 			r = fmt.Sprintf("%s(#%d%s)", DB.Fetch(loc).name, loc, unparse_flags(loc))
 		} else {
 			r = DB.Fetch(loc).name

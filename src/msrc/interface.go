@@ -428,9 +428,9 @@ func notify_nolisten(player ObjectID, msg string, isprivate bool) (r int) {
 
 		if tp_zombies {
 			p := DB.Fetch(player)
-			if IsThing(player) && p.flags & ZOMBIE != 0 && DB.Fetch(p.Owner).flags & ZOMBIE == 0 && (p.flags & DARK == 0 || Wizard(p.Owner)) {
+			if IsThing(player) && p.IsFlagged(ZOMBIE) && !DB.Fetch(p.Owner).IsFlagged(ZOMBIE) && (!p.IsFlagged(DARK) || Wizard(p.Owner)) {
 				ref = p.Location
-				if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || DB.Fetch(ref).flags & ZOMBIE == 0 {
+				if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || !DB.Fetch(ref).IsFlagged(ZOMBIE) {
 					if isprivate || p.Location != DB.Fetch(p.Owner).Location {
 						ch := match_args[0]
 						match_args[0] = ""
@@ -481,9 +481,9 @@ func notify_from_echo(from, player ObjectID, msg string, isprivate bool) int {
 	}
 
 	p := DB.Fetch(player)
-	if IsThing(player) && p.flags & VEHICLE == 0 && (p.flags & DARK == 0 || Wizard(p.Owner)) {
+	if IsThing(player) && !p.IsFlagged(VEHICLE) && (!p.IsFlagged(DARK) || Wizard(p.Owner)) {
 		ref := p.Location
-		if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || DB.Fetch(ref).flags & VEHICLE == 0 {
+		if Wizard(p.Owner) || ref == NOTHING || !IsRoom(ref) || !DB.Fetch(ref).IsFlagged(VEHICLE) {
 			if !isprivate && DB.Fetch(from).Location == p.Location {
 				ch := match_args[0]
 				match_args[0] = '\0'
@@ -515,7 +515,7 @@ func update_quotas(last, current time.Duration) time.Duration {
 	if nslices := (current - last) / (tp_command_time_msec * time.Millisecond); nslices > 0 {
 		for d := descriptor_list; d != nil; d = d.next {
 			var cmds_per_time int
-			if d.connected && DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+			if d.connected && DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 				cmds_per_time = tp_commands_per_time * 8
 			} else {										
 				cmds_per_time = tp_commands_per_time
@@ -1337,7 +1337,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 						d.QueueWrite("\r\n")
 					}
 					queue_msg(d, "Foreground program aborted.\r\n")
-					if DB.Fetch(d.player).flags & INTERACTIVE != 0 && DB.Fetch(d.player).flags & READMODE != 0 {
+					if DB.Fetch(d.player).IsFlagged(INTERACTIVE, READMODE) {
 						process_command(d.descriptor, d.player, command)
 					}
 					if d.output_suffix {
@@ -1357,7 +1357,7 @@ func do_command(d *descriptor_data, command string) (r bool) {
 				d.QueueWrite("\r\n")
 			}
 			buf = fmt.Sprintf("@%v %v", WHO_COMMAND, command[len(WHO_COMMAND):]
-			if !d.connected || DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+			if !d.connected || DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 				if tp_secure_who {
 					queue_msg(d, "Sorry, WHO is unavailable at this point.\r\n")
 				} else {
@@ -1403,8 +1403,8 @@ func do_command(d *descriptor_data, command string) (r bool) {
 
 func interact_warn(player ObjectID) {
 	switch {
-	case DB.Fetch(player).flags & INTERACTIVE == 0:
-	case DB.Fetch(player).flags & READMODE != 0:
+	case !DB.Fetch(player).IsFlagged(INTERACTIVE):
+	case DB.Fetch(player).IsFlagged(READMODE):
 		notify(player, "*** You are currently using a program.  Use \"@Q\" to return to a more reasonable state of control. ***")
 	case DB.FetchPlayer(player).insert_mode:
 		notify(player, "*** You are currently inserting MUF program text.  Use \".\" to return to the editor, then \"quit\" if you wish to return to your regularly scheduled Muck universe. ***")
@@ -1614,18 +1614,18 @@ func dump_users(e *descriptor_data, user string) {
 	players = 0
 	for d := descriptor_list; d != nil; d = d.next {
 		players++
-		if d.connected && (!tp_who_hides_dark || wizard || DB.Fetch(d.player).flags & DARK == 0) && players != 0 && (user == nil || strings.Prefix(DB.Fetch(d.player).name, user)) {
+		if d.connected && (!tp_who_hides_dark || wizard || !DB.Fetch(d.player).IsFlagged(DARK)) && players != 0 && (user == nil || strings.Prefix(DB.Fetch(d.player).name, user)) {
 			if wizard {
 				/* don't print flags, to save space */
 				pbuf = fmt.Sprintf("%s(#%d) [%6d]", DB.Fetch(d.player).name, d.player, DB.Fetch(d.player).Location)
 				if e.player != GOD {
-					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 						buf = fmt.Sprintf("%s %10s %4s*%c %s\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), secchar, d.hostname)
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s %c %s\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), secchar, d.hostname)
 					}
 				} else {
-					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 						buf = fmt.Sprintf("%s %10s %4s*  %s(%s)\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), d.hostname, d.username)
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s   %s(%s)\r\n", pbuf, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), d.hostname, d.username)
@@ -1633,13 +1633,13 @@ func dump_users(e *descriptor_data, user string) {
 				}
 			} else {
 				if tp_who_doing {
-					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 						buf = fmt.Sprintf("%s %10s %4s*  %s\r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s   %s\r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time), get_property_class(d.player, MESGPROP_DOING))
 					}
 				} else {
-					if DB.Fetch(d.player).flags & INTERACTIVE != 0 {
+					if DB.Fetch(d.player).IsFlagged(INTERACTIVE) {
 						buf = fmt.Sprintf("%s %10s %4s* \r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
 					} else {
 						buf = fmt.Sprintf("%s %10s %4s  \r\n", DB.Fetch(d.player).name, time_format_1(now - d.connected_at), time_format_2(now - d.last_time))
@@ -1684,7 +1684,7 @@ func time_format_2(dt int) (r string) {
 
 func announce_puppets(player ObjectID, msg, prop string) {
 	EachObject(func(what ObjectID, o *Object) {
-		if IsThing(what) && o.flags & ZOMBIE != 0 {
+		if IsThing(what) && o.IsFlagged(ZOMBIE) {
 			if o.Owner == player {
 				where := o.Location
 				if !Dark(where) && !Dark(player) && !Dark(what) {
@@ -1724,7 +1724,7 @@ func announce_connect(descr int, player ObjectID) {
 		}
 	}
 
-	if exit == NOTHING || DB.Fetch(exit).flags & STICKY == 0 {
+	if exit == NOTHING || !DB.Fetch(exit).IsFlagged(STICKY) {
 		if can_move(descr, player, tp_autolook_cmd, 1) {
 			do_move(descr, player, tp_autolook_cmd, 1)
 		} else {
@@ -2027,13 +2027,14 @@ func welcome_user(d *descriptor_data) {
 		queue_msg(d, DEFAULT_WELCOME_MESSAGE)
 		log.Println("spit_file: welcome.txt")
 	} else {
-		var buf string
-		for fgets(buf, sizeof(buf) - 3, f) {
-			ptr := strchr(buf, '\n')
-			if (ptr && ptr > buf && *(ptr - 1) != '\r') {
-				*ptr++ = '\r';
-				*ptr++ = '\n';
-				*ptr++ = '\0';
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			buf := scanner.Text()
+			if p := strings.Index(buf, '\n'); p != -1 {
+				buf = buf[p:]
+				if buf != "" && p > 0 && buf[len(buf) - 1] != '\r' {
+					buf += "\r\n"
+				}
 			}
 			queue_msg(d, buf)
 		}

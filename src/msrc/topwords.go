@@ -204,46 +204,43 @@ remember_words_in_string(const char *in)
 
 
 func main() {
-	char buf[16384]
-	char *p
+	queue_add_node("felorin", 99999999)
+	queue_add_node("anthro", 99999999)
+	queue_add_node("phile ", 99999999)
+	queue_add_node("morph", 99999999)
+	queue_add_node("revar", 99999999)
+	queue_add_node("sion ", 99999999)
+	queue_add_node("tion ", 99999999)
+	queue_add_node("post", 99999999)
+	queue_add_node("ing ", 99999999)
+	queue_add_node("ion ", 99999999)
+	queue_add_node("est ", 99999999)
+	queue_add_node("ies ", 99999999)
+	queue_add_node("ism ", 99999999)
+	queue_add_node("ish ", 99999999)
+	queue_add_node("ary ", 99999999)
+	queue_add_node("ous ", 99999999)
+	queue_add_node("dis", 99999999)
+	queue_add_node("non", 99999999)
+	queue_add_node("pre", 99999999)
+	queue_add_node("sub", 99999999)
+	queue_add_node("al ", 99999999)
+	queue_add_node("ic ", 99999999)
+	queue_add_node("ly ", 99999999)
+	queue_add_node("le ", 99999999)
+	queue_add_node("es ", 99999999)
+	queue_add_node("ed ", 99999999)
+	queue_add_node("er ", 99999999)
 
-	queue_add_node("felorin", 99999999);
-	queue_add_node("anthro", 99999999);
-	queue_add_node("phile ", 99999999);
-	queue_add_node("morph", 99999999);
-	queue_add_node("revar", 99999999);
-	queue_add_node("sion ", 99999999);
-	queue_add_node("tion ", 99999999);
-	queue_add_node("post", 99999999);
-	queue_add_node("ing ", 99999999);
-	queue_add_node("ion ", 99999999);
-	queue_add_node("est ", 99999999);
-	queue_add_node("ies ", 99999999);
-	queue_add_node("ism ", 99999999);
-	queue_add_node("ish ", 99999999);
-	queue_add_node("ary ", 99999999);
-	queue_add_node("ous ", 99999999);
-	queue_add_node("dis", 99999999);
-	queue_add_node("non", 99999999);
-	queue_add_node("pre", 99999999);
-	queue_add_node("sub", 99999999);
-	queue_add_node("al ", 99999999);
-	queue_add_node("ic ", 99999999);
-	queue_add_node("ly ", 99999999);
-	queue_add_node("le ", 99999999);
-	queue_add_node("es ", 99999999);
-	queue_add_node("ed ", 99999999);
-	queue_add_node("er ", 99999999);
-
-	for !feof(os.Stdin) {
-		fgets(buf, sizeof(buf), os.Stdin)
-		if p = strchr(buf, ':'); p != nil {
-			if p = strchr(p + 1, ':'); p != nil {
-				remember_words_in_string(p + 1);
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		buf := scanner.Text()
+		if p := strings.Index(buf, ':'); p != -1 {
+			buf = buf[p + 1:]
+			if p = strings.Index(buf, ':'); p != -1 {
+				remember_words_in_string(buf[p + 1:])
 			}
 		}
 	}
-	list_top_4k_words();
-	/* printf("%d unique words found.\n", total_words); */
-	/* printf("%d counted words.\n", counted_words); */
+	list_top_4k_words()
 }

@@ -369,73 +369,58 @@ func print_topics(f, hf *FILE) {
 	fmt.Fprintf(f, " \nUse '%s <topicname>' to get more information on a topic.\n", doccmd)
 }
 
-func find_topics(infile *FILE) int {
-	char buf[4096];
-	char *s, *p;
-	int longest, lng;
-
+func find_topics(infile *os.File) (r int) {
 	longest = 0;
-	while (!feof(infile)) {
-		do {
-			if (!fgets(buf, sizeof(buf), infile)) {
-				*buf = '\0';
-				break;
-			} else {
-				case strings.HasPrefix(buf, "~~section "):
-					buf = buf[:len(buf) - 1]
-					strcpyn(sect, sizeof(sect), (buf + 10));
-					add_section(sect);
-				case strings.HasPrefix(buf, "~~title "):
-					buf = buf[:len(buf) - 1]
-					title = buf+8;
-				case strings.HasPrefix(buf, "~~author "):
-					buf = buf[:len(buf) - 1]
-					author = buf+9;
-				case strings.HasPrefix(buf, "~~doccmd "):
-					buf = buf[:len(buf) - 1]
-					doccmd = buf+9;
-				}
+	scanner := bufio.NewScanner(infile)
+	for scanner.Scan() {
+		buf := scanner.Text()
+		for scanner.Scan() {
+			switch buf = scanner.Text(); {
+			case strings.HasPrefix(buf, "~~section "):
+				sect = buf[10:]
+				add_section(sect);
+			case strings.HasPrefix(buf, "~~title "):
+				buf = buf[:len(buf) - 1]
+				title = buf[8:]
+			case strings.HasPrefix(buf, "~~author "):
+				author = buf[9:]
+			case strings.HasPrefix(buf, "~~doccmd "):
+				doccmd = buf[9:]
+			case strings.HasPrefix(buf, '~@'), strings.HasPrefix(buf, '~~'), strings.HasPrefix(buf, '~<'), strings.HasPrefix(buf, '~!'):
+			default:
+				break
 			}
-		} while (!feof(infile) &&
-				 (*buf != '~' || buf[1] == '@' || buf[1] == '~' || buf[1] == '<' ||
-				  buf[1] == '!'));
-
-		do {
-			if (!fgets(buf, sizeof(buf), infile)) {
-				*buf = '\0';
-				break;
-			} else {
-				switch {
-				case strings.HasPrefix(buf, "~~section "):
-					buf = buf[:len(buf) - 1]
-					strcpyn(sect, sizeof(sect), (buf + 10));
-					add_section(sect);
-				case strings.HasPrefix(buf, "~~title "):
-					buf = buf[:len(buf) - 1]
-					title = buf+8;
-				case strings.HasPrefix(buf, "~~author "):
-					buf = buf[:len(buf) - 1]
-					author = buf+9;
-				case strings.HasPrefix(buf, "~~doccmd "):
-					buf = buf[:len(buf) - 1]
-					doccmd = buf+9;
-				}
+		}
+		for scanner.Scan {
+			buf = scanner.Text()
+			switch {
+			case strings.HasPrefix(buf, "~~section "):
+				add_section(buf[10:])
+			case strings.HasPrefix(buf, "~~title "):
+				title = buf[8:]
+			case strings.HasPrefix(buf, "~~author "):
+				author = buf[9:]
+			case strings.HasPrefix(buf, "~~doccmd "):
+				doccmd = buf[9:]
+			case !strings.HasPrefix(buf, '~'):
+				break
 			}
-		} while (*buf == '~' && !feof(infile));
+		}
 
-		for (s = p = buf; *s; s++) {
-			if (*s == '|' || *s == '\n') {
-				*s++ = '\0';
-				add_topic(p);
-				lng = len(p);
-				if (lng > longest)
-					longest = lng;
-				p = s;
-				break;
+		for p := buf; p != ""; p = p[1:] {
+			switch p[0] {
+			case '|', '\n':
+				buf = buf[:len(buf) - len(p)]
+				add_topic(buf)
+				if l := len(buf); l > r {
+					r = l
+				}
+				buf = p
+				break
 			}
 		}
 	}
-	return (longest);
+	return
 }
 
 func process_lines(infile, outfile, htmlfile *FILE, cols int) {
@@ -458,11 +443,9 @@ func process_lines(infile, outfile, htmlfile *FILE, cols int) {
 	fmt.Fprintf(outfile, "        %s alpha        or\n", doccmd)
 	fmt.Fprintf(outfile, "        %s category\n\n", doccmd)
 
-	while (!feof(infile)) {
-		if (!fgets(buf, sizeof(buf), infile)) {
-			break;
-		}
-		if (buf[0] == '~') {
+	scanner := bufio.NewScanner(infile)
+	for scanner.Scan() {
+		if buf = scanner.Text(); buf[0] == '~' {
 			switch buf[1] {
 			case '~':
 				switch {

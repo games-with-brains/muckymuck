@@ -12,8 +12,8 @@ type flgchkdat struct {
 	isnotone bool				/* not ML1 */
 	isnottwo bool				/* not ML2 */
 	isnotthree bool				/* not ML3 */
-	setflags int				/* flags that are set to check for */
-	clearflags int				/* flags to check are cleared. */
+	setflags Bitset				/* flags that are set to check for */
+	clearflags Bitset				/* flags to check are cleared. */
 	forlink bool				/* check linking? */
 	islinked bool				/* if yes, check if not unlinked */
 	forold bool					/* check for old object? */

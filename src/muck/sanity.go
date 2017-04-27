@@ -119,37 +119,37 @@ func check_next_chain(player, obj ObjectID) {
 func find_orphan_objects(player ObjectID) {
 	SanPrint(player, "Searching for orphan objects...");
 	EachObject(func(o *Object) {
-		o.flags &= ~SANEBIT
+		o.ClearFlags(SANEBIT)
 	})
 
-	DB.Fetch(GLOBAL_ENVIRONMENT).flags |= SANEBIT
+	DB.Fetch(GLOBAL_ENVIRONMENT).FlagAs(SANEBIT)
 
 	EachObject(func(obj ObjectID, o *Object) {
 		if o.Exits != NOTHING {
-			if p := DB.Fetch(o.Exits); p.flags & SANEBIT != 0 {
+			if p := DB.Fetch(o.Exits); p.IsFlagged(SANEBIT) {
 				violate(player, o.Exits, "is referred to by more than one object's Next, Contents, or Exits field")
 			} else {
-				p.flags |= SANEBIT
+				p.FlagAs(SANEBIT)
 			}
 		}
 		if o.Contents != NOTHING {
-			if p := DB.Fetch(o.Contents); p.flags & SANEBIT != 0 {
+			if p := DB.Fetch(o.Contents); p.IsFlagged(SANEBIT) {
 				violate(player, o.Contents, "is referred to by more than one object's Next, Contents, or Exits field")
 			} else {
-				p.flags |= SANEBIT
+				p.FlagAs(SANEBIT)
 			}
 		}
 		if o.next != NOTHING {
-			if p := DB.Fetch(o.next); p.flags & SANEBIT != 0 {
+			if p := DB.Fetch(o.next); p.IsFlagged(SANEBIT) {
 				violate(player, o.next, "is referred to by more than one object's Next, Contents, or Exits field")
 			} else {
-				p.flags |= SANEBIT
+				p.FlagAs(SANEBIT)
 			}
 		}
-		if o.flags & SANEBIT == 0 {
+		if !o.IsFlagged(SANEBIT) {
 			violate(player, obj, "appears to be an orphan object, that is not referred to by any other object")
 		}
-		o.flags &= ~SANEBIT
+		o.ClearFlags(SANEBIT)
 	})
 }
 
@@ -344,17 +344,17 @@ func cut_all_chains(obj ObjectID) {
 func cut_bad_contents(obj ObjectID) {
 	prev := NOTHING
 	for loop := DB.Fetch(obj).Contents; loop != NOTHING; loop = DB.Fetch(loop).next {
-		if !valid_obj(loop) || DB.Fetch(loop).flags & SANEBIT || TYPEOF(loop) == TYPE_EXIT || DB.Fetch(loop).Location != obj || loop == obj {
+		if !valid_obj(loop) || DB.Fetch(loop).IsFlagged(SANEBIT) || IsExit(loop) || DB.Fetch(loop).Location != obj || loop == obj {
 			switch {
 			case !valid_obj(loop):
 				SanFixed(obj, "Contents chain for %s cut at invalid ObjectID")
-			case TYPEOF(loop) == TYPE_EXIT:
+			case IsExit(loop):
 				SanFixed2(obj, loop, "Contents chain for %s cut at exit %s")
 			case loop == obj:
 				SanFixed(obj, "Contents chain for %s cut at self-reference")
 			case DB.Fetch(loop).Location != obj:
 				SanFixed2(obj, loop, "Contents chain for %s cut at misplaced object %s")
-			case DB.Fetch(loop).flags & SANEBIT:
+			case DB.Fetch(loop).IsFlagged(SANEBIT):
 				SanFixed2(obj, loop, "Contents chain for %s cut at already chained object %s")
 			default:
 				SanFixed2(obj, loop, "Contents chain for %s cut at %s")
@@ -368,7 +368,7 @@ func cut_bad_contents(obj ObjectID) {
 			}
 			return
 		}
-		DB.Fetch(loop).flags |= SANEBIT
+		DB.Fetch(loop).FlagAs(SANEBIT)
 		prev = loop
 	}
 }
@@ -376,15 +376,15 @@ func cut_bad_contents(obj ObjectID) {
 func cut_bad_exits(obj ObjectID) {
 	prev := NOTHING;
 	for loop := DB.Fetch(obj).Exits; loop != NOTHING; loop = DB.Fetch(loop).next {
-		if !valid_obj(loop) || DB.Fetch(loop).flags & SANEBIT || TYPEOF(loop) != TYPE_EXIT || DB.Fetch(loop).Location != obj {
+		if !valid_obj(loop) || DB.Fetch(loop).IsFlagged(SANEBIT) || !IsExit(loop) || DB.Fetch(loop).Location != obj {
 			switch {
 			case !valid_obj(loop):
 				SanFixed(obj, "Exits chain for %s cut at invalid ObjectID")
-			case TYPEOF(loop) != TYPE_EXIT:
+			case !IsExit(loop):
 				SanFixed2(obj, loop, "Exits chain for %s cut at non-exit %s")
 			case DB.Fetch(loop).Location != obj:
 				SanFixed2(obj, loop, "Exits chain for %s cut at misplaced exit %s")
-			case DB.Fetch(loop).flags & SANEBIT:
+			case DB.Fetch(loop).IsFlagged(SANEBIT):
 				SanFixed2(obj, loop, "Exits chain for %s cut at already chained exit %s")
 			default:
 				SanFixed2(obj, loop, "Exits chain for %s cut at %s")
@@ -398,7 +398,7 @@ func cut_bad_exits(obj ObjectID) {
 			}
 			return
 		}
-		DB.Fetch(loop).flags |= SANEBIT
+		DB.Fetch(loop).FlagAs(SANEBIT)
 		prev = loop
 	}
 }
@@ -426,14 +426,15 @@ func rand_password() (password string) {
 func create_lostandfound(player, room *ObjectID) {
 	player_name = "lost+found"
 	*room = new_object()
-	DB.Fetch(*room).NowCalled("lost+found")
-	DB.Fetch(*room).MoveTo(GLOBAL_ENVIRONMENT)
-	DB.Fetch(*room).Exits = NOTHING
-	DB.Fetch(*room).sp = NOTHING
-	DB.Fetch(*room).flags = TYPE_ROOM | SANEBIT
-
-	DB.Fetch(*room).next = DB.Fetch(GLOBAL_ENVIRONMENT.Contents)
-	DB.Fetch(*room).Touch()
+	r := DB.Fetch(*room)
+	r.NowCalled("lost+found")
+	r.MoveTo(GLOBAL_ENVIRONMENT)
+	r.Exits = NOTHING
+	r.sp = NOTHING
+	r.ClearFlags()
+	r.FlagAs(TYPE_ROOM, SANEBIT)
+	r.next = DB.Fetch(GLOBAL_ENVIRONMENT.Contents)
+	r.Touch()
 	DB.Fetch(GLOBAL_ENVIRONMENT.Contents) = *room
 
 	SanFixed(*room, "Using %s to resolve unknown location")
@@ -441,23 +442,25 @@ func create_lostandfound(player, room *ObjectID) {
 		player_name = fmt.Sprintf("lost+found%d", i)
 	}
 	*player = new_object()
-	DB.Fetch(*player).NowCalled(player_name)
-	DB.Fetch(*player).MoveTo(*room)
-	DB.Fetch(*player).flags = TYPE_PLAYER | SANEBIT
-	DB.Fetch(*player).GiveTo(*player)
+	p := DB.Fetch(*player)
+	p.NowCalled(player_name)
+	p.MoveTo(*room)
+	p.ClearFlags()
+	p.FlagAs(TYPE_PLAYER, SANEBIT)
+	p.GiveTo(*player)
 	*player = &Player{ home: *room, exits: NOTHING, curr_prog: NOTHING }
 	add_property(*player, MESGPROP_VALUE, NULL, tp_start_pennies)
 	rpass := rand_password()
 	set_password(*player, rpass)
-	DB.Fetch(*player).next = DB.Fetch(*room).Contents
-	DB.Fetch(*player).Touch()
-	DB.Fetch(*room).Contents = *player
-	DB.Fetch(*player).Touch()
+	p.next = DB.Fetch(*room).Contents
+	p.Touch()
+	r.Contents = *player
+	p.Touch()
 	add_player(*player)
 	log2file("logs/sanfixed", "Using %s (with password %s) to resolve unknown owner", unparse_object(GOD, *player), rpass)
-	DB.Fetch(*room).GiveTo(*player)
-	DB.Fetch(*room).Touch()
-	DB.Fetch(*player).Touch()
+	r.GiveTo(*player)
+	r.Touch()
+	p.Touch()
 	DB.Fetch(GLOBAL_ENVIRONMENT).Touch()
 }
 
@@ -583,7 +586,7 @@ func find_misplaced_objects() {
 					DB.Fetch(o.Location).Contents = obj
 				}
 				DB.Fetch(o.Location).Touch()
-				o.flags |= SANEBIT
+				o.FlagAs(SANEBIT)
 				o.Touch()
 				SanFixed2(obj, o.Location, "Set location of %s to %s")
 			}
@@ -603,7 +606,7 @@ func find_misplaced_objects() {
 
 func adopt_orphans() {
 	EachObject(func(obj ObjectID, o *Object) (done bool) {
-		if o.flags & SANEBIT == 0 {
+		if !o.IsFlagged(SANEBIT) {
 			o.Touch()
 			switch TYPEOF(loop) {
 			case IsRoom(obj), IsThing(obj), IsPlayer(obj), IsProgram(obj):
@@ -646,11 +649,11 @@ func sanfix(player ObjectID) {
 
 	SanityViolated = false
 	EachObject(func(o *Object) {
-		obj.flags &= ~SANEBIT
+		obj.ClearFlags(SANEBIT)
 	})
-	DB.Fetch(GLOBAL_ENVIRONMENT).flags |= SANEBIT
+	DB.Fetch(GLOBAL_ENVIRONMENT).FlagAs(SANEBIT)
 
-	if !valid_obj(tp_player_start) || TYPEOF(tp_player_start) != TYPE_ROOM {
+	if !valid_obj(tp_player_start) || !IsRoom(tp_player_start) {
 		SanFixed(GLOBAL_ENVIRONMENT, "Reset invalid player_start to %s")
 		tp_player_start = GLOBAL_ENVIRONMENT
 	}
@@ -661,7 +664,7 @@ func sanfix(player ObjectID) {
 	clean_global_environment()
 
 	EachObject(func(o *Object) {
-		o.flags &= ~SANEBIT
+		o.ClearFlags(SANEBIT)
 	})
 
 	if player > NOTHING {

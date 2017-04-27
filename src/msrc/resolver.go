@@ -282,51 +282,47 @@ pthread_mutex_t output_mutex = PTHREAD_MUTEX_INITIALIZER;
 func do_resolve() int {
 	int ip1, ip2, ip3, ip4;
 	int prt, myprt;
-	int doagain;
 	char *result;
 	const char *ptr;
-	char buf[1024];
 	char outbuf[1024];
 	char *bufptr = NULL;
 	long fullip;
 
-	for (;;) {
+	for {
 		ip1 = ip2 = ip3 = ip4 = prt = myprt = -1;
+		var doagain bool
+		var buf string
 		do {
-			doagain = 0;
-			*buf = '\0';
+			doagain = false
 
-			/* lock input here. */
-			if (pthread_mutex_lock(&input_mutex)) {
-				return 0;
-			}
-			if (shutdown_was_requested) {
-				/* unlock input here. */
-				pthread_mutex_unlock(&input_mutex);
-				return 0;
+			switch {
+			case pthread_mutex_lock(&input_mutex):
+				return 0
+			case shutdown_was_requested:
+				pthread_mutex_unlock(&input_mutex)
+				return 0
 			}
 
-			result = fgets(buf, sizeof(buf), os.Stdin)
+			scanner := bufio.NewScanner(os.Stdin)
+			result := scanner.Scan()
+			buf = scanner.Text()
 
 			/* unlock input here. */
 			pthread_mutex_unlock(&input_mutex)
 
-			if (shutdown_was_requested) {
-				return 0;
-			}
-			if (!result) {
-				if (errno == EAGAIN) {
-					doagain = 1;
-					sleep(1);
-				} else {
-					if (feof(os.Stdin)) {
-						shutdown_was_requested = true
-						return 0;
-					}
-					fmt.Fprintln(os.Stderr, "fgets")
-					shutdown_was_requested = true
-					return 0;
-				}
+			switch {
+			case shutdown_was_requested:
+				return 0
+			case result:
+			case errno == EAGAIN:
+				doagain = true
+				sleep(1)
+			case scanner.Err() != nil:
+				shutdown_was_requested = true
+				return 0
+			default:
+				shutdown_was_requested = true
+				return 0
 			}
 		} while (doagain || buf == "\n")
 		if strings.HasPrefix("QUIT", buf) {

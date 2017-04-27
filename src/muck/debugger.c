@@ -12,11 +12,11 @@ func list_proglines(player, program ObjectID, fr *frame, start, end int) {
 	}
 	struct line *tmpline = DB.Fetch(program).(Program).first
 	DB.Fetch(program).(Program).first = fr.brkpt.proglines
-	tmpflg := DB.Fetch(player).flags & INTERNAL != 0
-	DB.Fetch(player).flags |= INTERNAL
+	tmpflg := DB.Fetch(player).IsFlagged(INTERNAL)
+	DB.Fetch(player).FlagAs(INTERNAL)
 	do_list(player, program, range)
 	if !tmpflg {
-		DB.Fetch(player).flags &= ~INTERNAL
+		DB.Fetch(player).ClearFlags(INTERNAL)
 	}
 	DB.Fetch(program).(Program).first = tmpline
 	return
@@ -204,11 +204,11 @@ func muf_backtrace(player, program ObjectID, count int, fr *frame) {
 		}
 		if pinst != lastinst {
 			notify_nolisten(player, fmt.Sprintf("\033[1;33;40m%3d)\033[0m \033[1m%s(#%d)\033[0m %s:", lev, DB.Fetch(ref).name, ref, ptr), true)
-			flag := DB.Fetch(player).flags & INTERNAL != 0
-			DB.Fetch(player).flags &= ~INTERNAL
+			flag := DB.Fetch(player).IsFlagged(INTERNAL)
+			DB.Fetch(player).ClearFlags(INTERNAL)
 			list_proglines(player, ref, fr, pinst.line, 0)
 			if flag {
-				DB.Fetch(player).flags |= INTERNAL
+				DB.Fetch(player).FlagAs(INTERNAL)
 			}
 		}
 	}

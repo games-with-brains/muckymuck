@@ -9,8 +9,8 @@ package fbmuck
 func set_property_nofetch(player ObjectID, name string, dat interface{}) {
 	if name != "" {
 		name = strings.TrimLeft(name, PROPDIR_DELIMITER)
-		if DB.Fetch(player).flags & LISTENER != 0 && (strings.Prefix(name, "_listen") || strings.Prefix(name, "~listen") || strings.Prefix(name, "~olisten")) {
-			DB.Fetch(player).flags |= LISTENER
+		if DB.Fetch(player).IsFlagged(LISTENER) && (strings.Prefix(name, "_listen") || strings.Prefix(name, "~listen") || strings.Prefix(name, "~olisten")) {
+			DB.Fetch(player).FlagAs(LISTENER)
 		}
 		buf := name
 		if n := strings.SplitN(buf, PROP_DELIMITER, 2); len(n) > 0 {
@@ -411,7 +411,7 @@ func db_get_single_prop(f *FILE, obj ObjectID, pos int, pnode *Plist, pdir strin
 		case len(name) == 0:
 			corrupt_property_warning("Failed to read property from disk: Failed disk read.  obj = #%d, pos = %ld, pdir = %s", obj, pos, pdir)
 			r = -1
-		case name[0] == '*' && name != "*End*\n":
+		case name[0] == '*' && name != "*End*":
 			r = 0
 		default:
 			switch flags := strchr(name, PROP_DELIMITER); {

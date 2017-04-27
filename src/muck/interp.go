@@ -287,7 +287,7 @@ func interp(int descr, ObjectID player, ObjectID location, ObjectID program, Obj
 
 	fr.argument.top = 0
 	fr.pc = DB.Fetch(program).(Program).start
-	fr.writeonly = source == -1 || Typeof(source) == TYPE_ROOM || (Typeof(source) == TYPE_PLAYER && !online(source))) || DB.Fetch(player).flags & READMODE != 0
+	fr.writeonly = source == -1 || IsRoom(source) || (IsPlayer(source) && !online(source))) || DB.Fetch(player).IsFlagged(READMODE)
 	fr.error.is_flags = 0
 
 	/* set basic local variables */
@@ -734,7 +734,7 @@ func interp_loop(player, program ObjectID, fr *frame, has_return bool) (r *inst)
 		fr.instcnt++
 		instr_count++
 
-		if fr.multitask == PREEMPT || DB.Fetch(program).flags & BUILDER != 0 {
+		if fr.multitask == PREEMPT || DB.Fetch(program).IsFlagged(BUILDER) {
 			if mlev >= WIZBIT {
 				if tp_max_ml4_preempt_count {
 					if instr_count >= tp_max_ml4_preempt_count {
@@ -765,8 +765,8 @@ func interp_loop(player, program ObjectID, fr *frame, has_return bool) (r *inst)
 				return nil
 			}
 		}
-		fr.brkpt.debugging = (DB.Fetch(program).flags) & ZOMBIE != 0 || fr.brkpt.force_debugging) && !fr.been_background && controls(player, program)
-		if DB.Fetch(program).flags & DARK != 0 || (fr.brkpt.debugging && fr.brkpt.showstack && !fr.brkpt.bypass) {
+		fr.brkpt.debugging = (DB.Fetch(program).IsFlagged(ZOMBIE) || fr.brkpt.force_debugging) && !fr.been_background && controls(player, program)
+		if DB.Fetch(program).IsFlagged(DARK) || (fr.brkpt.debugging && fr.brkpt.showstack && !fr.brkpt.bypass) {
 			if pc.(type) != PROG_PRIMITIVE || pc.data.(int) != instno_debug_line {
 				notify_nolisten(player, debug_inst(fr, 0, pc, fr.pid, arg, dbuf, sizeof(dbuf), atop, program), true)
 			}
@@ -1407,7 +1407,7 @@ func permissions(player, thing ObjectID) (ok bool) {
 }
 
 func find_mlev(prog ObjectID, fr *frame, st int) ObjectID {
-	if DB.Fetch(prog).flags & STICKY != 0 && DB.Fetch(prog).flags & HAVEN != 0 {
+	if DB.Fetch(prog).IsFlagged(STICKY) && DB.Fetch(prog).IsFlagged(HAVEN) {
 		if st > 1 && TrueWizard(DB.Fetch(prog).Owner) {
 			return find_mlev(fr.caller.st[st - 1], fr, st - 1)
 		}
@@ -1419,8 +1419,8 @@ func find_mlev(prog ObjectID, fr *frame, st int) ObjectID {
 }
 
 func find_uid(player ObjectID, fr *frame, st int, program ObjectID) ObjectID {
-	if DB.Fetch(program).flags & STICKY != 0 || fr.perms == STD_SETUID {
-		if DB.Fetch(program).flags & HAVEN != 0 {
+	if DB.Fetch(program).IsFlagged(STICKY) || fr.perms == STD_SETUID {
+		if DB.Fetch(program).IsFlagged(HAVEN) {
 			if st > 1 && TrueWizard(DB.Fetch(program).Owner) {
 				return find_uid(player, fr, st - 1, fr.caller.st[st - 1])
 			}
@@ -1431,7 +1431,7 @@ func find_uid(player ObjectID, fr *frame, st int, program ObjectID) ObjectID {
 	if ProgMLevel(program) < JOURNEYMAN {
 		return DB.Fetch(program).Owner
 	}
-	if DB.Fetch(program).flags & HAVEN != 0 || fr.perms == STD_HARDUID {
+	if DB.Fetch(program).IsFlagged(HAVEN) || fr.perms == STD_HARDUID {
 		if fr.trig == NOTHING {
 			return DB.Fetch(program).Owner
 		}

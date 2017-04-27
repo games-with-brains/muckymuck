@@ -341,7 +341,7 @@ func do_dig(descr int, player ObjectID, name, pname string) {
 
 			/* Initialize everything */
 			newparent := DB.Fetch(DB.Fetch(player).Location).Location
-			for newparent != NOTHING && DB.Fetch(newparent).flags & ABODE == 0 {
+			for newparent != NOTHING && !DB.Fetch(newparent).IsFlagged(ABODE) {
 				newparent = DB.Fetch(newparent).Location
 			}
 			if newparent == NOTHING {
@@ -353,7 +353,10 @@ func do_dig(descr int, player ObjectID, name, pname string) {
 			DB.Fetch(room).GiveTo(DB.Fetch(player).Owner)
 			DB.Fetch(room).Exits = NOTHING
 			DB.Fetch(room).sp = NOTHING
-			DB.Fetch(room).flags = TYPE_ROOM | (DB.Fetch(player).flags & JUMP_OK)
+			if DB.Fetch(player).IsFlagged(JUMP_OK) {
+				DB.Fetch(room).FlagAs(JUMP_OK)
+			}
+			DB.Fetch(room).flags = TYPE_ROOM
 			DB.Fetch(room).next = DB.Fetch(newparent).Contents
 			DB.Fetch(room).Touch()
 			DB.Fetch(newparent).Contents = room
@@ -441,25 +444,25 @@ func do_prog(descr int, player ObjectID, name string) {
 				DB.Fetch(player).Contents = newprog
 				DB.Fetch(newprog).Touch()
 
-				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(player).FlagAs(INTERACTIVE)
 				DB.Fetch(player).Touch()
 				notify(player, fmt.Sprintf("Program %s created with number %d.", name, newprog))
 				notify(player, fmt.Sprintf("Entering editor."))
 			case i == AMBIGUOUS:
 				notify(player, "I don't know which one you mean!")
-			case Typeof(i) != TYPE_PROGRAM, !controls(player, i):
+			case !IsProgram(i), !controls(player, i):
 				notify(player, "Permission denied!")
-			case DB.Fetch(i).flags & INTERNAL != 0:
+			case DB.Fetch(i).IsFlagged(INTERNAL):
 				notify(player, "Sorry, this program is currently being edited by someone else.  Try again later.")
 			} else {
 				DB.Fetch(i).(Program).first = read_program(i)
-				DB.Fetch(i).flags |= INTERNAL
+				DB.Fetch(i).FlagAs(INTERNAL)
 				DB.FetchPlayer(player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
 				DB.Fetch(i).Touch()
-				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(player).FlagAs(INTERACTIVE)
 				DB.Fetch(player).Touch()
 			}
 		}
@@ -486,16 +489,16 @@ func do_edit(descr int, player ObjectID, name string) {
 			case i == NOTHING, i == AMBIGUOUS:
 			case Typeof(i) != TYPE_PROGRAM, !controls(player, i):
 				notify(player, "Permission denied!")
-			case DB.Fetch(i).flags & INTERNAL != 0:
+			case DB.Fetch(i).IsFlagged(INTERNAL):
 				notify(player, "Sorry, this program is currently being edited by someone else.  Try again later.")
 			default:
-				DB.Fetch(i).flags |= INTERNAL
+				DB.Fetch(i).FlagAs(INTERNAL)
 				DB.Fetch(i).(Program).first = read_program(i)
 				DB.FetchPlayer(player).curr_prog = i
 				notify(player, "Entering editor.")
 				/* list current line */
 				do_list(player, i, nil)
-				DB.Fetch(player).flags |= INTERACTIVE
+				DB.Fetch(player).FlagAs(INTERACTIVE)
 				DB.Fetch(i).Touch()
 				DB.Fetch(player).Touch()
 			}
@@ -603,7 +606,7 @@ func mcpedit_program(descr int, player, prog ObjectID, name string) {
 			show_mcp_error(mfr, "@mcpedit", "No program name given.");
 		case Typeof(prog) != TYPE_PROGRAM, !controls(player, prog):
 			show_mcp_error(mfr, "@mcpedit", "Permission denied!")
-		case DB.Fetch(prog).flags & INTERNAL != 0:
+		case DB.Fetch(prog).IsFlagged(INTERNAL):
 			show_mcp_error(mfr, "@mcpedit", "Sorry, this program is currently being edited by someone else.  Try again later.");
 		default:
 			DB.Fetch(prog).(Program).first = read_program(prog)
@@ -717,7 +720,7 @@ func do_clone(descr int, player ObjectID, name string) {
 
 					/* FIXME: should we clone attached actions? */
 					DB.Fetch(clonedthing).Exits = NOTHING
-					DB.Fetch(clonedthing).flags = DB.Fetch(thing).flags
+					DB.Fetch(clonedthing).Bitset = DB.Fetch(thing).Bitset
 
 					copy_props(player, thing, clonedthing, "")
 					if get_property_value(thing, MESGPROP_VALUE) > tp_max_object_endowment {

@@ -95,7 +95,7 @@ func check_common(id ObjectID) {
 }
 
 func check_room(obj ObjectID) {
-	if DB.Fetch(obj).(ObjectID) >= db_top || (DB.Fetch(DB.Fetch(obj).(ObjectID)).flags & TYPE_MASK != TYPE_ROOM && DB.Fetch(obj).sp != NOTHING && DB.Fetch(obj).sp != HOME) {
+	if DB.Fetch(obj).(ObjectID) >= db_top || (!IsRoom(DB.Fetch(DB.Fetch(obj).(ObjectID))) && DB.Fetch(obj).sp != NOTHING && DB.Fetch(obj).sp != HOME) {
 		DB.Fetch(obj).sp = NOTHING
 	}
 
@@ -105,7 +105,7 @@ func check_room(obj ObjectID) {
 		DB.Fetch(obj).Exits = NOTHING
 	}
 
-	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+	if DB.Fetch(obj).Owner >= db_top || !IsPlayer(DB.Fetch(DB.Fetch(obj).Owner)) {
 		DB.Fetch(obj).GiveTo(GOD)
 	}
 }
@@ -117,7 +117,7 @@ func check_exit(ref ObjectID) {
 			obj.(Exit).Destinations[i] = NOTHING
 		}
 	}
-	if obj.Owner >= db_top || (DB.Fetch(obj.Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+	if obj.Owner >= db_top || !IsPlayer(DB.Fetch(obj.Owner)) {
 		obj.GiveTo(GOD)
 	}
 }
@@ -125,7 +125,7 @@ func check_exit(ref ObjectID) {
 func check_player(ref ObjectID) {
 	obj := DB.Fetch(ref)
 	player := obj.(Player)
-	if player.Home >= db_top || (DB.Fetch(player.Home).flags & TYPE_MASK != TYPE_ROOM) {
+	if player.Home >= db_top || !IsRoom(DB.Fetch(player.Home)) {
 		player.LiveAt(tp_player_start)
 	}
 
@@ -137,7 +137,7 @@ func check_player(ref ObjectID) {
 }
 
 func check_program(obj ObjectID) {
-	if DB.Fetch(obj).Owner >= db_top || (DB.Fetch(DB.Fetch(obj).Owner).flags & TYPE_MASK != TYPE_PLAYER) {
+	if DB.Fetch(obj).Owner >= db_top || !IsPlayer(DB.Fetch(DB.Fetch(obj).Owner)) {
 		DB.Fetch(obj).GiveTo(GOD)
 	}
 }

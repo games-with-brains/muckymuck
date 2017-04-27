@@ -43,7 +43,7 @@ struct Object {
 	next ObjectID					/* pointer to next in contents/exits chain */
 	properties *Plist
 	descrs []int
-	flags int
+	Bitset
 }
 
 func (o Object) Name() string {

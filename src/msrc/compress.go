@@ -67,21 +67,18 @@ strcpyn(char* buf, size_t bufsize, const char* src)
 	return buf;
 }
 
-unsigned long
-comp_read_line(FILE * file)
-{
-	int c;
-	unsigned long i = 0;
-
-	for (;;) {
-		c = fgetc(file);
-		if (c == '\n' || c == '\r' || c == EOF) {
-			break;
+func comp_read_line(file *os.File) (r int) {
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.SplitBytes)
+	for scanner.Scan() {
+		switch c := scanner.Text(); c {
+		case '\n', '\r', EOF:
+			break
+		default:
+			line += c
 		}
-		line[i++] = c;
 	}
-	line[i] = '\0';
-	return (i);
+	return len(line)
 }
 
 func clear_buffer() {

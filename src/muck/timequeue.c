@@ -101,8 +101,7 @@ func free_timenode(ptr timequeue) {
 			}
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
 				if p := DB.Fetch(ptr.uid); p != nil {
-					p.flags &= ~INTERACTIVE
-					p.flags &= ~READMODE
+					p.ClearFlags(INTERACTIVE, READMODE)
 				}
 				notify_nolisten(ptr.uid, "Data input aborted.  The command you were using was killed.", true)
 			}
@@ -227,7 +226,7 @@ func add_muf_read_event(descr int, player, prog ObjectID, fr *frame) int {
 	if fr == nil {
 		panic("add_muf_read_event(): NULL frame passed !")
 	}
-	DB.Fetch(player).flags |= (INTERACTIVE | READMODE)
+	DB.Fetch(player).FlagAs(INTERACTIVE, READMODE)
 	return add_event(TQ_MUF_TYP, TQ_MUF_READ, -1, descr, player, -1, fr.trig, prog, fr, "READ", nil, nil)
 }
 
@@ -235,7 +234,7 @@ func add_muf_tread_event(descr int, player, prog ObjectID, fr *frame, delay int)
 	if fr == nil {
 		panic("add_muf_tread_event(): NULL frame passed !")
 	}
-	DB.Fetch(player).flags |= (INTERACTIVE | READMODE)
+	DB.Fetch(player).FlagAs(INTERACTIVE, READMODE)
 	return add_event(TQ_MUF_TYP, TQ_MUF_TREAD, delay, descr, player, -1, fr.trig, prog, fr, "READ", nil, nil)
 }
 
@@ -278,8 +277,8 @@ func handle_read_event(descr int, player ObjectID, command string) {
 	if command == "" {
 		nothing_flag = true
 	}
-	oldflags = DB.Fetch(player).flags
-	DB.Fetch(player).flags &= ~(INTERACTIVE | READMODE)
+	oldflags = DB.Fetch(player).Bitset
+	DB.Fetch(player).ClearFlags(INTERACTIVE, READMODE)
 
 	ptr := tqhead
 	for ; ptr != nil; ptr = ptr.next {
@@ -296,7 +295,7 @@ func handle_read_event(descr int, player ObjectID, command string) {
 		fr = ptr.fr
 		if (!fr->brkpt.debugging || fr->brkpt.isread) {
 			if (!fr->wantsblanks && command && !*command) {
-				DB.Fetch(player).flags = oldflags
+				DB.Fetch(player).Bitset = oldflags
 				return
 			}
 		}
@@ -364,10 +363,10 @@ func handle_read_event(descr int, player ObjectID, command string) {
 		 * INTERACTIVE bit on the user, if it does NOT want the MUF
 		 * program to resume executing.
 		 */
-		if flag = DB.Fetch(player).flags & INTERACTIVE; flag == 0 && fr != nil {
+		if !DB.Fetch(player).IsFlagged(INTERACTIVE) && fr != nil {
 			interp_loop(player, prog, fr, false)
-			/* WORK: if more input is pending, send the READ mufevent again. */
-			/* WORK: if no input is pending, clear READ mufevent from all of this player's programs. */
+			/* FIXME: if more input is pending, send the READ mufevent again. */
+			/* FIXME: if no input is pending, clear READ mufevent from all of this player's programs. */
 		}
 
 		/*
@@ -377,7 +376,7 @@ func handle_read_event(descr int, player ObjectID, command string) {
 		for ; ptr != nil; ptr = ptr.next {
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
 				if ptr.uid == player {
-					DB.Fetch(player).flags |= (INTERACTIVE | READMODE);
+					DB.Fetch(player).FlagAs(INTERACTIVE, READMODE)
 				}
 			}
 		}
@@ -774,7 +773,7 @@ func dequeue_prog_real(program ObjectID, killmode int, file string, line int) in
 		}
 		for ptr = tqhead; ptr != nil; ptr = ptr.next {
 			if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
-				DB.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
+				DB.Fetch(ptr.uid).FlagAs(INTERACTIVE, READMODE)
 			}
 		}
 	}
@@ -813,7 +812,7 @@ func dequeue_process(pid int) (r bool) {
 		if deqflag {
 			for ptr = tqhead; ptr != nil; ptr = ptr.next {
 				if ptr.typ == TQ_MUF_TYP && (ptr.subtyp == TQ_MUF_READ || ptr.subtyp == TQ_MUF_TREAD) {
-					DB.Fetch(ptr.uid).flags |= (INTERACTIVE | READMODE)
+					DB.Fetch(ptr.uid).FlagAs(INTERACTIVE, READMODE)
 				}
 			}
 			r = true
@@ -970,7 +969,7 @@ func propqueue(descr int, player, where, trigger, what, xclude ObjectID, propnam
 					prog = NOTHING
 				case Typeof(prog) != TYPE_PROGRAM:
 					prog = NOTHING
-				case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && DB.Fetch(prog).flags & LINK_OK == 0:
+				case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && !DB.Fetch(prog).IsFlagged(LINK_OK):
 					prog = NOTHING
 				case MLevel(prog) < mlev, MLevel(DB.Fetch(prog).Owner) < mlev:
 					prog = NOTHING
@@ -1043,7 +1042,7 @@ func envpropqueue(descr int, player, where, trigger, what, xclude ObjectID, prop
 }
 
 func listenqueue(descr int, player, where, trigger, what, xclude ObjectID, propname, toparg string, mlev, mt, mpi_p int) {
-	if DB.Fetch(what).flags & LISTENER != 0 || DB.Fetch(DB.Fetch(what).Owner).flags & ZOMBIE != 0 {
+	if DB.Fetch(what).IsFlagged(LISTENER) || DB.Fetch(DB.Fetch(what).Owner).IsFlagged(ZOMBIE) {
 		var buf string
 
 		/* queue up program referred to by the given property */
@@ -1086,7 +1085,7 @@ func listenqueue(descr int, player, where, trigger, what, xclude ObjectID, propn
 						prog = NOTHING
 					case Typeof(prog) != TYPE_PROGRAM:
 						prog = NOTHING
-					case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && DB.Fetch(prog).flags & LINK_OK == 0:
+					case DB.Fetch(prog).Owner != DB.Fetch(player).Owner && !DB.Fetch(prog).IsFlagged(LINK_OK):
 						prog = NOTHING
 					case MLevel(prog) < mlev:
 						prog = NOTHING

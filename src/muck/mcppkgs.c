@@ -177,7 +177,7 @@ func mcppkg_simpleedit(McpFrame * mfr, McpMesg * msg, McpVer ver, void *context)
 					show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
 				case !Mucker(player):
 					show_mcp_error(mfr, "simpleedit-set", "Permission denied.")
-				case DB.Fetch(obj).flags & INTERNAL != 0:
+				case DB.Fetch(obj).IsFlagged(INTERNAL):
 					show_mcp_error(mfr, "simpleedit-set", "Sorry, this program is currently being edited.  Try again later.")
 				default:
 					tmpline := DB.Fetch(obj).(Program).first

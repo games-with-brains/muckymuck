@@ -108,7 +108,7 @@ Arguments:	const char *	(infile)
 Returns:	int		(boolean)
 Called from:	main		(interface.c)
 Calls:		log_status, db_free,
-		init_primitives, mesg_init, SRANDOM, tune_load_parmsfile,
+		init_primitives, mesg_init, SRANDOM,
 		db_read, free, add_property
 Does:		Loads macros, frees the DB, initializes MUF compiler and
 		MPI interpreter, seeds the random number generator, loads

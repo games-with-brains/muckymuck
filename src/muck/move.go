@@ -75,10 +75,10 @@ func send_contents(int descr, ObjectID loc, ObjectID dest) {
 			moveto(first, loc)
 		} else {
 			where := dest
-			if DB.Fetch(first).flags & STICKY != 0 {
+			if DB.Fetch(first).IsFlagged(STICKY) {
 				where = HOME
 			}
-			if tp_thing_movement && Typeof(first) == TYPE_THING {
+			if tp_thing_movement && IsThing(first) {
 				if parent_loop_check(first, where) {
 					enter_room(descr, first, loc, DB.Fetch(first).Location)
 				} else {
@@ -103,7 +103,7 @@ func maybe_dropto(descr int, loc, dropto ObjectID) {
 		/* check for players */
 		for thing := DB.Fetch(loc).Contents; thing != NOTHING; thing = DB.Fetch(thing).next {
 			/* Make zombies act like players for dropto processing */
-			if Typeof(thing) == TYPE_PLAYER || (Typeof(thing) == TYPE_THING && DB.Fetch(thing).flags & ZOMBIE != 0) {
+			if IsPlayer(thing) || (IsThing(thing) && DB.Fetch(thing).IsFlagged(ZOMBIE)) {
 				return
 			}
 		}
@@ -254,7 +254,7 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 			envpropqueue(descr, player, old, exit, old, NOTHING, "_odepart", "Odepart", 1, 0);
 
 			/* notify others unless DARK */
-			if !Dark(old) && !Dark(player) && (!IsThing(player) || (IsThing(player) && p.flags & (ZOMBIE | VEHICLE) != 0)) && (Typeof(exit) != TYPE_EXIT || !Dark(exit)) {
+			if !Dark(old) && !Dark(player) && (!IsThing(player) || (IsThing(player) && p.IsFlagged(ZOMBIE, VEHICLE)) && (!IsExit(exit) || !Dark(exit)) {
 #if !defined(QUIET_MOVES)
 				notify_except(DB.Fetch(old).Contents, player, fmt.Sprintf("%s has left.", p.name), player)
 #endif
@@ -263,20 +263,20 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 
 		/* if old location has STICKY dropto, send stuff through it */
 		if old != NOTHING && IsRoom(old) {
-			if dropto = DB.Fetch(old).(ObjectID)); dropto != NOTHING && DB.Fetch(old).flags & STICKY != 0 {
+			if dropto = DB.Fetch(old).(ObjectID)); dropto != NOTHING && DB.Fetch(old).IsFlagged(STICKY) {
 				maybe_dropto(descr, old, dropto)
 			}
 		}
 
 		/* tell other folks in new location if not DARK */
-		if !Dark(loc) && !Dark(player) && ((Typeof(player) != TYPE_THING) || (Typeof(player) == TYPE_THING && DB.Fetch(player).flags & (ZOMBIE | VEHICLE) != 0)) && (Typeof(exit) != TYPE_EXIT || !Dark(exit)) {
+		if !Dark(loc) && !Dark(player) && (!IsThing(player) || (IsThing(player) && DB.Fetch(player).IsFlagged(ZOMBIE, VEHICLE)) && (!IsExit(exit) || !Dark(exit)) {
 #if !defined(QUIET_MOVES)
 			notify_except(DB.Fetch(loc).Contents, player, fmt.Sprintf("%s has arrived.", p.name), player)
 #endif
 		}
 	}
 	/* autolook */
-	if !IsThing(player) || (IsThing(player) && p.flags & (ZOMBIE | VEHICLE) != 0) {
+	if !IsThing(player) || (IsThing(player) && p.IsFlagged(ZOMBIE | VEHICLE)) {
 		if donelook < 8 {
 			donelook++
 			if can_move(descr, player, tp_autolook_cmd, 1) {
@@ -316,7 +316,7 @@ func send_home(descr int, thing ObjectID, puppethome int) {
 		if puppethome {
 			send_contents(descr, thing, HOME)
 		}
-		if tp_thing_movement || o.flags & (ZOMBIE | LISTENER) != 0 {
+		if tp_thing_movement || o.IsFlagged(ZOMBIE, LISTENER) {
 			enter_room(descr, thing, o.Home, o.Location)
 		} else {
 			moveto(thing, HOME)		/* home */
@@ -379,10 +379,10 @@ func trigger(int descr, ObjectID player, ObjectID exit, int pflag) {
 			case parent_loop_check(player, dest):
 				notify(player, "That would cause a paradox.")
 				break
-			case !Wizard(p.Owner) && IsThing(player) && dest.flags & ZOMBIE != 0:
+			case !Wizard(p.Owner) && IsThing(player) && dest.IsFlagged(ZOMBIE):
 				notify(player, "You can't go that way.")
 				break
-			case p.flags & VEHICLE != 0 && (dest.flags | e.flags) & VEHICLE != 0:
+			case p.IsFlagged(VEHICLE) && (dest.Bitset | e.Bitset).IsFlagged(VEHICLE):
 				notify(player, "You can't go that way.")
 				break
 			default:
@@ -396,7 +396,7 @@ func trigger(int descr, ObjectID player, ObjectID exit, int pflag) {
 				succ = true
 			}
 		case Object:
-			if dest == e.Location && dest.flags & VEHICLE != 0 {
+			if dest == e.Location && dest.IsFlagged(VEHICLE) {
 				switch {
 				case !pflag:
 				case parent_loop_check(player, dest):
@@ -424,7 +424,7 @@ func trigger(int descr, ObjectID player, ObjectID exit, int pflag) {
 						} else {
 							moveto(dest, DB.Fetch(e.Location).Location)
 						}
-						if e.flags & STICKY == 0 {
+						if !e.IsFlagged(STICKY) {
 							/* send home source object */
 							sobjact = 1
 						}
@@ -461,7 +461,7 @@ func trigger(int descr, ObjectID player, ObjectID exit, int pflag) {
 					break
 				}
 				succ = true
-				if dest.flags & JUMP_OK != 0 {
+				if dest.IsFlagged(JUMP_OK) {
 					if get_property_class(exit, MESGPROP_DROP) {
 						exec_or_notify_prop(descr, player, exit, MESGPROP_DROP, "(@Drop)")
 					}
@@ -528,11 +528,11 @@ func do_leave(descr int, player ObjectID) {
 	loc := DB.Fetch(player).Location
 	dest := DB.Fetch(loc).Location
 	switch {
-	case loc == NOTHING, Typeof(loc) == TYPE_ROOM:
+	case loc == NOTHING, IsRoom(loc):
 		notify(player, "You can't go that way.")
-	case DB.Fetch(loc).flags & VEHICLE == 0:
+	case !DB.Fetch(loc).IsFlagged(VEHICLE):
 		notify(player, "You can only exit vehicles.")
-	case Typeof(dest) != TYPE_ROOM && Typeof(dest) != TYPE_THING:
+	case !IsRoom(dest) && !IsThing(dest):
 		notify(player, "You can't exit a vehicle inside of a player.")
 	case parent_loop_check(player, dest):
 		notify(player, "You can't go that way.")
@@ -657,14 +657,22 @@ func do_drop(descr int, player ObjectID, name, obj string) {
 			case parent_loop_check(thing, cont):
 				notify(player, "You can't put something inside of itself.")
 			default:
-				if Typeof(cont) == TYPE_ROOM && DB.Fetch(thing).flags & STICKY != 0 && Typeof(thing) == TYPE_THING {
+				if IsRoom(cont) && DB.Fetch(thing).IsFlagged(STICKY) && IsThing(thing) {
 					send_home(descr, thing, 0);
 				} else {
-					immediate_dropto := TYPEOF(cont) == TYPE_ROOM && DB.Fetch(cont).sp != NOTHING && DB.Fetch(cont).flags & STICKY == 0
-					if tp_thing_movement && TYPEOF(thing) == TYPE_THING {
-						enter_room(descr, thing, immediate_dropto ? DB.Fetch(cont).(ObjectID) : cont, player)
+					immediate_dropto := IsRoom(cont) && DB.Fetch(cont).sp != NOTHING && !DB.Fetch(cont).IsFlagged(STICKY)
+					if tp_thing_movement && IsThing(thing) {
+						if immediate_dropto {
+							enter_room(descr, thing, DB.Fetch(cont).(ObjectID), player)
+						} else {
+							enter_room(descr, thing, cont, player)
+						}
 					} else {
-						moveto(thing, immediate_dropto ? DB.Fetch(cont).(ObjectID) : cont)
+						if immediate_dropto {
+							moveto(thing, DB.Fetch(cont).(ObjectID))
+						} else {
+							moveto(thing, cont)
+						}
 					}
 				}
 				switch {
@@ -900,14 +908,14 @@ func recycle(descr int, player, thing ObjectID) {
 				o.Touch()
 			}
 		case Player:
-			if IsProgram(thing) && o.flags & INTERACTIVE != 0 && o.(Player).curr_prog == thing {
-				if o.flags & READMODE != 0 {
+			if IsProgram(thing) && o.IsFlagged(INTERACTIVE) && o.(Player).curr_prog == thing {
+				if o.IsFlagged(READMODE) {
 					notify(rest, "The program you were running has been recycled.  Aborting program.")
 				} else {
 					DB.Fetch(first).(Program).first = nil
 					o.(Player).insert_mode = false
-					DB.Fetch(thing).flags &= ~INTERNAL
-					o.flags &= ~INTERACTIVE
+					DB.Fetch(thing).ClearFlags(INTERNAL)
+					o.ClearFlags(INTERACTIVE)
 					o.(Player).curr_prog = NOTHING
 					notify(rest, "The program you were editing has been recycled.  Exiting Editor.")
 				}
@@ -940,7 +948,7 @@ func recycle(descr int, player, thing ObjectID) {
 	})
 
 	EachObjectInReverse(func(obj ObjectID, o *Object) bool {
-		if IsPlayer(first) || (IsThing(first) && (DB.Fetch(first).flags & (ZOMBIE | VEHICLE) != 0 || tp_thing_movement)) {
+		if IsPlayer(first) || (IsThing(first) && (DB.Fetch(first).IsFlagged(ZOMBIE, VEHICLE) || tp_thing_movement)) {
 			enter_room(descr, first, HOME, DB.Fetch(thing).Location)
 			/* If the room is set to drag players back, there'll be no reasoning with it.  DRAG the player out. */
 			if DB.Fetch(first).Location == thing {

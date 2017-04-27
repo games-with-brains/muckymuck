@@ -259,7 +259,7 @@ struct debuggerdata {
 
   Some fields are now handled in a unique way, since they are always memory
   resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
-  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).flags and DB.Fetch(i).Owner.
+  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).Bitset and DB.Fetch(i).Owner.
 
   The programmer is responsible for managing storage for string
   components of entries; db_read will produce malloc'd strings.  Note that db_free and db_read will

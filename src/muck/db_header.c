@@ -20,43 +20,29 @@ func do_peek(f *FILE) int {
 	return (peekch);
 }
 
-func getref(f *FILE) ObjectID {
-	static char buf[BUFFER_LEN];
-	int peekch;
-
-	/*
-	 * Compiled in with or without timestamps, Sep 1, 1990 by Fuzzy, added to
-	 * Muck by Kinomon.  Thanks Kino!
-	 */
-	if ((peekch = do_peek(f)) == NUMBER_TOKEN || peekch == LOOKUP_TOKEN) {
-		return (0);
+func getref(f *os.File) (r ObjectID) {
+	//	Compiled in with or without timestamps, Sep 1, 1990 by Fuzzy, added to Muck by Kinomon.  Thanks Kino!
+	switch peekch := do_peek(f); peekch {
+	case NUMBER_TOKEN, LOOKUP_TOKEN:
+	default:
+		scanner := bufio.NewScanner(f)
+		scanner.Scan()
+		r = atol(scanner.Text())
 	}
-	fgets(buf, sizeof(buf), f);
-	return (atol(buf));
+	return
 }
 
 static char xyzzybuf[BUFFER_LEN];
-func getstring_noalloc(FILE * f) string {
-	char *p;
-	char c;
-
-	if fgets(xyzzybuf, sizeof(xyzzybuf), f) == nil {
-		xyzzybuf[0] = '\0';
-		return xyzzybuf;
+func getstring_noalloc(f *os.File) string {
+	scanner := bufio.NewScanner(f)
+	if scanner.Scan() {
+		xyzzybuf = scanner.Text()
+		return xyzzybuf
 	}
-
-	if len(xyzzybuf) == BUFFER_LEN - 1 {
-		/* ignore whatever comes after */
-		if (xyzzybuf[BUFFER_LEN - 2] != '\n')
-			while ((c = fgetc(f)) != '\n') ;
+	if i := strings.Index(xyzzybuf, '\n'); i != -1 {
+		xyzzybuf = xyzzybuf[:i]
 	}
-	for (p = xyzzybuf; *p; p++) {
-		if (*p == '\n') {
-			*p = '\0';
-			break;
-		}
-	}
-	return xyzzybuf;
+	return xyzzybuf
 }
 
 func db_read_header(f *FILE, version *string, load_format *int, grow *ObjectID, parmcnt *int) (r int) {

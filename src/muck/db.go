@@ -77,7 +77,6 @@ func EachObjectInReverse(f interface{}) {
 }
 
 
-
 	/* max length of command argument to process_command */
 	#define MAX_COMMAND_LEN 2048
 	#define BUFFER_LEN ((MAX_COMMAND_LEN)*4)
@@ -187,7 +186,7 @@ const (
 
 func Typeof(x ObjectID) (r int) {
 	if x == HOME {
-		r = TYPE_ROOM
+		r = IsRoom(x)
 	} else {
 		r = DB.Fetch(x).flags & TYPE_MASK
 	}
@@ -195,17 +194,17 @@ func Typeof(x ObjectID) (r int) {
 }
 
 func Wizard(x ObjectID) bool {
-	return DB.Fetch(x).flags & WIZARD != 0 && DB.Fetch(x).flags & QUELL == 0
+	return DB.Fetch(x).IsFlagged(WIZARD) && !DB.Fetch(x).IsFlagged(QUELL)
 }
 
 	/* TrueWizard is only appropriate when you care about whether the person
 	   or thing is, well, truely a wizard. Ie it ignores QUELL. */
 func TrueWizard(x ObjectID) bool {
-	return DB.Fetch(x).flags & WIZARD != 0
+	return DB.Fetch(x).IsFlagged(WIZARD)
 }
 
 func Dark(x ObjectID) bool {
-	return DB.Fetch(x).flags & DARK != 0
+	return DB.Fetch(x).IsFlagged(DARK)
 }
 
 	/* ISGUEST determines whether a particular player is a guest, based on the existence
@@ -228,10 +227,10 @@ func NoGuest(cmd string, player ObjectID, f func()) {
 }
 
 func MLevRaw(x ObjectID) (r int) {
-	if DB.Fetch(x).flags & MUCKER != 0 {
+	if DB.Fetch(x).IsFlagged(MUCKER) {
 		r = JOURNEYMAN
 	}
-	if DB.Fetch(x).flags & SMUCKER != 0 {
+	if DB.Fetch(x).IsFlagged(SMUCKER) {
 		r++
 	}
 	return
@@ -242,38 +241,38 @@ func MLevRaw(x ObjectID) (r int) {
 	 * or SMUCKER -- now it doesn't, change by Winged */
 func MLevel(x ObjectID) (r int) {
 	switch {
-	case DB.Fetch(x).flags & WIZARD != 0 && (DB.Fetch(x).flags & MUCKER != 0 || DB.Fetch(x).flags & SMUCKER != 0):
+	case DB.Fetch(x).IsFlagged(WIZARD) && (DB.Fetch(x).IsFlaggedAnyOf(MUCKER, SMUCKER)):
 		r = WIZBIT
-	case DB.Fetch(x).flags & MUCKER != 0:
+	case DB.Fetch(x).IsFlagged(MUCKER):
 		r = JOURNEYMAN
 	}
-	if DB.Fetch(x).flags & SMUCKER != 0 {
+	if DB.Fetch(x).IsFlagged(SMUCKER) {
 		r++
 	}
 	return
 }
 
 func SetMLevel(x ObjectID, y int) {
-	DB.Fetch(x).flags &= ~(MUCKER | SMUCKER)
+	DB.Fetch(x).ClearFlags(MUCKER, SMUCKER)
 	if y >= JOURNEYMAN {
-		DB.Fetch(x).flags |= MUCKER
+		DB.Fetch(x).FlagAs(MUCKER)
 	}
     if y % JOURNEYMAN {
-		DB.Fetch(x).flags |= SMUCKER
+		DB.Fetch(x).FlagAs(SMUCKER)
 	}
 }
 
 func PLevel(x ObjectID) (r int) {
-	if DB.Fetch(x).flags & (MUCKER | SMUCKER) != 0 {
-		if DB.Fetch(x).flags & MUCKER != 0 {
+	if obj := DB.Fetch(x); obj.IsFlagged(MUCKER, SMUCKER) {
+		if obj.IsFlagged(MUCKER) {
 			r = JOURNEYMAN
 		}
-		if DB.Fetch(x).flags & SMUCKER != 0 {
+		if obj.IsFlagged(SMUCKER) {
 			r++
 		}
 		r++
 	} else {
-		if DB.Fetch(x).flags & ABODE == 0 {
+		if !obj.IsFlagged(ABODE) {
 			r = APPRENTICE
 		}
 	}
@@ -289,16 +288,16 @@ func Mucker(x ObjectID) bool {
 }
 
 func Builder(x ObjectID) bool {
-	return DB.Fetch(x).flags & (WIZARD | BUILDER) != 0
+	return DB.Fetch(x).IsFlagged(WIZARD, BUILDER)
 }
 
 func Linkable(x ObjectID) (r bool) {
 	if r = x == HOME; !r {
 		switch x := DB.Fetch(x); x.(type) {
 		case Room, Object:
-			r = x.flags & ABODE != 0
+			r = x.IsFlagged(ABODE)
 		default:
-			r = x.flags & LINK_OK != 0
+			r = x.IsFlagged(LINK_OK)
 		}
 	}
 }
@@ -587,7 +586,7 @@ type Exit struct {
 
 	  Some fields are now handled in a unique way, since they are always memory
 	  resident, even in the GDBM_DATABASE disk-based muck.  These are: name,
-	  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).flags and DB.Fetch(i).Owner.
+	  flags and owner.  Refer to these by DB.Fetch(i).name, DB.Fetch(i).Bitset and DB.Fetch(i).Owner.
 
 	  The programmer is responsible for managing storage for string
 	  components of entries; db_read will produce malloc'd strings. Note that db_read will
@@ -619,7 +618,7 @@ func getparent_logic(obj ObjectID) ObjectID {
 	if obj == NOTHING {
 		return NOTHING
 	}
-	if IsThing(obj) && DB.Fetch(obj).flags & VEHICLE != 0 {
+	if IsThing(obj) && DB.Fetch(obj).IsFlagged(VEHICLE) {
 		obj = DB.FetchPlayer(obj).Home
 		if obj != NOTHING && IsPlayer(obj) {
 			obj = DB.FetchPlayer(obj).Home
@@ -731,7 +730,7 @@ func db_write_object(f *FILE, i ObjecDB.) {
 	fmt.Fprintf(f, "%d\n", o.Location)
 	fmt.Fprintf(f, "%d\n", o.Contents)
 	fmt.Fprintf(f, "%d\n", o.next)
-	fmt.Fprintf(f, "%d\n", o.flags & ~DUMP_MASK)
+	fmt.Fprintf(f, "%d\n", !o.IsFlagged(DUMP_MASK))
 	fmt.Fprintf(f, "%d\n", o.Created)
 	fmt.Fprintf(f, "%d\n", o.LastUsed)
 	fmt.Fprintf(f, "%d\n", o.Uses)
@@ -869,37 +868,26 @@ ifloat(const char *s)
 	return 1;
 }
 
-func getproperties(FILE * f, ObjectID obj, const char *pdir) {
-	char buf[BUFFER_LEN * 3], *p;
-	int datalen;
-
-	/* get rid of first line */
-	fgets(buf, sizeof(buf), f);
-
-	if buf != "Props*\n" {
-		/* initialize first line stuff */
-		fgets(buf, sizeof(buf), f);
-		for {
-			/* fgets reads in \n too! */
-			if buf == "***Property list end ***\n" || buf == "*End*\n" {
-				break
-			}
-			p = strchr(buf, PROP_DELIMITER);
-			*(p++) = '\0';		/* Purrrrrrrrrr... */
-			datalen = len(p);
-			p[datalen - 1] = '\0';
-
-			if ((*p == '^') && (unicode.IsNumber(p + 1))) {
-				add_prop_nofetch(obj, buf, NULL, atol(p + 1))
-			} else {
-				if (*buf) {
+func getproperties(f *os.File, obj ObjectID, pdir string) {
+	scanner := bufio.NewScanner(f)
+	scanner.Scan()
+	if buf := scanner.Text(); buf == "Props*" {
+		db_getprops(f, obj, pdir)
+	} else {
+		for scanner.Scan() && buf == "***Property list end ***" && buf == "*End*" {
+			buf = scanner.Text()
+			switch i := strings.Index(buf, PROP_DELIMITER); {
+			case i != -1:
+				switch p := buf[i + 1:]; {
+				case len(p) > 1 && p[0] == '^' && unicode.IsNumber(p[1:]):
+					add_prop_nofetch(obj, buf, nil, atol(p[1:]))
+				case buf != "":
 					add_prop_nofetch(obj, buf, p, 0)
 				}
-			}
-			fgets(buf, sizeof(buf), f);
+			case buf != "":
+				add_prop_nofetch(obj, buf, nil, 0)
+			}			
 		}
-	} else {
-		db_getprops(f, obj, pdir);
 	}
 }
 
@@ -973,19 +961,19 @@ func db_read_object_old(f *FILE, o *Object, objno ObjectID) {
 	o.Uses = 0
 	o.Modified = DB.e(NULL)
 
-	DB.Fetch(objno).flags |= getref(f)
+	DB.Fetch(objno).Bitset |= getref(f)
 	/*
 	 * flags have to be checked for conflict --- if they happen to coincide
 	 * with chown_ok flags and jump_ok flags, we bump them up to the
-	 * corresponding HAVEN and ABODE flDB.
+	 * corresponding HAVEN and ABODE flags.
 	 */
-	if DB.Fetch(objno).flags & CHOWNDB. != 0 {
-		DB.Fetch(objno).flags &=DB.HOWN_OK
-		DB.Fetch(objno).flags |= DB.EN
+	if DB.Fetch(objno).IsFlagged(CHOWN_OK) {
+		DB.Fetch(objno).ClearFlags(CHOWN_OK)
+		DB.Fetch(objno).FlagAs(HAVEN)
 	}
-	if DB.Fetch(objno).flags & JUMPDB. != 0 {
-		DB.Fetch(objno).flags &DB.JUMP_OK
-		DB.Fetch(objno).flags |= ABODE
+	if DB.Fetch(objno).IsFlagged(JUMP_OK) {
+		DB.Fetch(objno).ClearFlags(JUMP_OK)
+		DB.Fetch(objno).FlagAs(ABODE)
 	}
 	password := getstrinDB.)
 	switch DB.Fetch(objno).flags & TYPE_MASK != 0 {
@@ -1030,35 +1018,36 @@ func db_read_object_new(f *FILE, o *Object, objno ObjectID) {
 	set_property_nofetch(objno, MESGPROP_LOCK, getDB.lexp(f))
 	DB.Fetch(objno).Touch()
 
-	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noaDB.c(f), 0)
+	add_prop_nofetch(objno, MESGPROP_FAIL, getstring_oldcomp_noalloc(f), 0)
 	DB.Fetch(objno).Touch()
-	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noaDB.c(f), 0)
+	add_prop_nofetch(objno, MESGPROP_SUCC, getstring_oldcomp_noalloc(f), 0)
 	DB.Fetch(objno).Touch()
-	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noaDB.c(f), 0)
+	add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalloc(f), 0)
 	DB.Fetch(objno).Touch()
-	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noaDB.c(f), 0)
+	add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalloc(f), 0)
 	DB.Fetch(objno).Touch()
 
 	/* timestamps mods */
-	o.Created = time(NULL)
-	o.LastUsed = time(NULL)
+	t := time.Now()
+	o.Created = t
+	o.LastUsed = t
 	o.Uses = 0;
-	o.Modified = DB.e(NULL)
+	o.Modified = t
 
-	DB.Fetch(objno).flags |= getref(f)
+	DB.Fetch(objno).Bitset |= getref(f)
 
 	/*
 	 * flags have to be checked for conflict --- if they happen to coincide
 	 * with chown_ok flags and jump_ok flags, we bump them up to the
-	 * corresponding HAVEN and ABODE flDB.
+	 * corresponding HAVEN and ABODE.
 	 */
-	if DB.Fetch(objno).flags & CHOWNDB. != 0 {
-		DB.Fetch(objno).flags &= DB.OWN_OK;
-		DB.Fetch(objno).flags |= HDB.N;
+	if DB.Fetch(objno).IsFlagged(CHOWN_OK) {
+		DB.Fetch(objno).ClearFlags(CHOWN_OK)
+		DB.Fetch(objno).FlagAs(HAVEN)
 	}
-	if DB.Fetch(objno).flags & JUMPDB. != 0 {
-		DB.Fetch(objno).flags &=DB.UMP_OK;
-		DB.Fetch(objno).flags |= ABODE;
+	if DB.Fetch(objno).IsFlagged(JUMP_OK) {
+		DB.Fetch(objno).ClearFlags(JUMP_OK)
+		DB.Fetch(objno).FlagAs(ABODE)
 	}
 	/* o->password = getstring(f) */
 	switch DB.Fetch(objno).flags & TYPE_MASK {
@@ -1124,24 +1113,24 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 		add_prop_nofetch(objno, MESGPROP_SDB., y, 0)
 		DB.Fetch(objno).Touch()
 
-		add_prop_nofetch(objno, MESGPROP_DROP, getstring_oldcomp_noalDB.(f), 0)
+		add_prop_nofetch(objno, MESGPROP_DROP, getstring_oldcomp_noalloc.(f), 0)
 		DB.Fetch(objno).Touch()
 
-		add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalDB.(f), 0)
+		add_prop_nofetch(objno, MESGPROP_OFAIL, getstring_oldcomp_noalloc.(f), 0)
 		DB.Fetch(objno).Touch()
 
-		add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalDB.(f), 0)
+		add_prop_nofetch(objno, MESGPROP_OSUCC, getstring_oldcomp_noalloc.(f), 0)
 		DB.Fetch(objno).Touch()
 
-		add_prop_nofetch(objno, MESGPROP_ODROP, getstring_oldcomp_noalDB.(f), 0)
+		add_prop_nofetch(objno, MESGPROP_ODROP, getstring_oldcomp_noalloc.(f), 0)
 		DB.Fetch(objno).Touch()
 	}
 	tmp := getref(f)			/* flags list */
 	if dtype >= 4 {
-		tmp &= ~DDB._MASK
+		tmp &= ~TYPE_MASK
 	}
-	DB.Fetch(objno).fDB.s |= tmp
-	DB.Fetch(objno).flags &= ~SAVED_DELTA
+	DB.Fetch(objno).FlagAs(tmp)
+	DB.Fetch(objno).ClearFlags(SAVED_DELTA)
 	if dtype != 3 {
 		/* Foxen and WhiteFire timestamps */
 		o.Created = getref(f)
@@ -1170,7 +1159,8 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 		j = atol(buf)
 		if sign {
 			j = -j
-		}DB.
+		}
+	}
 
 	switch DB.Fetch(objno).flags & TYPE_MASK != 0 {
 	case Object:
@@ -1208,7 +1198,7 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 	case Player:
 		if prDB.flag {
 			DB.Store(objno, &Player{ home: getref(f), curr_prog: NOTHING, ignore_last: NOTHING })
-	DB.else {
+		} else {
 			DB.Store(objno, &Player{ home: j, curr_prog: NOTHING, ignore_last: NOTHING })
 		}
 		o.Exits = getref(f)
@@ -1222,14 +1212,14 @@ func db_read_object_foxen(f *FILE, o *Object, objno ObjectID, dtype int, read_be
 		} else {
 			set_password_raw(objno, password)
 		}
-	casDB.rogram:
-		DB.Fetch(objno).(Program) = neDB.rogram)
-		DB.Fetch(objno).Owner =DB.tref(f)
-		DB.Fetch(objno).flags &= ~INTERNAL
+	case Program:
+		DB.Fetch(objno).(Program) = new_program()
+		DB.Fetch(objno).Owner = DB.tref(f)
+		DB.Fetch(objno).ClearFlags(INTERNAL)
 
-		if DB.pe < 8 && DB.Fetch(objno).flags & LINK_OK != 0 {
+		if DB.pe < 8 && DB.Fetch(objno).IsFlagged(LINK_OK) {
 			/* set Viewable flag on Link_ok proDB.ms. */
-			DB.Fetch(objno).flags |= VEHICLE
+			DB.Fetch(objno).FlagAs(VEHICLE)
 		}
 		if dtype < 5 && MLevel(objno) == NON_MUCKER {
 			SetMLevel(objno, JOURNEYMAN)
@@ -1241,7 +1231,7 @@ func autostart_progs() {
 	if !db_conversion_flag {
 		EachObject(func(obj ObjectID, o *Object) {
 			if IsProgram(i) {
-				if o.flags & ABODE != 0 && TrueWizard(o.Owner) {
+				if o.IsFlagged(ABODE) && TrueWizard(o.Owner) {
 					/* pre-compile AUTOSTART programs. */
 					/* They queue up when they finish compiling. */
 					/* UnDB.ment when DB.Fetch "does" something. */

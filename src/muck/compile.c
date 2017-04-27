@@ -142,7 +142,7 @@ do_abort_compile(COMPSTATE * cstat, const char *c)
 		free((void *) cstat->line_copy);
 		cstat->line_copy = NULL;
 	}
-	if (DB.Fetch(cstat.player).flags & INTERACTIVE != 0 && DB.Fetch(cstat.player).flags & READMODE == 0) || cstat.force_err_display {
+	if (DB.Fetch(cstat.player).IsFlagged(INTERACTIVE) && !DB.Fetch(cstat.player).IsFlagged(READMODE)) || cstat.force_err_display {
 		notify_nolisten(cstat->player, _buf, true)
 	} else {
 		log_muf("%s(#%d) [%s(#%d)] %s(#%d) %s",
@@ -431,7 +431,7 @@ func free_unused_programs() {
 		if p := o.program; p.sp != nil {
 			instances = p.instances
 		}
-		if IsProgram(obj) && o.flags & (ABODE | INTERNAL) == 0 && (now - o.LastUsed > tp_clean_interval) && instances == 0 {
+		if IsProgram(obj) && !o.IsFlagged(ABODE, INTERNAL) && (now - o.LastUsed > tp_clean_interval) && instances == 0 {
 			uncompile_program(obj)
 		}
 	})
@@ -443,7 +443,7 @@ func free_unused_programs() {
 
 /* Checks code for valid fetch-and-clear optim changes, and does them. */
 func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo int) {
-	if first.flags & INTMEDFLG_INTRY == 0 {
+	if !first.IsFlagged(INTMEDFLG_INTRY) {
 		var farthest int
 		var lvarflag bool
 		switch first.in.(type) {
@@ -452,7 +452,7 @@ func MaybeOptimizeVarsAt(cstat *COMPSTATE, first *INTERMEDIATE, AtNo int, BangNo
 		}
 
 		for curr := first.next; curr != nil; curr = curr.next {
-			if curr.flags & INTMEDFLG_INTRY != 0 {
+			if curr.IsFlagged(INTMEDFLG_INTRY) {
 				break
 			}
 
@@ -738,8 +738,8 @@ func OptimizeIntermediate(cstat *COMPSTATE, force_err_display bool) (r int) {
 						/* Int Int /  ==>  Div  */
 						if IntermediateIsPrimitive(curr.next.next, DivNo) {
 							if y == 0 {
-								if curr.next.next.flags & INTMEDFLG_DIVBYZERO == 0 {
-									curr.next.next.flags |= INTMEDFLG_DIVBYZERO
+								if !curr.next.next.IsFlagged(INTMEDFLG_DIVBYZERO) {
+									curr.next.next.FlagAs(INTMEDFLG_DIVBYZERO)
 									if force_err_display {
 										compiler_warning(cstat, "Warning on line %i: Divide by zero", curr.next.next.in.line)
 									}
@@ -757,8 +757,8 @@ func OptimizeIntermediate(cstat *COMPSTATE, force_err_display bool) (r int) {
 						/* Int Int %  ==>  Div  */
 						if IntermediateIsPrimitive(curr.next.next, ModNo) {
 							if in == 0 {
-								if curr.next.next.flags & INTMEDFLG_MODBYZERO = 0 {
-									curr.next.next.flags |= INTMEDFLG_MODBYZERO
+								if !curr.next.next.IsFlagged(INTMEDFLG_MODBYZERO) {
+									curr.next.next.FlagAs(INTMEDFLG_MODBYZERO)
 									if force_err_display {
 										compiler_warning(cstat, "Warning on line %i: Modulus by zero", curr.next.next.in.line)
 									}
@@ -1041,7 +1041,7 @@ func do_compile(descr int, player, program ObjectID, force_err_display bool) {
 		cleanup(&cstat)
 		p.instances = 0
 		/* restart AUTOSTART program. */
-		if DB.Fetch(cstat.program).flags & ABODE != 0 && TrueWizard(DB.Fetch(cstat.program).Owner) {
+		if DB.Fetch(cstat.program).IsFlagged(ABODE) && TrueWizard(DB.Fetch(cstat.program).Owner) {
 			add_muf_queue_event(-1, DB.Fetch(cstat.program).Owner, NOTHING, NOTHING, cstat.program, "Startup", "Queued Event.", 0)
 		}
 
@@ -2485,7 +2485,7 @@ func prealloc_inst(cstat *COMPSTATE) (r *INTERMEDIATE) {
 	if cstat.nextinst == nil {
 		r = &INTERMEDIATE{ no: cstat.nowords }
 		if cstat.nested_trys > 0 {
-			r.flags = INTMEDFLG_INTRY
+			r.FlagAs(INTMEDFLG_INTRY)
 		}
 		if cstat.nextinst == nil {
 			cstat.nextinst = r
@@ -2504,7 +2504,7 @@ func new_inst(COMPSTATE * cstat) (r *INTERMEDIATE) {
 	cstat.nextinst = r.next
 	r.next = nil
 	if cstat.nested_trys > 0 {
-		r.flags |= INTMEDFLG_INTRY
+		r.FlagAs(INTMEDFLG_INTRY)
 	}
 	return
 }

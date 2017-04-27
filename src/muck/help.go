@@ -54,16 +54,19 @@ func spit_file_segment(player ObjectID, filename, seg string) {
 		fmt.Printf("Sorry, %v is missing.  Management has been notified.", filename)
 		fmt.Fprintln(os.Stderr, "spit_file:", filename)
 	} else {
-		while (fgets(buf, sizeof buf, f)) {
-			for (p = buf; *p; p++) {
-				if (*p == '\n' || *p == '\r') {
-					*p = '\0';
-					break;
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			buf = scanner.Text()
+			for p := buf; p != ""; p = p[1:] {
+				switch p[0] {
+				case '\n', '\r':
+					buf = buf[:len(buf) - len(p)]
+					break
 				}
 			}
-			currline++;
-			if ((!startline || (currline >= startline)) && (!endline || (currline <= endline))) {
-				if (*buf) {
+			currline++
+			if (startline == 0 || currline >= startline) && (endline == 0 || currline <= endline) {
+				if buf != "" {
 					fmt.Print(buf)
 				} else {
 					fmt.Print("  ")
@@ -79,39 +82,28 @@ void spit_file(ObjectID player, const char *filename) {
 }
 
 func index_file(player ObjectID, onwhat, file string) {
-	char buf[BUFFER_LEN];
-	char *p;
-
-	topic := onwhat
-	if onwhat != "" {
-		topic += "|"
-	}
 	if f, e := os.Open(file); e != nil {
 		fmt.Printf("Sorry, %s is missing.  Management has been notified.", file)
 		log.Println("help: No file", file)
 	} else {
+		var buf, p string
+		topic := onwhat
+		if onwhat != "" {
+			topic += "|"
+		}
 		scanner := bufio.NewScanner(f)
 		if topic != "" {
-			arglen := len(topic)
 			for found := false; !found; {
-				do {
-					if (!(fgets(buf, sizeof buf, f))) {
-						fmt.Printf("Sorry, no help available on topic \"%v\"", onwhat)
-						f.Close()
-						return
-					}
-				} while buf[0] != '~'
-				do {
-					if (!(fgets(buf, sizeof buf, f))) {
-						fmt.Printf("Sorry, no help available on topic \"%v\"", onwhat)
-						f.Close()
-						return
-					}
-				} while buf[0] == '~'
-				p = buf
-				buf[len(buf) - 1] = '|'
-				for found = false; p != "" && !found; {
-					if strncasecmp(p, topic, arglen) != 0 {
+				for buf = ""; scanner.Scan() && !strings.HasPrefix(buf, '~'); buf = scanner.Text() {}
+				for ; scanner.Scan() && strings.HasPrefix(buf, '~'); buf = scanner.Text() {}
+				if scanner.Err() != nil {
+					fmt.Printf("Sorry, no help available on topic \"%v\"\n", onwhat)
+					f.Close()
+					return
+				}
+				buf += '|'
+				for p = buf; p != "" && !found; {
+					if strings.EqualFold(p[:len(topic)], topic) != 0 {
 						for ; p != "" && p[0] != '|'; p = p[1:] {}
 						if p != "" {
 							p = p[1:]
@@ -122,14 +114,14 @@ func index_file(player ObjectID, onwhat, file string) {
 				}
 			}
 		}
-		while (fgets(buf, sizeof buf, f)) {
-			if (*buf == '~')
-				break;
-			for (p = buf; *p; p++) {
-				if (*p == '\n' || *p == '\r') {
-					*p = '\0';
-					break;
-				}
+		for scanner.Scan() {
+			buf = scanner.Text()
+			if buf != "" && buf[0] == '~' {
+				break
+			}
+			for p = buf; p != ""; p = p[1:] {
+				buf = buf[:len(buf) - len(p)]
+				break
 			}
 			if buf != "" {
 				fmt.Print(buf)

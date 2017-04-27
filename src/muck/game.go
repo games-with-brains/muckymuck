@@ -200,7 +200,7 @@ func time_for_monolithic() bool {
 
 	var count int
 	EachObject(func(o *Object) {
-		if o.Changed && o.flags & (SAVED_DELTA) != 0 {
+		if o.Changed && o.IsFlagged(SAVED_DELTA) {
 			count++
 		}
 	})
@@ -340,11 +340,11 @@ func process_command(descr int, player ObjectID, command string) {
 	p := DB.Fetch(player)
 	if tp_log_commands || Wizard(p.Owner) {
 		switch {
-		case p.flags & (INTERACTIVE | READMODE) == 0:
+		case !p.IsFlagged(INTERACTIVE, READMODE):
 			if command == "" {
 				return
 			}
-			if Typeof(player) == TYPE_PLAYER {
+			if IsPlayer(player) {
 				if Wizard(p.Owner) {
 					log_command("WIZ: %s(%d) in %s(%d): %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 				} else {
@@ -358,15 +358,15 @@ func process_command(descr int, player ObjectID, command string) {
 				}
 			}
 		case tp_log_interactive:
-			if Typeof(player) == TYPE_PLAYER {
+			if IsPlayer(player) {
 				if Wizard(p.Owner) {
-					if p.flags & READMODE != 0 {
+					if p.IsFlagged(READMODE) {
 						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
 						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				} else {
-					if p.flags & READMODE != 0 {
+					if p.IsFlagged(READMODE) {
 						log_command("%s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
 						log_command("%s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
@@ -374,13 +374,13 @@ func process_command(descr int, player ObjectID, command string) {
 				}
 			} else {
 				if Wizard(p.Owner) {
-					if p.flags & READMODE != 0 {
+					if p.IsFlagged(READMODE) {
 						log_command("WIZ: %s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
 						log_command("WIZ: %s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					}
 				} else {
-					if p.flags & READMODE != 0 {
+					if p.IsFlagged(READMODE) {
 						log_command("%s(%d) in %s(%d): [READ] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
 					} else {
 						log_command("%s(%d) in %s(%d): [INTERP] %s", DB.Fetch(p.Owner).name, player, DB.Fetch(p.Location).name, p.Location, command)
@@ -390,7 +390,7 @@ func process_command(descr int, player ObjectID, command string) {
 		}
 	}
 
-	if DB.Fetch(player).flags & INTERACTIVE {
+	if DB.Fetch(player).IsFlagged(INTERACTIVE) {
 		interactive(descr, player, command)
 		return
 	}

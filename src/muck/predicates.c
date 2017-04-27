@@ -10,7 +10,7 @@ func can_link_to(who ObjectID, what_type int, where ObjectID) (r bool) {
 		switch w := DB.Fetch(where); what_type {
 		case Exit:
 			//	If the target is LINK_OK, then any exit may be linked there.  Otherwise, only someone who controls the target may link there.
-			r = controls(who, where) || w.flags & LINK_OK != 0
+			r = controls(who, where) || w.IsFlagged(LINK_OK)
 		case Player:
 			/* Players may only be linked to rooms, that are either
 			 * controlled by the player or set either L or A. */
@@ -34,9 +34,9 @@ func can_link_to(who ObjectID, what_type int, where ObjectID) (r bool) {
 			/* Why is this here? -winged */
 			switch w.(type) {
 			case Object:
-				r = controls(who, where) || w.flags & LINK_OK != 0
+				r = controls(who, where) || w.IsFlagged(LINK_OK)
 			default:
-				r = controls(who, where) || w.flags & LINK_OK != 0 || w.flags & ABODE != 0
+				r = controls(who, where) || w.IsFlaggedAnyOf(LINK_OK, ABODE)
 			}
 		}
 	}
@@ -73,14 +73,14 @@ func could_doit(int descr, ObjectID player, ObjectID thing) bool {
 		source = DB.Fetch(player).Location
 		dest = *(DB.Fetch(thing).(Exit).Destinations)
 
-		if (TYPEOF(dest) == TYPE_PLAYER) {
+		if IsPlayer(dest) {
 			/* Check for additional restrictions related to player dests */
 			ObjectID destplayer = dest;
 
 			dest = DB.Fetch(dest).Location
 			/* If the dest player isn't JUMP_OK, or if the dest player's loc
 			 * is set BOUND, can't do it. */
-			if DB.Fetch(destplayer).flags & JUMP_OK == 0 || DB.Fetch(dest).flags & BUILDER != 0 {
+			if !DB.Fetch(destplayer).IsFlagged(JUMP_OK) || DB.Fetch(dest).IsFlagged(BUILDER) {
 				return false
 			}
 		}
@@ -92,7 +92,7 @@ func could_doit(int descr, ObjectID player, ObjectID thing) bool {
 			/* If the destination is a room or player, and the current
 			 * location is set BOUND (note: if the player is in a vehicle
 			 * set BUILDER this will also return failure) */
-			if (Typeof(dest) == TYPE_ROOM || Typeof(dest) == TYPE_PLAYER) && DB.Fetch(source).flags & BUILDER != 0 {
+			if (Typeof(dest) == TYPE_ROOM || Typeof(dest) == TYPE_PLAYER) && DB.Fetch(source).IsFlagged(BUILDER) {
 				return false
 			}
 
@@ -103,7 +103,7 @@ func could_doit(int descr, ObjectID player, ObjectID thing) bool {
 				 * can't do it.  (Should this include getlink(owner)?  Not
 				 * everyone knows that 'home' or '#-3' can be linked to and
 				 * be treated specially. -winged) */
-				if dest != HOME && !controls(owner, source) && DB.Fetch(source).flags & JUMP_OK == 0 {
+				if dest != HOME && !controls(owner, source) && !DB.Fetch(source).IsFlagged(JUMP_OK) {
 					return false
 				}
 			/* FIXME: Add support for in-server banishment from rooms and environments here. */
@@ -128,7 +128,7 @@ func test_lock_false_default(descr int, player, thing ObjectID, lockprop string)
 func can_doit(descr int, player, thing ObjectID, default_fail_msg string) (r bool) {
 	switch p := DB.Fetch(player); {
 	case p.Location() == NOTHING:
-	case !Wizard(p.Owner) && IsThing(player) && DB.Fetch(thing).flags & ZOMBIE != 0:
+	case !Wizard(p.Owner) && IsThing(player) && DB.Fetch(thing).IsFlagged(ZOMBIE):
 		notify(player, "Sorry, but zombies can't do that.")
 	case !could_doit(descr, player, thing):
 		if get_property_class(thing, MESGPROP_FAIL) {
@@ -157,14 +157,14 @@ func can_see(ObjectID player, ObjectID thing, int can_see_loc) (r bool) {
 	case can_see_loc:
 		switch Typeof(thing) {
 		case TYPE_PROGRAM:
-			r = DB.Fetch(thing).flags & LINK_OK != 0 || controls(player, thing)
+			r = DB.Fetch(thing).IsFlagged(LINK_OK) || controls(player, thing)
 		case TYPE_PLAYER:
 			r = tp_dark_sleepers && !Dark(thing) && online(thing)
 		default:
-			r = !Dark(thing) || (controls(player, thing) && DB.Fetch(player).flags & STICKY == 0)
+			r = !Dark(thing) || (controls(player, thing) && !DB.Fetch(player).IsFlagged(STICKY))
 		}
 	default:
-		r = controls(player, thing) && DB.Fetch(player).flags & STICKY == 0
+		r = controls(player, thing) && !DB.Fetch(player).IsFlagged(STICKY)
 	}
 	return
 }
@@ -249,7 +249,7 @@ func restricted(player, thing ObjectID, flag int) (r bool) {
 			r = !Wizard(p.Owner)
 		case Object:
 			//	If a player's set Zombie, he's restricted from using them unless he's a wizard, in which case he can do whatever
-			r = DB.Fetch(p.Owner).flags & ZOMBIE != 0 && !Wizard(p.Owner)
+			r = DB.Fetch(p.Owner).IsFlagged(ZOMBIE) && !Wizard(p.Owner)
 		}
 	case VEHICLE:
 		switch DB.Fetch(thing).(type) {
@@ -260,7 +260,7 @@ func restricted(player, thing ObjectID, flag int) (r bool) {
 			switch {
 			case tp_wiz_vehicles:
 				r = !Wizard(p.Owner)
-			case p.flags & VEHICLE != 0:
+			case p.IsFlagged(VEHICLE):
 				r = !Wizard(p.Owner)
 			}
 		}

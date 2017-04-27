@@ -44,15 +44,14 @@ func main() {
 		fmt.Fprintf(outfile, "%d\n", grow)
 	}
 
+	scanner := bufio.NewScanner(infile)
 	/* Put the parms back, and copy the parm lines directly */
 	if dbflags & DB_ID_PARMSINFO != 0 {
 		fmt.Fprintf(outfile, "%d\n", DB_PARMSINFO)
 		fmt.Fprintf(outfile, "%d\n", parmcnt)
-		for i := 0; i < parmcnt; i++ {
-			if fgets(buf, sizeof(buf), infile) {
-				buf[sizeof(buf) - 1] = '\0'
-				fmt.Fprint(outfile, buf)
-			}
+		for i := parmcnt; i > 0 && scanner.Scan(); i-- {
+			scanner.Scan()
+			fmt.Fprint(outfile, scanner.Text())
 		}
 	}
 
@@ -65,15 +64,14 @@ func main() {
 	/* This looks like a security hole of buffer overruns
 	   but the buffer size is 4x as big as the one from the
 	   main driver itself. */
-	for fgets(buf, sizeof(buf), infile) {
-		buf[sizeof(buf) - 1] = '\0'
+	for scanner.Scan() {
 		switch {
 		case dbflags & DB_ID_CATCOMPRESS != 0:
-			fmt.Fprint(outfile, uncompress(buf))
+			fmt.Fprint(outfile, uncompress(scanner.Text()))
 		case dbflags & DB_ID_OLDCOMPRESS != 0:
-			fmf.Fprint(outfile, old_uncompress(buf))
+			fmf.Fprint(outfile, old_uncompress(scanner.Text()))
 		default:
-			fmt.Fprint(outfile, buf)
+			fmt.Fprint(outfile, scanner.Text())
 		}
 	}
 }

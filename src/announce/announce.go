@@ -25,9 +25,9 @@ const (
 var l log.Logger
 
 func main() {
-	var m []byte
+	var m string
 	for s := bufio.NewScanner(os.Stdin); s.Scan(); {
-		m = append(m, s.Text(), "\r\n")
+		m += s.Text() + "\r\n"
 	}
 
 	l = log.New(os.Stderr, "", 1)
@@ -35,7 +35,7 @@ func main() {
 	Listen(PROTOCOL, PORT, func(c net.Conn) {
 		defer c.Close()
 		l.Println("CONNECTION made from ", host)
-		Fprintln(c, m)
+		fmt.Fprintln(c, m)
 	})
 }
 

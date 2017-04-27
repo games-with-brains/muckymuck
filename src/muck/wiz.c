@@ -87,7 +87,7 @@ func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
 				notify(player, "Permission denied. (must control victim, dest, victim's loc, and dest's loc)")
 			case !IsRoom(destination) && !IsThing(destination):
 				notify(player, "Bad destination.")
-			case !Wizard(victim) && IsThing(destination) && DB.Fetch(destination).flags & VEHICLE == 0:
+			case !Wizard(victim) && IsThing(destination) && !DB.Fetch(destination).IsFlagged(VEHICLE):
 				notify(player, "Destination object is not a vehicle.")
 			case parent_loop_check(victim, destination):
 				notify(player, "Objects can't contain themselves.")
@@ -110,7 +110,7 @@ func do_teleport(descr int, player ObjectID, arg1, arg2 string) {
 				notify(player, "Permission denied. (must control dest and be able to link to it, or control dest's loc)")
 			default:
 				/* check for non-sticky dropto */
-				if IsRoom(destination) && DB.Fetch(destination).sp != NOTHING && DB.Fetch(destination).flags & STICKY == 0 {
+				if IsRoom(destination) && DB.Fetch(destination).sp != NOTHING && !DB.Fetch(destination).IsFlagged(STICKY) {
 					destination = DB.Fetch(destination).(ObjectID)
 				}
 				if tp_thing_movement && IsThing(victim) {
@@ -272,15 +272,15 @@ func do_force(descr int, player ObjectID, what, command string) {
 		notify(player, "Permission Denied -- Target not a player or thing.")
 	case victim == GOD:
 		notify(player, "You cannot force God to do anything.")
-	case !Wizard(player) && v.flags & XFORCIBLE == 0:
+	case !Wizard(player) && !v.IsFlagged(XFORCIBLE):
 		notify(player, "Permission denied: forced object not @set Xforcible.")
 	case !Wizard(player) && !test_lock_false_default(descr, player, victim, "@/flk"):
 		notify(player, "Permission denied: Object not force-locked to you.")
-	case !Wizard(player) && IsThing(victim) && v.Location != NOTHING && DB.Fetch(v.Location).flags & ZOMBIE != 0 && IsRoom(v.Location):
+	case !Wizard(player) && IsThing(victim) && v.Location != NOTHING && DB.Fetch(v.Location).IsFlagged(ZOMBIE) && IsRoom(v.Location):
 		notify(player, "Sorry, but that's in a no-puppet zone.")
-	case !Wizard(p.Owner) && IsThing(victim) && p.flags & ZOMBIE != 0:
+	case !Wizard(p.Owner) && IsThing(victim) && p.ISFlagAs(ZOMBIE):
 		notify(player, "Permission denied -- you cannot use zombies.")
-	case !Wizard(p.Owner) && IsThing(victim) && p.flags & DARK != 0:
+	case !Wizard(p.Owner) && IsThing(victim) && p.IsFlagged(DARK):
 		notify(player, "Permission denied -- you cannot force dark zombies.")
 	case !Wizard(p.Owner) && IsThing(victim) && terms > 0 && lookup_player(terms[0]) != NOTHING:
 		notify(player, "Puppet cannot share the name of a player.")
@@ -453,7 +453,7 @@ func do_toad(descr int, player ObjectID, name, recip string) {
 						case Program:
 							dequeue_prog(obj, 0)				//	dequeue player's progs
 							if TrueWizard(recipient) {
-								o.flags &= ~(ABODE | WIZARD)
+								o.ClearFlags(ABODE, WIZARD)
 								SetMLevel(obj, APPRENTICE)
 							}
 						case Room, Object, Exit:

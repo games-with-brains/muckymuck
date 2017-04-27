@@ -39,13 +39,13 @@ func do_kill(descr int, player ObjectID, what string, cost int) {
 		notify(player, "I don't see that player here.")
 	case victim == AMBIGUOUS:
 		notify(player, "I don't know who you mean!")
-	case Typeof(victim) != TYPE_PLAYER:
+	case !IsPlayer(victim):
 		notify(player, "Sorry, you can only kill other players.")
-	case DB.Fetch(DB.Fetch(player).Location).flags & HAVEN != 0:
+	case DB.Fetch(DB.Fetch(player).Location).IsFlagged(HAVEN):
 		notify(player, "You can't kill anyone here!")
-	case tp_restrict_kill && DB.Fetch(player).flags & KILL_OK == 0:
+	case tp_restrict_kill && !DB.Fetch(player).IsFlagged(KILL_OK):
 		notify(player, "You have to be set Kill_OK to kill someone.")
-	case tp_restrict_kill && DB.Fetch(victim).flags & KILL_OK == 0:
+	case tp_restrict_kill && !DB.Fetch(victim).IsFlagged(KILL_OK):
 		notify(player, "They don't want to be killed.")
 	case !payfor(player, cost):
 		notify_fmt(player, "You don't have enough %s.", tp_pennies)

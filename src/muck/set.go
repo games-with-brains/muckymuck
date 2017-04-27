@@ -595,7 +595,7 @@ func do_chown(descr int, player ObjectID, name, newowner string) {
 			}
 			if !Wizard(DB.Fetch(player).Owner) {
 				if !IsExit(thing) || (len(DB.Fetch(thing).(Exit).Destinations) != 0 && !controls_link(player, thing)) {
-					if DB.Fetch(thing).flags & CHOWN_OK == 0 || IsProgram(thing) || !test_lock(descr, player, thing, "_/chlk") {
+					if DB.Fetch(thing).IsFlagged(CHOWN_OK) || IsProgram(thing) || !test_lock(descr, player, thing, "_/chlk") {
 						notify(player, "You can't take possession of that.")
 						return
 					}
@@ -863,7 +863,7 @@ func do_set(descr int, player ObjectID, name, flag string) {
 			notify(player, "You cannot make yourself mortal.")
 		case *flag == NOT_TOKEN:
 			p := DB.Fetch(thing)
-			p.flags &= ~f
+			p.ClearFlags(f)
 			p.Touch()
 			notify(player, "Flag reset.")
 		default:
@@ -941,7 +941,7 @@ func do_propset(descr int, player ObjectID, name, prop string) {
 
 func set_flags_from_tunestr(obj ObjectID, tunestr string) {
 	o := DB.Fetch(obj)
-	for f := o.flags; len(tunestr) > 0; tunestr = tunestr[1:] {
+	for f := o.Bitset; len(tunestr) > 0; tunestr = tunestr[1:] {
 		switch pcc := strings.ToUpper(tunestr[0]); pcc {
 		case '\n', '\r':
 			break
@@ -954,39 +954,39 @@ func set_flags_from_tunestr(obj ObjectID, tunestr string) {
 		case '3':
 			SetMLevel(obj, MASTER)
 		case 'A':
-			f |= ABODE
+			f.FlagAs(ABODE)
 		case 'B':
-			f |= BUILDER
+			f.FlagAs(BUILDER)
 		case 'C':
-			f |= CHOWN_OK
+			f.FlagAs(CHOWN_OK)
 		case 'D':
-			f |= DARK
+			f.FlagAs(DARK)
 		case 'H':
-			f |= HAVEN
+			f.FlagAs(HAVEN)
 		case 'J':
-			f |= JUMP_OK
+			f.FlagAs(JUMP_OK)
 		case 'K':
-			f |= KILL_OK
+			f.FlagAs(KILL_OK)
 		case 'L':
-			f |= LINK_OK
+			f.FlagAs(LINK_OK)
 		case 'M':
 			SetMLevel(obj, JOURNEYMAN)
 		case 'Q':
-			f |= QUELL
+			f.FlagAs(QUELL)
 		case 'S':
-			f |= STICKY
+			f.FlagAs(STICKY)
 		case 'V':
-			f |= VEHICLE
+			f.FlagAs(VEHICLE)
 		case 'W':
-			/* f |= WIZARD;     This is very bad to auto-set. */
+			/* f.FlagAs(WIZARD)     This is very bad to auto-set. */
 		case 'X':
-			f |= XFORCIBLE;
+			f.FlagAs(XFORCIBLE)
 		case 'Y':
-			f |= YIELD
+			f.FlagAs(YIELD)
 		case 'O':
-			f |= OVERT
+			f.FlagAs(OVERT)
 		case 'Z':
-			f |= ZOMBIE
+			f.FlagAs(ZOMBIE)
 		}
 	}
 	o.Touch()

@@ -15,7 +15,7 @@ func get_program_line(program ObjectID, i int) (r *line) {
 }
 
 func interactive(descr int, player ObjectID, command string) {
-	if DB.Fetch(player).flags & READMODE != 0 {
+	if DB.Fetch(player).IsFlagged(READMODE) {
 		/*
 		 * process command, push onto stack, and return control to forth
 		 * program
@@ -164,8 +164,8 @@ func do_quit(player, program ObjectID) {
 	}
 
 	DB.Fetch(program).(Program).first = nil
-	DB.Fetch(program).flags &= ~INTERNAL
-	DB.Fetch(player).flags &= ~INTERACTIVE
+	DB.Fetch(program).CleadFlags(INTERNAL)
+	DB.Fetch(player).ClearFlags(INTERACTIVE)
 	DB.FetchPlayer(player).curr_prog = NOTHING
 	DB.Fetch(player).Touch()
 	DB.Fetch(program).Touch()
@@ -180,9 +180,9 @@ func MatchAndList(descr int, player ObjectID, name, linespec string) {
 		NoisyMatchResult()
 	switch {
 	case thing == NOTHING:
-	case Typeof(thing) != TYPE_PROGRAM:
+	case IsProgram(thing):
 		notify(player, "You can't list anything but a program.")
-	case !controls(player, thing) && DB.Fetch(thing).flags & VEHICLE == 0:
+	case !controls(player, thing) && !DB.Fetch(thing).IsFlagged(VEHICLE):
 		notify(player, "Permission denied. (You don't control the program, and it's not set Viewable)")
 	default:
 		var ranges []int
@@ -211,7 +211,7 @@ func MatchAndList(descr int, player ObjectID, name, linespec string) {
 }
 
 func print_program_line(player ObjectID, n int, curr *line) {
-	if DB.Fetch(player).flags & INTERNAL == 1 {
+	if DB.Fetch(player).IsFlagged(INTERNAL) {
 		notify_nolisten(player, fmt.Sprintf("%3d: %s", n, curr.this_line), true)
 	} else {
 		notify_nolisten(player, fmt.Sprint(curr.this_line), true)
@@ -323,17 +323,17 @@ func toggle_numbers(player ObjectID, args []int) {
 	switch {
 	case len(args):
 		if args[0] == 0 {
-			DB.Fetch(player).flags &= ~INTERNAL
+			DB.Fetch(player).ClearFlags(INTERNAL)
 			notify(player, "Line numbers off.")
 		} else {
-			DB.Fetch(player).flags |= INTERNAL
+			DB.Fetch(player).FlagAs(INTERNAL)
 			notify(player, "Line numbers on.")
 		}
-	case DB.Fetch(player).flags & INTERNAL != 0:
-		DB.Fetch(player).flags &= ~INTERNAL
+	case DB.Fetch(player).IsFlagged(INTERNAL):
+		DB.Fetch(player).ClearFlags(INTERNAL)
 		notify(player, "Line numbers off.")
 	default:
-		DB.Fetch(player).flags |= INTERNAL
+		DB.Fetch(player).FlagAs(INTERNAL)
 		notify(player, "Line numbers on.")
 	}
 }

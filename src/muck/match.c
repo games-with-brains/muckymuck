@@ -244,7 +244,7 @@ func (m *Match) MatchExits(first ObjectID) *Match {
 				exit := DB.Fetch(exitid)
 				var exitprog bool
 				switch {
-				case exit.flags & HAVEN != 0:
+				case exit.IsFlagged(HAVEN):
 					exitprog = true
 				case exit.(Exit).Destinations != nil:
 					for _, v := range exit.(Exit).Destinations {
@@ -254,7 +254,7 @@ func (m *Match) MatchExits(first ObjectID) *Match {
 						}
 					}
 				}
-				partial := tp_enable_prefix && exitprog && md.partial_exits && (exit.flags & XFORCIBLE) && DB.Fetch(exit.Owner).flags & WIZARD != 0
+				partial := tp_enable_prefix && exitprog && md.partial_exits && exit.IsFlagged(XFORCIBLE) && DB.Fetch(exit.Owner).IsFlagged(WIZARD)
 				for exitname := strings.TrimSpace(exit.name); exitname != ""; exitname = strings.TrimSpace(exitname) {
 					var notnull bool
 					var p string
@@ -428,7 +428,7 @@ func (m *Match) MatchAllExits() *Match {
         for loc = DB.Fetch(loc).Location; loc != NOTHING; loc = DB.Fetch(loc).Location {
 			/* If we're blocking (because of a yield), only match a room if
 			   and only if it has overt set on it. */
-			if (blocking && DB.Fetch(loc).flags & OVERT != 0) || !blocking {
+			if (blocking && DB.Fetch(loc).IsFlagged(OVERT)) || !blocking {
 				if m.exact != NOTHING {
 					m.block_equals = true
 				}
@@ -438,7 +438,7 @@ func (m *Match) MatchAllExits() *Match {
 				break
 			}
 			/* Does this room have env-chain exit blocking enabled? */
-			if !blocking && tp_enable_match_yield && DB.Fetch(loc).flags & YIELD != 0 {
+			if !blocking && tp_enable_match_yield && DB.Fetch(loc).IsFlagged(YIELD) {
 				blocking = true
 			}
         }

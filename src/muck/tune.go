@@ -589,7 +589,6 @@ func (t TuningTable) Load(name string, player ObjectID) {
 }
 
 func (t TuningTable) Tune(player ObjectID, name string, val interface{}, has_delimiter bool) {
-func do_tune(player ObjectID, name, val string, full_command_has_delimiter int) {
 	if Wizard(player) {
 		var security int
 		if player == GOD {

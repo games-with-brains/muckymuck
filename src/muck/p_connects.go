@@ -3,9 +3,9 @@ package fbmuck
 func prim_awakep(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
 		switch ref := op[0].(ObjectID).ValidObject(); {
-		case Typeof(ref) == TYPE_THING && DB.Fetch(ref).flags & ZOMBIE != 0:
+		case IsThing(ref) && DB.Fetch(ref).IsFlagged(ZOMBIE):
 			ref = DB.Fetch(ref).Owner
-		case Typeof(ref) != TYPE_PLAYER:
+		case !IsPlayer(ref):
 			panic("invalid argument.")
 		}
 		push(arg, top, online(ref))

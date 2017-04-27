@@ -73,7 +73,7 @@ func do_page(player ObjectID, arg1, arg2 string) {
 		notify_fmt(player, "You don't have enough %s.", tp_pennies)
 	case target == NOTHING:
 		notify(player, "I don't recognize that name.")
-	case DB.Fetch(target).flags & HAVEN != 0:
+	case DB.Fetch(target).IsFlagged(HAVEN):
 		notify(player, "That player does not wish to be disturbed.")
 	default:
 		var buf string
@@ -103,7 +103,7 @@ func notify_listeners(who, xprog, obj, room ObjectID, msg string, isprivate bool
 			notify_filtered(who, obj, msg, isprivate)
 		case Object:
 			if tp_zombies && !isprivate {
-				if o.flags & VEHICLE != 0 && df.Fetch(who).Location == o.Location() {
+				if o.IsFlagged(VEHICLE) != 0 && df.Fetch(who).Location == o.Location() {
 					prefix := do_parse_prop(-1, who, obj, MESGPROP_OECHO, "(@Oecho)", MPI_ISPRIVATE)
 					if prefix = "" {
 						prefix = "Outside>"
@@ -150,13 +150,13 @@ notify_except(ObjectID first, ObjectID exception, const char *msg, ObjectID who)
 }
 
 func parse_oprop(descr int, player, dest, exit ObjectID, propname, prefix, whatcalled string) {
-	msg := get_property_class(exit, propname)
-	int ival = 0;
-	if (Prop_Blessed(exit, propname))
-		ival |= MPI_ISBLESSED;
-
-	if (msg)
-		parse_omessage(descr, player, dest, exit, msg, prefix, whatcalled, ival);
+	if msg := get_property_class(exit, propname); msg != "" {
+		var ival int
+		if Prop_Blessed(exit, propname) {
+			ival |= MPI_ISBLESSED
+		}
+		parse_omessage(descr, player, dest, exit, msg, prefix, whatcalled, ival)
+	}
 }
 
 func parse_omessage(descr int, player, dest, exit ObjectID, msg, prefix, whatcalled string, mpiflags int) {

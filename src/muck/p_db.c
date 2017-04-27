@@ -66,22 +66,22 @@ func prim_moveto(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 		switch {
 		case fr.level > 8:
 			panic("Interp call loops not allowed.")
-		case TYPEOF(dest) == TYPE_EXIT:
+		case IsExit(dest):
 			panic("Destination argument is an exit.")
-		case DB.Fetch(victim).flags & JUMP_OK == 0 && !permissions(ProgUID, victim) && mlev < MASTER:
+		case !DB.Fetch(victim).IsFlagged(JUMP_OK) && !permissions(ProgUID, victim) && mlev < MASTER:
 			panic("Object can't be moved.")
 		}
 		switch TYPEOF(victim) {
 		case TYPE_PLAYER:
 			switch {
-			case TYPEOF(dest) != TYPE_ROOM && !(Typeof(dest) == TYPE_THING && DB.Fetch(dest).flags & VEHICLE != 0):
+			case !IsRoom(dest) && !(IsThing(dest) && DB.Fetch(dest).IsFlagged(VEHICLE)):
 				panic("Bad destination.")
 			case parent_loop_check(victim, dest):
 				panic("Things can't contain themselves.")
 			case mlev > JOURNEYMAN:
-			case DB.Fetch(DB.Fetch(victim).Location).flags & JUMP_OK == 0 && !permissions(ProgUID, DB.Fetch(victim).Location):
+			case !DB.Fetch(DB.Fetch(victim).Location).IsFlagged(JUMP_OK) && !permissions(ProgUID, DB.Fetch(victim).Location):
 				panic("Source not JUMP_OK.")
-			case !is_home(oper1) && DB.Fetch(dest).flags & JUMP_OK == 0 && !permissions(ProgUID, dest):
+			case !is_home(oper1) && !DB.Fetch(dest).IsFlagged(JUMP_OK) && !permissions(ProgUID, dest):
 				panic("Destination not JUMP_OK.")
 			case TYPEOF(dest) == TYPE_THING && DB.Fetch(victim).Location != DB.Fetch(dest).Location:
 				panic("Not in same location as vehicle.")
@@ -91,10 +91,10 @@ func prim_moveto(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 			switch {
 			case parent_loop_check(victim, dest):
 				panic("A thing cannot contain itself.")
-			case mlev > JOURNEYMAN, Typeof(dest) == TYPE_THING:
-			case DB.Fetch(victim).flags & VEHICLE != 0 && DB.Fetch(dest).flags & VEHICLE != 0:
+			case mlev > JOURNEYMAN, IsThing(dest):
+			case DB.Fetch(victim).IsFlagged(VEHICLE) && DB.Fetch(dest).IsFlagged(VEHICLE):
 				panic("Destination doesn't accept vehicles.")
-			case DB.Fetch(victim).flags & ZOMBIE != 0 && DB.Fetch(dest).flags & ZOMBIE != 0:
+			case DB.Fetch(victim).IsFlagged(ZOMBIE) && DB.Fetch(dest).IsFlagged(ZOMBIE):
 				panic("Destination doesn't accept zombies.")
 			}
 			ts_lastuseobject(victim)
@@ -110,10 +110,10 @@ func prim_moveto(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 				if permissions(ProgUID, DB.Fetch(victim).Location) {
 					matchroom = DB.Fetch(victim).Location
 				}
-				if matchroom != NOTHING && DB.Fetch(matchroom).flags & JUMP_OK == 0 && !permissions(ProgUID, victim) {
+				if matchroom != NOTHING && !DB.Fetch(matchroom).IsFlagged(JUMP_OK) && !permissions(ProgUID, victim) {
 					panic("Permission denied.")
 				}
-			case TYPEOF(victim) == TYPE_THING && (tp_thing_movement || DB.Fetch(victim).flags & ZOMBIE != 0):
+			case IsThing(victim) && (tp_thing_movement || DB.Fetch(victim).IsFlagged(ZOMBIE)):
 				enter_room(fr.descr, victim, dest, program)
 			default:
 				moveto(victim, dest)
@@ -184,7 +184,7 @@ func prim_contents(player, program ObjectID, mlev int, pc, arg *inst, top *int, 
 	apply_primitive(1, top, func(op Array) {
 		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		ref := DB.Fetch(obj).Contents
-		for mlev < JOURNEYMAN && ref != NOTHING && DB.Fetch(ref).flags & DARK != 0 && !controls(ProgUID, ref) {
+		for mlev < JOURNEYMAN && ref != NOTHING && DB.Fetch(ref).IsFlagged(DARK) && !controls(ProgUID, ref) {
 			ref = DB.Fetch(ref).next
 		}
 		push(arg, top, ref)
@@ -211,7 +211,7 @@ func prim_next(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *
 	apply_primitive(1, top, func(op Array) {
 		obj := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		ref := DB.Fetch(obj).next
-		for mlev < JOURNEYMAN && ref != NOTHING && Typeof(ref) != TYPE_EXIT && (DB.Fetch(ref).flags & DARK != 0 || Typeof(ref) == TYPE_ROOM) && !controls(ProgUID, ref) {
+		for mlev < JOURNEYMAN && ref != NOTHING && !IsExit(ref) && (DB.Fetch(ref).IsFlagged(DARK) || IsRoom(ref)) && !controls(ProgUID, ref) {
 			ref = DB.Fetch(ref).next
 		}
 		push(arg, top, ref)
@@ -434,17 +434,29 @@ func prim_set(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *f
 			if !permissions(ProgUID, ref) {
 				panic("Permission denied.")
 			}
-			if ((((tmp == DARK && (Typeof(ref) == TYPE_PLAYER || (!tp_exit_darking && Typeof(ref) == TYPE_EXIT) || (!tp_thing_darking && Typeof(ref) == TYPE_THING)))
-								|| (tmp == ZOMBIE && Typeof(ref) == TYPE_THING && DB.Fetch(ProgUID).flags & ZOMBIE != 0) || (tmp == ZOMBIE && Typeof(ref) == TYPE_PLAYER)
-								|| tmp == BUILDER || tmp == YIELD || tmp == OVERT)) || tmp == WIZARD || tmp == QUELL || tmp == INTERACTIVE
-								|| (tmp == ABODE && Typeof(ref) == TYPE_PROGRAM) || tmp == MUCKER || tmp == SMUCKER || tmp == XFORCIBLE) {
-				panic("Permission denied.")
+			switch tmp {
+			case DARK:
+				switch {
+				case IsPlayer(ref), !tp_exit_darking && IsExit(ref), !tp_thing_darking && IsThing(ref):
+					panic("Permission denied")
+				}
+			case ZOMBIE:
+				switch {
+				case IsPlayer(ref), IsThing(ref) && DB.Fetch(ProgUID).IsFlagged(ZOMBIE):
+					panic("Permission denied")
+				}
+			case ABODE:
+				if IsProgram(ref) {
+					panic("Permission denied")
+				}
+			case BUILDER, YIELD, OVERT, WIZARD, QUELL, INTERACTIVE, MUCKER, SMUCKER, XFORCIBLE:
+				panic("Permission denied")
 			}
 		}
-		if (tmp == YIELD || tmp == OVERT) && (Typeof(ref) != TYPE_THING && Typeof(ref) != TYPE_ROOM) {
+		if (tmp == YIELD || tmp == OVERT) && (!IsThing(ref) && !IsRoom(ref)) {
 			panic("Permission denied.")
 		}
-		if result && Typeof(ref) == TYPE_THING && tmp == VEHICLE {
+		if result && IsThing(ref) && tmp == VEHICLE {
 			for obj := DB.Fetch(ref).Contents; obj != NOTHING; obj = DB.Fetch(obj).next {
 				if TYPEOF(obj) == TYPE_PLAYER {
 					panic("That vehicle still has players in it!")
@@ -452,10 +464,10 @@ func prim_set(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *f
 			}
 		}
 		if !result {
-			DB.Fetch(ref).flags |= tmp
+			DB.Fetch(ref).FlagAs(tmp)
 			DB.Fetch(ref).Touch()
 		} else {
-			DB.Fetch(ref).flags &= ~tmp
+			DB.Fetch(ref).ClearFlags(tmp)
 			DB.Fetch(ref).Touch()
 		}
 	})
@@ -527,13 +539,13 @@ func prim_flagp(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr 
 			if !truwiz && tmp == WIZARD {
 				push(arg, top, MUFBool(!Wizard(ref)))
 			} else {
-				push(arg, top, MUFBool(tmp != 0 && DB.Fetch(ref).flags & tmp == 0))
+				push(arg, top, MUFBool(tmp != 0 && !DB.Fetch(ref).IsFlagged(tmp)))
 			}
 		} else {
 			if !truwiz && tmp == WIZARD {
 				push(arg, top, MUFBool(Wizard(ref)))
 			} else {
-				push(arg, top, MUFBool(tmp != 0 && DB.Fetch(ref).flags & tmp != 0))
+				push(arg, top, MUFBool(tmp != 0 && DB.Fetch(ref).IsFlagged(tmp)))
 			}
 		}
 	})
@@ -666,7 +678,7 @@ func prog_can_link_to(mlev int, who, source, where ObjectID) (r bool) {
 	default:
 		switch DB.Fetch(source).(type) {
 		case Exit:
-			r = mlev > MASTER || permissions(who, where) || DB.Fetch(where).flags & LINK_OK != 0
+			r = mlev > MASTER || permissions(who, where) || DB.Fetch(where).IsFlagged(LINK_OK)
 		case Player:
 			if _, ok := DB.Fetch(where).(type) {
 				r = mlev > MASTER || permissions(who, where) || Linkable(where)
@@ -683,7 +695,7 @@ func prog_can_link_to(mlev int, who, source, where ObjectID) (r bool) {
 			}
 		default:
 			p := DB.Fetch(where)
-			r = mlev > MASTER || permissions(who, where) || (p.flags & LINK_OK != 0) || (!IsThing(where) && p.flags & ABODE != 0)
+			r = mlev > MASTER || permissions(who, where) || p.IsFlagged(LINK_OK) || (!IsThing(where) && p.IsFlagged(ABODE))
 		}
 	}
 	return
@@ -770,7 +782,7 @@ func prim_setown(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 		case mlev > MASTER:
 		case who != player:
 			panic("Permission denied. (2)")
-		case DB.Fetch(obj).flags & CHOWN_OK == 0, !test_lock(fr.descr, player, obj, "_/chlk"):
+		case !DB.Fetch(obj).IsFlagged(CHOWN_OK), !test_lock(fr.descr, player, obj, "_/chlk"):
 			panic("Permission denied. (1)")
 		case Typeof(obj) == TYPE_ROOM && DB.Fetch(player).Location != obj:
 			panic("Permission denied: not in room. (1)")
@@ -842,7 +854,11 @@ func prim_newroom(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 		DB.Fetch(ref).GiveTo(DB.Fetch(ProgUID).Owner)
 		DB.Fetch(ref).Exits = NOTHING
 		DB.Fetch(ref).sp = NOTHING
-		DB.Fetch(ref).flags = TYPE_ROOM | (DB.Fetch(player).flags & JUMP_OK)
+		if DB.Fetch(player).IsFlagged(JUMP_OK) {
+			DB.Fetch(ref).FlagAs(TYPE_ROOM, JUMP_OK)
+		} else {
+			DB.Fetch(ref).FlagAs(TYPE_ROOM)
+		}
 		CHECKOFLOW(3)
 		DB.Fetch(ref).next = loc.Contents
 		DB.Fetch(ref).Touch()
@@ -858,7 +874,7 @@ func prim_newexit(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 		loc := op[0].(ObjectID).ValidRemoteObject(player, mlev)
 		name := op[1].(string)
 		switch {
-		case Typeof(loc) == TYPE_ROOM, Typeof(loc) == TYPE_THING:
+		case IsRoom(loc), IsThing(loc):
 		default:
 			panic("Invalid argument (1)")
 		}
@@ -872,7 +888,7 @@ func prim_newexit(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 		DB.Fetch(ref).NowCalled(name)
 		DB.Fetch(ref).MoveTo(loc)
 		DB.Fetch(ref).GiveTo(DB.Fetch(ProgUID).Owner)
-		DB.Fetch(ref).flags = TYPE_EXIT
+		DB.Fetch(ref).IsFlagged(TYPE_EXIT)
 		DB.Fetch(ref).(Exit).Destinations = nil
 
 		/* link it in */
@@ -1085,7 +1101,7 @@ func prim_copyplayer(player, program ObjectID, mlev int, pc, arg *inst, top *int
 		r := DB.FetchPlayer(ref)
 		newplayer := create_player(name, password)
 		p := DB.FetchPlayer(newplayer)
-		p.flags ||= r.flags
+		p.Bitset |= r.Bitset
 		p.properties = copy_prop(ref)
 		p.next = NOTHING
 		p.LiveAt(r.Home)
@@ -1109,7 +1125,7 @@ func prim_toadplayer(player, program ObjectID, mlev int, pc, arg *inst, top *int
 			panic("That player is precious.")
 		case victim == GOD:
 			panic("God may not be toaded. (2)")
-		case DB.Fetch(victim).flags & WIZARD != 0:
+		case DB.Fetch(victim).IsFlagged(WIZARD):
 			panic("You can't toad a wizard.")
 		default:
 			send_contents(fr.descr, victim, HOME)
@@ -1118,7 +1134,7 @@ func prim_toadplayer(player, program ObjectID, mlev int, pc, arg *inst, top *int
 					switch o.(type) {
 					case Program:
 						dequeue_prog(obj, 0)  /* dequeue player's progs */
-						o.flags &= ~(ABODE | WIZARD)
+						o.ClearFlags(ABODE, WIZARD)
 						SetMLevel(obj, NON_MUCKER)
 						o.GiveTo(recipient)
 						o.Touch()
@@ -1400,7 +1416,7 @@ func prim_program_getlines(player, program ObjectID, mlev int, pc, arg *inst, to
 		switch {
 		case Typeof(ref) != TYPE_PROGRAM:
 			panic("Non-program object. (1)")
-		case mlev < WIZBIT && !controls(ProgUID, ref) && DB.Fetch(ref).flags & VEHICLE == 0:
+		case mlev < WIZBIT && !controls(ProgUID, ref) && !DB.Fetch(ref).IsFlagged(VEHICLE):
 			panic("Permission denied.")
 		case start < 0, end < 0:
 			panic("Line indexes must be non-negative.")
@@ -1463,7 +1479,7 @@ func prim_program_setlines(player, program ObjectID, mlev int, pc, arg *inst, to
 			panic("Argument not an array of strings. (2)")
 		case !controls(ProgUID, obj) {
 			panic("Permission denied.")
-		case DB.Fetch(obj).flags & INTERNAL != 0:
+		case DB.Fetch(obj).IsFlagged(INTERNAL):
 			panic("Program already being edited.")
 		}
 

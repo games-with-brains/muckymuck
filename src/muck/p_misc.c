@@ -608,17 +608,17 @@ func prim_ignore_del(player, program ObjectID, mlev int, pc, arg *inst, top *int
 }
 
 func prim_debug_on(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
-	DB.Fetch(program).flags |= DARK
+	DB.Fetch(program).FlagAs(DARK)
 	DB.Fetch(program).Touch()
 }
 
 func prim_debug_off(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
-	DB.Fetch(program).flags &= ~DARK
+	DB.Fetch(program).ClearFlags(DARK)
 	DB.Fetch(program).Touch()
 }
 
 func prim_debug_line(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
-	if DB.Fetch(program).flags & DARK == 0 && controls(player, program) {
+	if !DB.Fetch(program).IsFlagged(DARK) && controls(player, program) {
 		notify_nolisten(player, debug_inst(fr, 0, pc, fr.pid, arg, buf, sizeof(buf), *top, program), true)
 	}
 }

@@ -120,7 +120,7 @@ func mfn_contents(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp
 		ownroom := controls(perms, obj)
 		var items []string
 		for obj = DB.Fetch(obj).Contents; obj != NOTHING; obj = DB.Fetch(obj).next {
-			if (T == NOTYPE || Typeof(obj) == T) && (ownroom || controls(perms, obj) || !(DB.Fetch(obj).flags & DARK != 0 || DB.Fetch(DB.Fetch(obj).Location).flags & DARK != 0 || (Typeof(obj) == TYPE_PROGRAM && DB.Fetch(obj).flags & LINK_OK == 0))) && !(Typeof(obj) == TYPE_ROOM && T != TYPE_ROOM) {
+			if (T == NOTYPE || Typeof(obj) == T) && (ownroom || controls(perms, obj) || !(DB.Fetch(obj).IsFlagged(DARK) || DB.Fetch(DB.Fetch(obj).Location).IsFlagged(DARK) || (IsProgram(obj) && !DB.Fetch(obj).IsFlagged(LINK_OK)))) && !(IsRoom(obj) && !IsRoom(T)) {
 				items = append(items, ref2str(obj))
 			}
 		}
@@ -598,9 +598,9 @@ func mfn_awake(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp in
 	case PERMDENIED, AMBIGUOUS, UNKNOWN, NOTHING, HOME:
 	default:
 		switch {
-		case Typeof(obj) == TYPE_THING && DB.Fetch(obj).flags & ZOMBIE != 0:
+		case IsThing(obj) && DB.Fetch(obj).IsFlagged(ZOMBIE):
 			obj = DB.Fetch(obj).Owner
-		case Typeof(obj) != TYPE_PLAYER:
+		case !IsPlayer(obj):
 		default:
 			r = fmt.Sprint(online(obj)) 
 		}
@@ -753,7 +753,7 @@ func mfn_muf(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int)
 		ABORT_MPI("MUF", "Match failed.")
 	case obj <= NOTHING || TYPEOF(obj) != TYPE_PROGRAM:
 		ABORT_MPI("MUF", "Bad program reference.")
-	case DB.Fetch(obj).flags & LINK_OK == 0 && !controls(perms, obj):
+	case !DB.Fetch(obj).IsFlagged(LINK_OK) && !controls(perms, obj):
 		ABORT_MPI("MUF", "Permission denied.")
 	case mesgtyp & (MPI_ISLISTENER | MPI_ISLOCK) && MLevel(obj) < MASTER:
 		ABORT_MPI("MUF", "Permission denied.")
@@ -797,13 +797,13 @@ func mfn_force(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp in
 		}
 		if mesgtyp & MPI_ISBLESSED == 0 {
 			loc := DB.Fetch(obj).Location
-			if Typeof(obj) == TYPE_THING {
+			if IsThing(obj) {
 				switch {
-				case DB.Fetch(obj).flags & DARK != 0:
+				case DB.Fetch(obj).IsFlagged(DARK):
 					ABORT_MPI("FORCE", "Cannot force a dark puppet.")
-				case DB.Fetch(obj).flags & ZOMBIE != 0:
+				case DB.Fetch(obj).IsFlagged(ZOMBIE):
 					ABORT_MPI("FORCE", "Permission denied.")
-				case loc != NOTHING && DB.Fetch(loc).flags & ZOMBIE != 0 && Typeof(loc) == TYPE_ROOM:
+				case loc != NOTHING && DB.Fetch(loc).IsFlagged(ZOMBIE) && IsRoom(loc):
 					ABORT_MPI("FORCE", "Cannot force a Puppet in a no-puppets room.")
 				}
 				objname := strings.TrimSpace(DB.Fetch(obj).name)
@@ -812,7 +812,7 @@ func mfn_force(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp in
 				}
 			}
 			switch {
-			case DB.Fetch(obj).flags & XFORCIBLE == 0:
+			case !DB.Fetch(obj).IsFlagged(XFORCIBLE):
 				ABORT_MPI("FORCE", "Permission denied: forced object not @set Xforcible.")
 			case !test_lock_false_default(descr, perms, obj, "@/flk"):
 				ABORT_MPI("FORCE", "Permission denied: Object not force-locked to trigger.")
