@@ -437,7 +437,7 @@ func mfn_rand(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int
 		if num == 0 {
 			ABORT_MPI("RAND", "Failed list read.")
 		}
-		if r, blessed = get_list_item(what, obj, perms, pname, (((RANDOM() / 256) % num) + 1), mesgtyp); r == "" {
+		if r, blessed = get_list_item(what, obj, perms, pname, (((rand.Int() / 256) % num) + 1), mesgtyp); r == "" {
 			ABORT_MPI("RAND", "Failed list read.")
 		}
 		trg := what
@@ -904,7 +904,7 @@ func mfn_dice(descr int, player, what, perms ObjectID, argv MPIArgs, mesgtyp int
 		return "0"
 	}
 	for ; num > 0; num-- {
-		total += (((RANDOM() / 256) % sides) + 1)
+		total += (((rand.Int() / 256) % sides) + 1)
 	}
 	return fmt.Sprint(total + offset)
 }

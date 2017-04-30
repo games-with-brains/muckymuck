@@ -194,7 +194,7 @@ func gui_pkg_callback(mfr *McpFrame, msg *McpMesg, ver McpVer, context interface
 
 func gui_dlog_alloc(int descr, Gui_CB callback, GuiErr_CB error_cb, void *context) string {
 	for {
-		tmpid = fmt.Sprintf("%08lX", RANDOM())
+		tmpid = fmt.Sprintf("%08lX", rand.Int())
 		if !gui_dlog_find(tmpid) {
 			break
 		}

@@ -60,9 +60,6 @@
 /* ssl headers are under openssl dir. */
 /* #undef HAVE_OPENSSL */
 
-/* Define to 1 if you have the `random' function. */
-#define HAVE_RANDOM 1
-
 /* Define to 1 if you have the <stdarg.h> header file. */
 #define HAVE_STDARG_H 1
 

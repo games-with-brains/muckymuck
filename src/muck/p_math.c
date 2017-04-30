@@ -350,7 +350,7 @@ func prim_greateq(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 
 func prim_random(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	CHECKOFLOW(1)
-	push(arg, top, RANDOM())
+	push(arg, top, rand.Int())
 }
 
 func prim_srand(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {

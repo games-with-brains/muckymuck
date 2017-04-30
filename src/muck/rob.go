@@ -49,7 +49,7 @@ func do_kill(descr int, player ObjectID, what string, cost int) {
 		notify(player, "They don't want to be killed.")
 	case !payfor(player, cost):
 		notify_fmt(player, "You don't have enough %s.", tp_pennies)
-	case RANDOM() % tp_kill_base_cost < cost && !Wizard(DB.Fetch(victim).Owner):
+	case rand.Int() % tp_kill_base_cost < cost && !Wizard(DB.Fetch(victim).Owner):
 		/* you killed him */
 		if get_property_class(victim, MESGPROP_DROP) {
 			notify(player, get_property_class(victim, MESGPROP_DROP))

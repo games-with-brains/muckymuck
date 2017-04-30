@@ -268,7 +268,7 @@ func init_game(infile, outfile string) int {
 	db_free()
 	init_primitives()				/* init muf compiler */
 	mesg_init()						/* init mpi interpreter */
-	SRANDOM(os.Getpid())			/* init random number generator */
+	rand.Seed(time.Now().UnixNano())		/* init random number generator */
 	Tuneables.Load(PARMFILE_NAME, NOTHING)	/* load @tune parms from file */
 
 	/* ok, read the db in */

@@ -418,7 +418,7 @@ var pwdchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 func rand_password() (password string) {
 	charslen := len(pwdchars)
 	for loop := 0; loop < 16; loop++ {
-		password = append(password, pwdchars[(RANDOM() >> 8) % charslen])
+		password = append(password, pwdchars[(rand.Int() >> 8) % charslen])
 	}
 	return
 }

@@ -292,7 +292,7 @@ func enter_room(descr int, player, loc, exit ObjectID) {
 
 	if tp_penny_rate != 0 {
 		/* check for pennies */
-		if !controls(player, loc) && get_property_value(p.Owner, MESGPROP_VALUE) <= tp_max_pennies && RANDOM() % tp_penny_rate == 0 {
+		if !controls(player, loc) && get_property_value(p.Owner, MESGPROP_VALUE) <= tp_max_pennies && rand.Int() % tp_penny_rate == 0 {
 			notify_fmt(player, "You found one %s!", tp_penny)
 			add_property(p.Owner, MESGPROP_VALUE, nil, get_property_value(p.Owner, MESGPROP_VALUE) + 1)
 			DB.Fetch(p.Owner).Touch()

@@ -70,6 +70,10 @@ func NewMatchRemote(descr int, player, what ObjectID, name string, type_checker 
 	return
 }
 
+func choose_at_random(x ...interface{}) interface{} {
+	return x[rand.Intn(len(x))]
+}
+
 func (m *Match) EitherOf(thing1, thing2 ObjectID) (r ObjectID) {
 	switch {
 	case thing1 == NOTHING:
@@ -83,24 +87,16 @@ func (m *Match) EitherOf(thing1, thing2 ObjectID) (r ObjectID) {
 	case m.check_keys:
 		has1 := could_doit(m.descr, m.who, thing1)
 		has2 := could_doit(m.descr, m.who, thing2)
-
 		switch {
 		case has1 && !has2:
 			r = thing1
 		case has2 && !has1:
 			r = thing2
-		}
-		if RANDOM() % 2 == 0 {
-			r = thing1
-		} else {
-			r = thing2
+		default:
+			r = choose_at_random(thing1, thing2).(ObjectID)
 		}
 	default:
-		if RANDOM() % 2 == 0 {
-			r = thing1
-		} else {
-			r = thing2
-		}
+		r = choose_at_random(thing1, thing2).(ObjectID)
 	}
 	return
 }

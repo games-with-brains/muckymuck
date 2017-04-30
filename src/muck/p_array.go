@@ -424,7 +424,7 @@ func prim_array_reverse(player, program ObjectID, mlev int, pc, arg *inst, top *
 }
 
 func sortcomp_shuffle(x, y interface{}) int {
-	return (((RANDOM() >> 8) % 5) - 2)
+	return (((rand.Int() >> 8) % 5) - 2)
 }
 
 /* Sort types:

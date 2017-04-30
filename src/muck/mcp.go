@@ -437,7 +437,7 @@ func mcp_frame_output_mesg(McpFrame * mfr, McpMesg * msg) int {
 	/* If the message is multi-line, make sure it has a _data-tag field. */
 	var datatag string
 	if mlineflag {
-		datatag = fmt.Sprintf("%.8lX", (unsigned long)(RANDOM() ^ RANDOM()))
+		datatag = fmt.Sprintf("%.8lX", rand.Uint64() ^ rand.Uint64())
 		outbuf += fmt.Sprintf(" %s: %s", MCP_DATATAG, datatag)
 	}
 
@@ -724,7 +724,7 @@ func mcp_basic_handler(mfr *McpFrame, mesg *McpMesg, dummy interface{}) {
 			reply := &McpMesg{ package: MCP_INIT_PKG }
 			mcp_mesg_arg_append(&reply, "version", "2.1")
 			mcp_mesg_arg_append(&reply, "to", "2.1")
-			authval := fmt.Sprintf("%.8lX", (unsigned long)(RANDOM() ^ RANDOM()))
+			authval := fmt.Sprintf("%.8lX", rand.Uint64() ^ rand.Uint64())
 			mcp_mesg_arg_append(&reply, "authentication-key", authval)
 			mfr.authkey = authval
 			mcp_frame_output_mesg(mfr, &reply)
