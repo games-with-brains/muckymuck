@@ -186,12 +186,7 @@ func prim_fork(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *
 		scopedvar_dupall(tmpfr, fr)
 
 		tmpfr.error.is_flags = fr.error.is_flags
-		if fr.rndbuf != nil {
-			tmpfr.rndbuf = (void *) malloc(sizeof(unsigned long) * 4)
-			memcpy(tmpfr.rndbuf, fr.rndbuf, 16)
-		} else {
-			tmpfr.rndbuf = nil
-		}
+		tmpfr.Rand = fr.Rand
 		tmpfr.pc = pc
 		tmpfr.pc++
 		tmpfr.level = fr.level

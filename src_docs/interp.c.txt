@@ -14,7 +14,7 @@ fr->watchers: Array of processes that are watching for our termination.
 			  watchees lists.
 
 prog_clean(struct frame *fr)
-Calls: watchpid_process, delete_seed, muf_dlog_purge, dequeue_timers
+Calls: watchpid_process, muf_dlog_purge, dequeue_timers
 Called by: 
 mufevent.c:	static muf_event_process_free, muf_event_dequeue,
 			muf_event_process

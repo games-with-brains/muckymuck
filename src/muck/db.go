@@ -482,55 +482,100 @@ type Mark struct {}
 	#define STD_HARDUID 2
 
 	/* frame data structure necessary for executing programs */
-	struct frame {
-		next *frame
-		system *sysstack			/* system stack */
-		argument stack				/* argument stack */
-		caller callstack			/* caller prog stack */
-		forstack					/* for loop stack */
-		trys trystack				/* try block stack */
-		lvars *localvars			/* local variables */
-		variables vars				/* global variables */
-		pc *inst					/* next executing instruction */
-		writeonly bool				/* This program should not do reads */
-		multitask int				/* This program's multitasking mode */
-		timercount int				/* How many timers currently exist. */
-		level int					/* prevent interp call loops */
-		perms int					/* permissions restrictions on program */
-		already_created bool		/* this prog already created an object */
-		been_background bool		/* this prog has run in the background */
-		skip_declare bool			/* tells interp to skip next scoped var decl */
-		wantsblanks bool 			/* specifies program will accept blank READs */
-		trig ObjectID					/* triggering object */
-		started long				/* When this program started. */
-		instcnt						/* How many instructions have run. */
-		pid int						/* what is the process id? */
-		errorstr string				/* the error string thrown */
-		errorinst string			/* the instruction name that threw an error */
-		errorprog ObjectID				/* the program that threw an error */
-		errorline int				/* the program line that threw an error */
-		descr int					/* what is the descriptor that started this? */
-		rndbuf interface{}			/* buffer for seedable random */
-		svars *Scope				/* Variables with function scoping. */
+type frame struct {
+	next *frame
+	system *sysstack			/* system stack */
+	argument stack				/* argument stack */
+	caller callstack			/* caller prog stack */
+	forstack					/* for loop stack */
+	trys trystack				/* try block stack */
+	lvars *localvars			/* local variables */
+	variables vars				/* global variables */
+	pc *inst					/* next executing instruction */
+	writeonly bool				/* This program should not do reads */
+	multitask int				/* This program's multitasking mode */
+	timercount int				/* How many timers currently exist. */
+	level int					/* prevent interp call loops */
+	perms int					/* permissions restrictions on program */
+	already_created bool		/* this prog already created an object */
+	been_background bool		/* this prog has run in the background */
+	skip_declare bool			/* tells interp to skip next scoped var decl */
+	wantsblanks bool 			/* specifies program will accept blank READs */
+	trig ObjectID					/* triggering object */
+	started long				/* When this program started. */
+	instcnt						/* How many instructions have run. */
+	pid int						/* what is the process id? */
+	errorstr string				/* the error string thrown */
+	errorinst string			/* the instruction name that threw an error */
+	errorprog ObjectID				/* the program that threw an error */
+	errorline int				/* the program line that threw an error */
+	descr int					/* what is the descriptor that started this? */
+	rand.Rand
+	seed int64
+	svars *Scope				/* Variables with function scoping. */
 
-		brkpt debuggerdata			/* info the debugger needs */
-		proftime time.Duration		/* profiling timing code */
-	    totaltime time.Duration		/* profiling timing code */
-		events *mufevent			/* MUF event list. */
-		dlogids *dlogidlist			/* List of dlogids this frame uses. */
-		waiters *mufwatchpidlist
-		waitees *mufwatchpidlist
-		error union {
-			error_flags struct {
-				div_zero bool	/* Divide by zero */
-				nan bool		/* Result would not be a number */
-				imaginary bool	/* Result would be imaginary */
-				f_bounds bool	/* Float boundary error */
-				i_bounds bool	/* Integer boundary error */
-			}
-			is_flags bool
+	brkpt debuggerdata			/* info the debugger needs */
+	proftime time.Duration		/* profiling timing code */
+    totaltime time.Duration		/* profiling timing code */
+	events *mufevent			/* MUF event list. */
+	dlogids *dlogidlist			/* List of dlogids this frame uses. */
+	waiters *mufwatchpidlist
+	waitees *mufwatchpidlist
+	error union {
+		error_flags struct {
+			div_zero bool	/* Divide by zero */
+			nan bool		/* Result would not be a number */
+			imaginary bool	/* Result would be imaginary */
+			f_bounds bool	/* Float boundary error */
+			i_bounds bool	/* Integer boundary error */
 		}
+		is_flags bool
 	}
+}
+
+func (f *frame) SetSeed(s interface{}) {
+	switch s := s.(type) {
+	case nil:
+		f.SetSeed(time.Now().UnixNano())
+	case string:
+		f.SetSeed(([]byte)(s))
+	case []byte:
+		var b []byte
+		switch l := len(s) {
+		case l == 0:
+			b = make([]byte, 16)
+			rand.Read(b)
+		case l < len(v):
+			b = make([]byte, 16)
+			for l--; l < 16; l += len(s) {
+				copy(b[l:], s)
+			}
+		default:
+			copy(b, s)
+		}
+		fr.seed = 0
+		for i, v := range b[:8] {
+			fr.seed |= (v - 65) & 0x0F << i * 8
+		}
+		for i, v := range b[8:] {
+			fr.seed |= (v - 65) & 0x0F << (i * 8) + 4
+		}
+	case int:
+		f.SetSeed(int64(s))
+	case int64:
+		f.seed = s
+	}
+	f.Rand = rand.New(rand.NewSource(f.seed))
+}
+
+func (f *frame) GetSeed() (a []byte) {
+	a = make([]byte, 0, 16)
+	for i := 0; i < 56; i += 8 {
+		a = append(a, (fr.seed & (0x0F << i)) >> i)
+	}
+	return
+}
+
 
 type PublicAPI struct {
 	subname string

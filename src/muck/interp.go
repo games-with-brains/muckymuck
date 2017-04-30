@@ -282,9 +282,6 @@ func interp(int descr, ObjectID player, ObjectID location, ObjectID program, Obj
 
 	fr.errorprog = NOTHING
 
-	fr.rndbuf = nil
-	fr.dlogids = nil
-
 	fr.argument.top = 0
 	fr.pc = DB.Fetch(program).(Program).start
 	fr.writeonly = source == -1 || IsRoom(source) || (IsPlayer(source) && !online(source))) || DB.Fetch(player).IsFlagged(READMODE)
@@ -573,9 +570,7 @@ func prog_clean(fr *frame) {
 		if fr.brkpt.proglines {
 			fr.brkpt.proglines = nil
 		}
-		if fr.rndbuf {
-			delete_seed(fr.rndbuf)
-		}
+		fr.Source = nil
 		muf_dlog_purge(fr)
 		dequeue_timers(fr.pid, nil)
 		fr.events = nil

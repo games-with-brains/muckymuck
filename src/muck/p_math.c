@@ -267,6 +267,8 @@ func prim_equal(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr 
 				ok = r == l
 			case objref:
 				ok = r == l
+			default:
+				panic(r)
 			}
 		case int:
 			switch r := op[1].(type) {
@@ -276,6 +278,8 @@ func prim_equal(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr 
 				ok = r == l
 			case objref:
 				ok = r == l
+			default:
+				panic(r)
 			}
 		}
 		return
@@ -293,6 +297,8 @@ func prim_lesseq(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 				ok = r <= l
 			case objref:
 				ok = r <= l
+			default:
+				panic(r)
 			}
 		case int:
 			switch r := op[1].(type) {
@@ -302,6 +308,8 @@ func prim_lesseq(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 				ok = r <= l
 			case objref:
 				ok = r <= l
+			default:
+				panic(r)
 			}
 		}
 		return
@@ -319,6 +327,8 @@ func prim_greateq(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 				ok = r >= l
 			case objref:
 				ok = r >= l
+			default:
+				panic(r)
 			}
 		case int:
 			switch r := op[1].(type) {
@@ -328,7 +338,11 @@ func prim_greateq(player, program ObjectID, mlev int, pc, arg *inst, top *int, f
 				ok = r >= l
 			case ObjectID:
 				ok = r >= l
+			default:
+				panic(r)
 			}
+		default:
+			panic(l)
 		}
 		return
 	})
@@ -342,59 +356,28 @@ func prim_random(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr
 func prim_srand(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
-		if fr.rndbuf == nil {
-			fr.rndbuf = init_seed(nil)
+		if fr.seed == nil {
+			fr.SetSeed(nil)
 		}
-		push(arg, top, int(rnd(fr.rndbuf)))
+		push(arg, top, fr.Rand.Int())
 	})
 }
 
 func prim_getseed(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(0, top, func(op Array) {
 		CHECKOFLOW(1)
-		if fr.rndbuf == nil {
-			push(arg, top, "")
-		} else {
-			buf2 := make([]byte, 16)
-			copy(buf2, fr.rndbuf)
-			buf := make([]byte, 32)
-			for loop := 0; loop < 16; loop++ {
-				buf[loop * 2] = (buf2[loop] & 0x0F) + 65
-				buf[(loop * 2) + 1] = ((buf2[loop] & 0xF0) >> 4) + 65
-			}
-			push(arg, top, buf)
+		a := make([]byte, 0, 32)
+		for i, v := range fr.GetSeed() {
+			a = append(a, (v & 0x0F) + 65)
+			a = append(((v & 0xF0) >> 4) + 65)
 		}
+		push(arg, top, a)
 	})
 }
 
 func prim_setseed(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *frame) {
 	apply_primitive(1, top, func(op Array) {
-		if data, ok := op[0].(string); ok {
-			if fr.rndbuf != nil {
-				delete_seed(fr.rndbuf)
-				fr.rndbuf = nil
-			}
-			if len(data) == 0 {
-				fr.rndbuf = init_seed(nil)
-			} else {
-				holdbuf := make([]byte, 32)
-				if slen := len(data); slen < 32 {
-					for sloop := 0; sloop < 32; sloop++ {
-						holdbuf[sloop] = data[sloop % slen]
-					}
-				} else {
-					copy(holdbuf, data)
-				}
-
-				buf := make([]byte, 16)
-				for sloop := 0; sloop < 16; sloop++ {
-					buf[sloop] = ((holdbuf[sloop * 2] - 65) & 0x0F) | (((holdbuf[(sloop * 2) + 1] - 65) & 0x0F) << 4)
-				}
-				fr.rndbuf = init_seed(buf)
-			}
-		} else {
-			panic("Invalid argument type.")
-		}
+		fr.SetSeed(op[0])
 	})
 }
 
@@ -410,7 +393,7 @@ func prim_int(player, program ObjectID, mlev int, pc, arg *inst, top *int, fr *f
 		case float64:
 			push(arg, top, int(data))
 		default:
-			panic("Invalid argument type.")
+			panic(data)
 		}
 	})
 }

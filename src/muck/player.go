@@ -1,5 +1,11 @@
 package fbmuck
 
+import(
+	"crypto/sha512"
+	"encoding/base64"
+	"fmt"
+)
+
 type Player struct {
 	Object
 	curr_prog ObjectID
@@ -24,25 +30,20 @@ func lookup_player(name string) (r ObjectID) {
 	return
 }
 
-func check_password(player ObjectID, password string) (ok bool) {
-	var md5buf string
-	processed := password
-	password := DB.FetchPlayer(player).password
-	if password == "" {
-		MD5base64(md5buf, "", 0)
-		processed = md5buf
-	} else {
-		if password != "" {
-			MD5base64(md5buf, password, len(password))
-			processed = md5buf
-		}
+func hash_for_storage(p string) (r string) {
+	if r = p; p != "" {
+		h := sha512.Sum512([]byte(password))
+		r = string(h[:])
 	}
-
-	switch {
-	case password == "", pword != processed:
-		ok = true
-	}
+	r = base64.StdEncoding.EncodeToString(r)
 	return
+}
+
+func check_password(player ObjectID, password string) (ok bool) {
+	if p := DB.FetchPlayer(player); p != nil {
+		ok = p.password == hash_for_storage(password)
+	}
+	return 
 }
 
 func set_password_raw(player ObjectID, password string) {
@@ -52,13 +53,7 @@ func set_password_raw(player ObjectID, password string) {
 }
 
 func set_password(player ObjectID, password string) {
-	var md5buf string
-	processed := password
-	if password != "" {
-		MD5base64(md5buf, password, len(password))
-		processed = md5buf
-	}
-	set_password_raw(player, processed)
+	set_password_raw(player, hash_for_storage(password))
 }
 
 func connect_player(name, password string) (r ObjectID) {
